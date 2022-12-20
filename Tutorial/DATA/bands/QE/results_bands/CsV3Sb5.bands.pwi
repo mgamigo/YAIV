@@ -1,0 +1,58 @@
+&CONTROL
+  calculation='bands'
+  restart_mode='from_scratch',
+  prefix='CsV3Sb5',
+  pseudo_dir = '/zfs_data/vergnior/martin/Scratch/CsV3Sb5/P6mmm/bands/pseudo',
+  outdir='/zfs_data/vergnior/martin/Scratch/CsV3Sb5/P6mmm/bands/tmp',
+  verbosity='high'
+ /
+&SYSTEM
+  noncolin=.true.
+  lspinorb=.true.
+  ibrav=0,
+  nat=9,
+  ntyp=3,
+  ecutwfc=90,
+  ecutrho=900,
+  occupations='smearing',
+  smearing='mp',
+  degauss=0.02,
+ /
+&ELECTRONS
+  conv_thr =  1d-10
+  mixing_beta = 0.7
+  diagonalization = 'cg'
+ /
+ATOMIC_SPECIES
+Cs  132.905    Cs.rel-pbe-spn-kjpaw_psl.1.0.0.UPF
+V   50.941     V.rel-pbe-spnl-kjpaw_psl.1.0.0.UPF
+Sb  121.76     Sb.rel-pbe-n-kjpaw_psl.1.0.0.UPF
+ATOMIC_POSITIONS {crystal}
+Cs            0.0000000000        0.0000000000       -0.0000000000
+V             0.5000000000       -0.0000000000        0.5000000000
+V            -0.0000000000        0.5000000000        0.5000000000
+V             0.5000000000        0.5000000000        0.5000000000
+Sb           -0.0000000000       -0.0000000000        0.5000000000
+Sb            0.3333333333       -0.3333333333        0.7301451153
+Sb           -0.3333333333        0.3333333333        0.7301451153
+Sb            0.3333333333       -0.3333333333       -0.7301451153
+Sb           -0.3333333333        0.3333333333       -0.7301451153
+K_POINTS { crystal_b }
+12
+0.00000 0.00000 0.00000    100
+0.50000 0.00000 0.00000    100
+0.33333 0.33333 0.00000    100
+0.00000 0.00000 0.00000    100
+0.00000 0.00000 0.50000    100
+0.50000 0.00000 0.50000    100
+0.33333 0.33333 0.50000    100
+0.00000 0.00000 0.50000    1
+0.50000 0.00000 0.50000    100
+0.50000 0.00000 0.00000    1
+0.33333 0.33333 0.00000    100
+0.33333 0.33333 0.50000    1
+
+CELL_PARAMETERS {angstrom}
+  5.5036918475 	0.0000000000 	0.0000000000
+ -2.7518459237 	4.7663369545 	0.0000000000
+  0.0000000000 	0.0000000000 	9.8777538894

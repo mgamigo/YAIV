@@ -1,0 +1,91 @@
+&TB_FILE
+Hrfile = '../results_wannier90/CsV3Sb5_hr.dat'
+Package = 'QE'             ! obtained from VASP, it could be 'VASP', 'QE', 'Wien2k', 'OpenMx'
+/
+
+LATTICE			   ! crystal lattice information
+Angstrom
+     5.4556381202251076    0.0000000000000000    0.0000000000000000
+    -2.7278190628674039    4.7247212059621155   -0.0000000000000000
+     0.0000000000000000   -0.0000000000000000    9.3657660198996275
+
+ATOM_POSITIONS
+9                               ! number of atoms for projectors
+Direct                          ! Direct or Cartisen coordinate
+Cs            0.0000000000       -0.0000000000        0.0000000000
+V             0.5000000000        0.0000000000        0.5000000000
+V             0.0000000000        0.5000000000        0.5000000000
+V             0.5000000000        0.5000000000        0.5000000000
+Sb            0.0000000000        0.0000000000        0.5000000000
+Sb            0.3333333333       -0.3333333333        0.7421674125
+Sb           -0.3333333333        0.3333333333        0.7421674125
+Sb            0.3333333333       -0.3333333333       -0.7421674125
+Sb           -0.3333333333        0.3333333333       -0.7421674125
+
+PROJECTORS
+ 0 5 5 5 3 3 3 3 3
+Cs
+V  dz2 dxz dyz dx2-y2 dxy
+V  dz2 dxz dyz dx2-y2 dxy
+V  dz2 dxz dyz dx2-y2 dxy
+Sb px py pz
+Sb px py pz
+Sb px py pz
+Sb px py pz
+Sb px py pz
+
+&CONTROL
+!> bulk band structure calculation flag
+BulkBand_calc         = T
+FindNodes_calc        = F
+BulkFS_calc           = T
+BulkFS_plane_calc     = F
+BulkGap_cube_calc     = F
+BulkGap_plane_calc    = F
+SlabBand_calc         = F
+WireBand_calc         = F
+SlabSS_calc           = F
+SlabArc_calc          = F
+SlabSpintexture_calc  = F
+Wanniercenter_calc    = F
+MirrorChern_calc      = F
+BerryPhase_calc       = F
+BerryCurvature_calc   = F
+EffectiveMass_calc    = F
+Translate_to_WS_calc  = F
+WeylChirality_calc    = F
+AHC_calc= F
+/
+
+&SYSTEM
+!NSLAB = 10 
+NumOccupied = 32   		! NumOccupied
+SOC = 1                 ! soc
+E_FERMI = 8.4871        ! e-fermi
+!Bx= 0, By= 0, Bz= 0     ! Bx By Bz
+!surf_onsite= 0.00        ! surf_onsite
+/
+
+&PARAMETERS
+!OmegaNum =  1000      ! omega number       
+!OmegaMin =-1.5 ! 0.2 ! -0.65    ! energy interval
+!OmegaMax = 1.5 ! 0.2    ! energy interval
+Nk1 = 100         ! number k points 
+Nk2 = 100         ! number k points 
+Nk3 = 50        ! number k points 
+!NP = 2              ! number of principle layers
+!Gap_threshold = 0.000001 ! threshold for GapCube output
+/
+
+KPATH_BULK            ! k point path
+9              ! number of k line only for bulk band
+GM   0.000   0.000   0.000          M   0.500   0.000   0.000
+M   0.500   0.000   0.000           K   0.33333333  0.33333333  0.000 
+K   0.33333333  0.33333333  0.000   GM   0.000   0.000   0.000
+GM   0.000   0.000   0.000          A   0.000   0.000   0.500
+A   0.000   0.000   0.500           L   0.500   0.000   0.500
+L   0.500   0.000   0.500           H   0.33333333  0.33333333  0.500
+H   0.33333333  0.33333333  0.500   A   0.000   0.000   0.500 
+L   0.500   0.000   0.500           M   0.500   0.000   0.000
+K   0.33333333  0.33333333  0.000   L   0.33333333  0.33333333  0.500
+

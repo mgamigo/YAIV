@@ -1,0 +1,667 @@
+ -----------------------------------------------------------------------
+  W            W            W              TTTTTTTTTTTTTTTTTTTT         
+   W          W W          W                        TT                  
+    W        W   W        W                         TT                  
+     W      W     W      W                          TT                  
+      W    W       W    W                           TT                  
+       W  W         W  W                            TT                  
+        WW           WW                             TT                  
+        W             W                             TT                  
+                                                                        
+                        Welcome to WannierTools.                       
+                             Version 2.6.0     
+                   Tools for novel topological materials.               
+                          Enjoy it and good luck.                       
+                           Author : QuanSheng Wu                        
+                        Email : wuquansheng@gmail.com                   
+               Find more information on www.wanniertools.com            
+ =======================================================================
+                                                                        
+ You are using     6 CPU cores
+  
+   
+ >>>Read some paramters from wt.in
+ You are using : TB     model
+ Tight-binding Hamiltonian FROM: Hr File
+ Is_Sparse_Hr=  F
+ Tight-binding Hamiltonian filename: ../results_wannier90/CsV3
+ System of particle: electron                 
+ Tight-binding Hamiltonian obtained from : QE                       
+   
+ >>>Control parameters: 
+ BulkBand_line_calc                :  T
+ BulkBand_plane_calc               :  F
+ Landaulevel_unfold_line_calc      :  F
+ BulkBand_unfold_line_calc         :  F
+ BulkBand_unfold_plane_calc        :  F
+ BulkFatBand_calc                  :  F
+ BulkBand_cube_calc                :  F
+ BulkFS_calc                       :  T
+ BulkFS_Plane_calc                 :  F
+ BulkFS_plane_stack_calc           :  F
+ BulkGap_cube_calc                 :  F
+ BulkGap_plane_calc                :  F
+ SlabBand_calc                     :  F
+ SlabBandWaveFunc_calc             :  F
+ SlabSS_calc                       :  F
+ SlabArc_calc                      :  F
+ SlabSpintexture_calc              :  F
+ wanniercenter_calc                :  F
+ BerryPhase_calc                   :  F
+ BerryCurvature_calc               :  F
+ BerryCurvature_Cube_calc          :  F
+ BerryCurvature_slab_calc          :  F
+ Dos_calc                          :  F
+ Z2_3D_calc                        :  F
+ WeylChirality_calc                :  F
+ NLChirality_calc                  :  F
+ Chern_3D_calc                     :  F
+ MirrorChern_calc                  :  F
+ JDos_calc                         :  F
+ FindNodes_calc                    :  F
+ EffectiveMass_calc                :  F
+ AHC_calc                          :  F
+ Boltz_OHE_calc                    :  F
+ Boltz_Berry_correction            :  F
+ LOTO_correction                   :  F
+ OrbitalTexture_calc               :  F
+ OrbitalTexture_3D_calc            :  F
+ LandauLevel_k_calc                :  F
+ LandauLevel_B_calc                :  F
+ LandauLevel_wavefunction_calc     :  F
+ Fit_kp_calc                       :  F
+ DMFT_MAG_calc                     :  F
+ Translate_to_WS_calc              :  F
+ LandauLevel_kplane_calc           :  F
+ LandauLevel_k_dos_calc            :  F
+ LandauLevel_B_dos_calc            :  F
+ FermiLevel_calc                   :  F
+ ChargeDensity_selected_bands_calc :  F
+ ChargeDensity_selected_energies_calc :  F
+   
+ >>>System parameters: 
+ NumSlabs :    10
+ Nslab1 for ribbon  :     1
+ Nslab2 for ribbon  :     1
+ Number of Occupied bands:    32
+ Number of total electrons:   32.000000
+ With SOC or not in Hrfile:     1
+ Fermi energy (eV) :        8.487100
+ surf_onsite (eV):         0.000000
+ Add_Zeeman_Field: F
+ Zeeman_energy_in_eV (eV):         0.000000
+ Electric_field_in_eVpA (eV/Angstrom):         0.000000
+ Symmetrical_Electric_field_in_eVpA (eV/Angstrom):         0.000000
+ Inner_symmetrical_Electric_Field: F
+ ijmax :    10
+   
+ **Notes**: There are two ways to specify magnetic field.
+ 1. specify Bmagnitude, Btheta, Bphi
+ 2. specify Bx, By, Bz
+ Bmagnitude, Bx, By, Bz are real numbers in unit of Tesla. and Bx, By, Bz 
+ are in the cartesian coordinates. Btheta is the angle with z axial 
+  and Bphi is the angle with respect to x axial in the x-y plane
+  Btheta is in [0, 180], Bphi is in [0, 360).
+ If you specify both of them together, we will choose the first one.
+ If choose the first one, but not specify Btheta, Bphi, then 
+ by default we set Btheta=0, Bphi=0 which means B is along z direction.
+  
+  Warning: You didn't specify the magnitude of magnetic field.
+  
+ >>You did not specified the magnitude of magnetic field, 
+  and also didn't set Bx, By, Bz. So we will set the magnetic direction
+  from the settings of Btheta, Bphi.
+  If you even didn't set Btheta, Bphi, we will take the default value, 
+  Btheta=0, Bphi=0 which means B is along z direction
+ >>You didn't set Btheta, and we set it to 0.
+ >>You didn't set Bphi, and we set it to 0.
+ Bmagnitude (in Tesla) :        1.000000
+ Btheta, Bphi :        0.000000        0.000000
+ Bx, By, Bz (in Tesla) :        0.000000        0.000000        1.000000
+ B direction cosines :        0.000000        0.000000        1.000000
+   
+ >>>calculation parameters : 
+ E_arc :          0.00000
+ Eta_arc :          0.00100
+ Gap_threshold         0.01000
+ OmegaMin :         -1.00000
+ OmegaMax :          1.00000
+ OmegaNum :    100
+ OmegaNum_unfold :    200
+ Nk1 :    100
+ Nk2 :    100
+ Nk3 :     50
+ NP number of principle layers  :      2
+ Tmin(Kelvin)  :        100.00000
+ Tmax(Kelvin)  :        100.00000
+ NumT  :      1
+ NBTau  :      1
+ Beta  :        100.00000
+ Nslice_BTau_Max  :   5000
+ BTauMax(Tesla.ps)         0.00000
+ Relaxation_Time_Tau (ps)         1.00000
+ Rcut    999999.00000
+ Magp               1
+ Magp_min               0
+ Magp_max               1
+ wcc_calc_tol         0.08000
+ wcc_neighbour_tol         0.30000
+ NumLCZVecs   400
+ NumSelectedEigenVals     0
+ NumRandomConfs:     1
+ Projection weight mode:NORMAL              
+ The size of magnetic supercell is Magq= :      10
+  
+ We found LATTICE card
+>> lattice information (Angstrom)
+           a           b           c       alpha        beta       gamma
+    5.455638    5.455638    9.365766   90.000000   90.000000  120.000000
+ Three Lattice vectors of the unfolded cell: 
+    5.455638    0.000000    0.000000
+   -2.727819    4.724721   -0.000000
+    0.000000   -0.000000    9.365766
+>> Reciprocal lattice information (1/Angstrom)
+           a           b           c       alpha        beta       gamma
+    1.329853    1.329853    0.670867   90.000000   90.000000   60.000000
+ Three reciprocal lattice vectors of the primitive cell: 
+    1.151687    0.664927    0.000000
+   -0.000000    1.329853    0.000000
+   -0.000000    0.000000    0.670867
+  
+ We found ATOM_POSITIONS card
+Origin_cell%Num_atoms    9
+  
+ Warning: You didn't specify the atom magnetic moment in the ATOMIC_POSITION card Or the format is wrong. So we set all the Atom-magnetic-moments to zero.
+ 
+>> Atom position and magnetic moment of Original lattice
+                                         Catesian                  Fractional(Direct)         Magnetic moment
+------------------------------------------------------------------------------------------------------------------
+ index  Atom Name            x           y           z           a           b           c      Mx      My      Mz
+------------------------------------------------------------------------------------------------------------------
+     1  Cs            0.000000    0.000000    0.000000    0.000000    0.000000    0.000000   0.000   0.000   0.000
+     2  V             2.727819    0.000000    4.682883    0.500000    0.000000    0.500000   0.000   0.000   0.000
+     3  V            -1.363910    2.362361    4.682883    0.000000    0.500000    0.500000   0.000   0.000   0.000
+     4  V             1.363910    2.362361    4.682883    0.500000    0.500000    0.500000   0.000   0.000   0.000
+     5  Sb            0.000000    0.000000    4.682883    0.000000    0.000000    0.500000   0.000   0.000   0.000
+     6  Sb            2.727819   -1.574907    6.950966    0.333333   -0.333333    0.742167   0.000   0.000   0.000
+     7  Sb           -2.727819    1.574907    6.950966   -0.333333    0.333333    0.742167   0.000   0.000   0.000
+     8  Sb            2.727819   -1.574907   -6.950966    0.333333   -0.333333   -0.742167   0.000   0.000   0.000
+     9  Sb           -2.727819    1.574907   -6.950966   -0.333333    0.333333   -0.742167   0.000   0.000   0.000
+  
+ We found PROJECTORS card
+ >>Number of projectors per atoms:
+     0     5     5     5     3     3     3     3     3
+Cs      
+V       dz2     dxz     dyz     dx2-y2  dxy     
+V       dz2     dxz     dyz     dx2-y2  dxy     
+V       dz2     dxz     dyz     dx2-y2  dxy     
+Sb      px      py      pz      
+Sb      px      py      pz      
+Sb      px      py      pz      
+Sb      px      py      pz      
+Sb      px      py      pz      
+  
+ >> Wannier centers by default, in unit of unit lattice vectors
+ iwann        R1        R2        R3         x         y         z
+     1  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+     2  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+     3  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+     4  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+     5  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+     6  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+     7  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+     8  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+     9  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+    10  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+    11  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    12  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    13  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    14  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    15  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    16  0.000000  0.000000  0.500000  0.000000  0.000000  4.682883
+    17  0.000000  0.000000  0.500000  0.000000  0.000000  4.682883
+    18  0.000000  0.000000  0.500000  0.000000  0.000000  4.682883
+    19  0.333333 -0.333333  0.742167  2.727819 -1.574907  6.950966
+    20  0.333333 -0.333333  0.742167  2.727819 -1.574907  6.950966
+    21  0.333333 -0.333333  0.742167  2.727819 -1.574907  6.950966
+    22 -0.333333  0.333333  0.742167 -2.727819  1.574907  6.950966
+    23 -0.333333  0.333333  0.742167 -2.727819  1.574907  6.950966
+    24 -0.333333  0.333333  0.742167 -2.727819  1.574907  6.950966
+    25  0.333333 -0.333333 -0.742167  2.727819 -1.574907 -6.950966
+    26  0.333333 -0.333333 -0.742167  2.727819 -1.574907 -6.950966
+    27  0.333333 -0.333333 -0.742167  2.727819 -1.574907 -6.950966
+    28 -0.333333  0.333333 -0.742167 -2.727819  1.574907 -6.950966
+    29 -0.333333  0.333333 -0.742167 -2.727819  1.574907 -6.950966
+    30 -0.333333  0.333333 -0.742167 -2.727819  1.574907 -6.950966
+    31  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+    32  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+    33  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+    34  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+    35  0.500000  0.000000  0.500000  2.727819  0.000000  4.682883
+    36  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+    37  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+    38  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+    39  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+    40  0.000000  0.500000  0.500000 -1.363910  2.362361  4.682883
+    41  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    42  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    43  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    44  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    45  0.500000  0.500000  0.500000  1.363910  2.362361  4.682883
+    46  0.000000  0.000000  0.500000  0.000000  0.000000  4.682883
+    47  0.000000  0.000000  0.500000  0.000000  0.000000  4.682883
+    48  0.000000  0.000000  0.500000  0.000000  0.000000  4.682883
+    49  0.333333 -0.333333  0.742167  2.727819 -1.574907  6.950966
+    50  0.333333 -0.333333  0.742167  2.727819 -1.574907  6.950966
+    51  0.333333 -0.333333  0.742167  2.727819 -1.574907  6.950966
+    52 -0.333333  0.333333  0.742167 -2.727819  1.574907  6.950966
+    53 -0.333333  0.333333  0.742167 -2.727819  1.574907  6.950966
+    54 -0.333333  0.333333  0.742167 -2.727819  1.574907  6.950966
+    55  0.333333 -0.333333 -0.742167  2.727819 -1.574907 -6.950966
+    56  0.333333 -0.333333 -0.742167  2.727819 -1.574907 -6.950966
+    57  0.333333 -0.333333 -0.742167  2.727819 -1.574907 -6.950966
+    58 -0.333333  0.333333 -0.742167 -2.727819  1.574907 -6.950966
+    59 -0.333333  0.333333 -0.742167 -2.727819  1.574907 -6.950966
+    60 -0.333333  0.333333 -0.742167 -2.727819  1.574907 -6.950966
+ We didn't found LATTICE_UNFOLD card, so it is the same as the unit cell.
+>> Folded lattice information (Angstrom)
+           a           b           c       alpha        beta       gamma
+    5.455638    5.455638    9.365766   90.000000   90.000000  120.000000
+ Three Lattice vectors of unfolded cell: 
+    5.455638    0.000000    0.000000
+   -2.727819    4.724721   -0.000000
+    0.000000   -0.000000    9.365766
+>> Folded Reciprocal lattice information (1/Angstrom)
+           a           b           c       alpha        beta       gamma
+    1.329853    1.329853    0.670867   90.000000   90.000000   60.000000
+ Three reciprocal lattice vectors of unfolded cell: 
+    1.151687    0.664927    0.000000
+   -0.000000    1.329853    0.000000
+   -0.000000    0.000000    0.670867
+ 
+>> The relation between the original lattice and the unfolded lattice
+>> The cell volume ratio is:     1.000000
+>> The lattice constant a ratio is:     1.000000
+>> The lattice constant b ratio is:     1.000000
+>> The lattice constant c ratio is:     1.000000
+>> Origin_cell in unit of Folded_cell: R1      1.000000    0.000000    0.000000
+>> Origin_cell in unit of Folded_cell: R2      0.000000    1.000000    0.000000
+>> Origin_cell in unit of Folded_cell: R3      0.000000    0.000000    1.000000
+ 
+ 
+>>> Atom position and magnetic moment of Unfolded lattice
+                                         Catesian                  Fractional(Direct)         Magnetic moment
+------------------------------------------------------------------------------------------------------------------
+ index  Atom Name            x           y           z           a           b           c      Mx      My      Mz
+------------------------------------------------------------------------------------------------------------------
+     1  Cs            0.000000    0.000000    0.000000    0.000000    0.000000    0.000000   0.000   0.000   0.000
+     2  V             2.727819    0.000000    4.682883    0.500000    0.000000    0.500000   0.000   0.000   0.000
+     3  V            -1.363910    2.362361    4.682883    0.000000    0.500000    0.500000   0.000   0.000   0.000
+     4  V             1.363910    2.362361    4.682883    0.500000    0.500000    0.500000   0.000   0.000   0.000
+     5  Sb            0.000000    0.000000    4.682883    0.000000    0.000000    0.500000   0.000   0.000   0.000
+     6  Sb            2.727819   -1.574907    6.950966    0.333333   -0.333333    0.742167   0.000   0.000   0.000
+     7  Sb           -2.727819    1.574907    6.950966   -0.333333    0.333333    0.742167   0.000   0.000   0.000
+     8  Sb            2.727819   -1.574907   -6.950966    0.333333   -0.333333   -0.742167   0.000   0.000   0.000
+     9  Sb           -2.727819    1.574907   -6.950966   -0.333333    0.333333   -0.742167   0.000   0.000   0.000
+ Warnning: You didn't set SURFACE card, by default, it's (001) surface.
+ The 1st vector on surface     :    1.000000    0.000000    0.000000
+ The 2nd vector on surface     :    0.000000    1.000000    0.000000
+ The 3rd vector out of surface :    0.000000    0.000000    1.000000
+  
+ The rotated new unit cell in cartesian coordinates : 
+    5.455638    0.000000    0.000000
+   -2.727819    4.724721    0.000000
+    0.000000    0.000000    9.365766
+New cell's Volume is           35.77408Ang^3
+  
+ Fractional coordinates of atoms in units of new lattice vectors : 
+Cs      0.000000    0.000000    0.000000
+V       0.500000    0.000000    0.500000
+V       0.000000    0.500000    0.500000
+V       0.500000    0.500000    0.500000
+Sb      0.000000    0.000000    0.500000
+Sb      0.333333    0.666667    0.742167
+Sb      0.666667    0.333333    0.742167
+Sb      0.333333    0.666667    0.257833
+Sb      0.666667    0.333333    0.257833
+  
+ 
+ >> Top surface atom is      6 Sb        
+ 
+ 2D Primitive Cell_Volume:    25.776369118682858     
+ Ra2, Rb2
+    5.4556    0.0000
+   -2.7278    4.7247
+ Ka2, Kb2
+    1.1517    0.6649
+   -0.0000    1.3299
+>> lattice information of the magnetic supercell (Angstrom)
+    2.886999    0.000000    0.000000
+   -1.443500    2.500215    0.000000
+    0.000000    0.000000   49.561499
+>> Reciprocal lattice information of the magnetic supercell (1/Angstrom)
+    2.176372    1.256529   -0.000000
+    0.000000    2.513058    0.000000
+    0.000000   -0.000000    0.126776
+  
+3D Primitive Origin_cell%CellVolume:      35.77407762 in Angstrom^3
+3D Magnetic supercell Volume:     357.74077619 in Angstrom^3
+Projected area of magnetic supercell normal to the first vector specifed in SURFACE card:     442.50633324 in Angstrom^2
+  
+ We found KPATH_BULK card
+Number of K lines :     9
+ GM     0.0000   0.0000   0.0000  M       0.5000   0.0000   0.0000
+ M      0.5000   0.0000   0.0000  K       0.3333   0.3333   0.0000
+ K      0.3333   0.3333   0.0000  GM      0.0000   0.0000   0.0000
+ GM     0.0000   0.0000   0.0000  A       0.0000   0.0000   0.5000
+ A      0.0000   0.0000   0.5000  L       0.5000   0.0000   0.5000
+ L      0.5000   0.0000   0.5000  H       0.3333   0.3333   0.5000
+ H      0.3333   0.3333   0.5000  A       0.0000   0.0000   0.5000
+ L      0.5000   0.0000   0.5000  M       0.5000   0.0000   0.0000
+ K      0.3333   0.3333   0.0000  L       0.3333   0.3333   0.5000
+ >> Kpoints plane for 2D system--> arcs  
+K2D_start: -0.5000 -0.5000
+The first vector:   1.0000  0.0000
+The second vector:   0.0000  1.0000
+ >> Kpoints plane for 3D system--> gapshape  
+k3D_start :   0.0000  0.0000  0.0000
+The 1st vector:   1.0000  0.0000  0.0000
+The 2nd vector:   0.0000  0.5000  0.0000
+ >> Kpoints cube for 3D system--> gapshape3D  
+k3D_start :  0.0000  0.0000  0.0000
+The 1st vector:   1.0000  0.0000  0.0000
+The 2nd vector:   0.0000  1.0000  0.0000
+The 3rd vector:   0.0000  0.0000  1.0000
+kCubeVolume:   1.0275
+ReciprocalOrigin_cell%CellVolume:   1.0275
+  
+  
+ >> Using default parameters for Kpoint_3D
+>> k points  0.0000 0.0000 0.0000 in unit of reciprocal primitive cell
+>> k points  0.0000 0.0000 0.0000 in Cartesian coordinates
+  
+ >> Using default parameters for effective mass calculation
+ >> Effective mass calculation parameters  
+>> The    32'th band
+>> k step  0.0100 in unit of 1/Angstrom
+>> k points  0.0000 0.0000 0.0000 in unit of reciprocal primitive cell
+>> k points  0.0000 0.0000 0.0000 in unit of 1/Angstrom
+  
+ >> We use the default values for k3points_pointmode_direct=[0,0,0]
+ >> and Nk3_point_mode = 1
+  
+ >> We use the default values for k3points_unfold_pointmode_direct=[0,0,0]
+ >> and Nk3_unfold_point_mode = 1
+  
+ >> We use the default values for Single_KPOINT_2D_DIRECT=[0,0]
+  
+ >> We use the default values for Single_KPOINT_3D_DIRECT=[0,0,0]
+ >> Output all atoms weight for surface state spectrum
+ > NtopAtoms            9
+> TopAtoms 
+     1     2     3     4     5     6     7     8     9
+> NbottomAtoms          9
+> BottomAtoms 
+     1     2     3     4     5     6     7     8     9
+ > NtopOrbitals           60
+> TopOrbitals 
+     1     2     3     4     5     6     7     8     9    10
+    11    12    13    14    15    16    17    18    19    20
+    21    22    23    24    25    26    27    28    29    30
+    31    32    33    34    35    36    37    38    39    40
+    41    42    43    44    45    46    47    48    49    50
+    51    52    53    54    55    56    57    58    59    60
+> NBottomOrbitals   60
+> BottomOrbitals 
+     1     2     3     4     5     6     7     8     9    10
+    11    12    13    14    15    16    17    18    19    20
+    21    22    23    24    25    26    27    28    29    30
+    31    32    33    34    35    36    37    38    39    40
+    41    42    43    44    45    46    47    48    49    50
+    51    52    53    54    55    56    57    58    59    60
+  
+ >> We do not calculate chirality for nodal lines
+  
+ >> We do not calculate chirality for weyl points
+  
+>> There are    1 groups of SelectedAtoms
+Group :   1
+>> Number of atoms selected         9
+>> Selected atoms are
+    1  Cs            2  V             3  V             4  V             5  Sb            6  Sb            7  Sb            8  Sb            9  Sb        
+  
+>> There are   1 groups of SelectedOrbitals
+ >> SelectedOrbitals
+>> Number of orbitals selected (including spin degenarcy)        60
+>> Orbitals are
+       1       2       3       4       5       6       7       8       9      10      11      12
+      13      14      15      16      17      18      19      20      21      22      23      24
+      25      26      27      28      29      30      31      32      33      34      35      36
+      37      38      39      40      41      42      43      44      45      46      47      48
+      49      50      51      52      53      54      55      56      57      58      59      60
+  
+ >> SELECTED_OCCUPIED_BANDS
+>> Number of Occupied bands selected         32
+>> OccupiedBand indices are
+     1     2     3     4     5     6     7     8     9    10    11    12
+    13    14    15    16    17    18    19    20    21    22    23    24
+    25    26    27    28    29    30    31    32
+  
+  
+ >> SELECTEDBANDS
+>> Number of bands selected         60
+>> Band indices are
+     1     2     3     4     5     6     7     8     9    10    11    12
+    13    14    15    16    17    18    19    20    21    22    23    24
+    25    26    27    28    29    30    31    32    33    34    35    36
+    37    38    39    40    41    42    43    44    45    46    47    48
+    49    50    51    52    53    54    55    56    57    58    59    60
+  
+ <<<Read wt.in file successfully
+ 
+  File ../results_wannier90/CsV3Sb5_hr.dat exist, We are using HmnR from wannier90
+ >> Num_wann          60
+ >> NRPTS        1029
+  >> Begin to read Hmn_R.data
+  
+ 
+  Note: This is not a 2D system or E=0, so we can't add electric field.
+ 
+  << Read Hmn_R.data successfully
+  
+ >> Start of calculating bulk band
+ Time cost for BulkBand is about            3.422 s
+ << End of calculating bulk band
+  
+ >> Start of calculating the bulk FS
+ >> In fermisurface3D
+>> We are going to write out the bands from band       25 to      40
+ 3DFS, ik            1 knv3      500000 time left   0.0000000000000000       s
+ 3DFS, ik         3001 knv3      500000 time left   1739.4965151203021       s
+ 3DFS, ik         6001 knv3      500000 time left   1728.9964958593482       s
+ 3DFS, ik         9001 knv3      500000 time left   1636.6633158043260       s
+ 3DFS, ik        12001 knv3      500000 time left   1626.6633348482817       s
+ 3DFS, ik        15001 knv3      500000 time left   1616.6633160185302       s
+ 3DFS, ik        18001 knv3      500000 time left   1606.6633348296552       s
+ 3DFS, ik        21001 knv3      500000 time left   1676.4964959850768       s
+ 3DFS, ik        24001 knv3      500000 time left   1586.6633348110288       s
+ 3DFS, ik        27001 knv3      500000 time left   1655.4965143901452       s
+ 3DFS, ik        30001 knv3      500000 time left   1566.6633347924023       s
+ 3DFS, ik        33001 knv3      500000 time left   1634.4965142076060       s
+ 3DFS, ik        36001 knv3      500000 time left   1623.9965141163364       s
+ 3DFS, ik        39001 knv3      500000 time left   1536.6633347644627       s
+ 3DFS, ik        42001 knv3      500000 time left   1526.6633347551494       s
+ 3DFS, ik        45001 knv3      500000 time left   1592.4964961862424       s
+ 3DFS, ik        48001 knv3      500000 time left   1581.9964962113881       s
+ 3DFS, ik        51001 knv3      500000 time left   1496.6633347272098       s
+ 3DFS, ik        54001 knv3      500000 time left   1486.6633347178965       s
+ 3DFS, ik        57001 knv3      500000 time left   1476.6633347085833       s
+ 3DFS, ik        60001 knv3      500000 time left   1466.6633346992701       s
+ 3DFS, ik        63001 knv3      500000 time left   1456.6633346899569       s
+ 3DFS, ik        66001 knv3      500000 time left   1518.9964963622624       s
+ 3DFS, ik        69001 knv3      500000 time left   1436.6633346713304       s
+ 3DFS, ik        72001 knv3      500000 time left   1497.9965130211010       s
+ 3DFS, ik        75001 knv3      500000 time left   1416.6633346527040       s
+ 3DFS, ik        78001 knv3      500000 time left   1406.6633346433907       s
+ 3DFS, ik        81001 knv3      500000 time left   1396.6633346340775       s
+ 3DFS, ik        84001 knv3      500000 time left   1455.9964965131367       s
+ 3DFS, ik        87001 knv3      500000 time left   1376.6633346154510       s
+ 3DFS, ik        90001 knv3      500000 time left   1366.6633186960826       s
+ 3DFS, ik        93001 knv3      500000 time left   1424.4964965885738       s
+ 3DFS, ik        96001 knv3      500000 time left   1413.9964966137195       s
+ 3DFS, ik        99001 knv3      500000 time left   1403.4964966388652       s
+ 3DFS, ik       102001 knv3      500000 time left   1326.6633345688849       s
+ 3DFS, ik       105001 knv3      500000 time left   1316.6633345595717       s
+ 3DFS, ik       108001 knv3      500000 time left   1306.6633345502585       s
+ 3DFS, ik       111001 knv3      500000 time left   1296.6633345409452       s
+ 3DFS, ik       114001 knv3      500000 time left   1286.6633345316320       s
+ 3DFS, ik       117001 knv3      500000 time left   1340.4964967897395       s
+ 3DFS, ik       120001 knv3      500000 time left   1329.9965115607872       s
+ 3DFS, ik       123001 knv3      500000 time left   1256.6633198742056       s
+ 3DFS, ik       126001 knv3      500000 time left   1308.9965113782480       s
+ 3DFS, ik       129001 knv3      500000 time left   1298.4964968903223       s
+ 3DFS, ik       132001 knv3      500000 time left   1287.9965111957088       s
+ 3DFS, ik       135001 knv3      500000 time left   1216.6633344664394       s
+ 3DFS, ik       138001 knv3      500000 time left   1266.9964969657594       s
+ 3DFS, ik       141001 knv3      500000 time left   1196.6633344478130       s
+ 3DFS, ik       144001 knv3      500000 time left   1186.6633344384998       s
+ 3DFS, ik       147001 knv3      500000 time left   1235.4964970411966       s
+ 3DFS, ik       150001 knv3      500000 time left   1224.9964970663423       s
+ 3DFS, ik       153001 knv3      500000 time left   1214.4964970914880       s
+ 3DFS, ik       156001 knv3      500000 time left   1203.9964971166337       s
+ 3DFS, ik       159001 knv3      500000 time left   1136.6633343919336       s
+ 3DFS, ik       162001 knv3      500000 time left   1182.9964971669251       s
+ 3DFS, ik       165001 knv3      500000 time left   1172.4964971920708       s
+ 3DFS, ik       168001 knv3      500000 time left   1161.9964972172165       s
+ 3DFS, ik       171001 knv3      500000 time left   1096.6633343546807       s
+ 3DFS, ik       174001 knv3      500000 time left   1086.6633343453675       s
+ 3DFS, ik       177001 knv3      500000 time left   1076.6633343360543       s
+ 3DFS, ik       180001 knv3      500000 time left   1066.6633343267411       s
+ 3DFS, ik       183001 knv3      500000 time left   1109.4964973429451       s
+ 3DFS, ik       186001 knv3      500000 time left   1046.6633343081146       s
+ 3DFS, ik       189001 knv3      500000 time left   1036.6633222304517       s
+ 3DFS, ik       192001 knv3      500000 time left   1077.9964974183822       s
+ 3DFS, ik       195001 knv3      500000 time left   1016.6633342801748       s
+ 3DFS, ik       198001 knv3      500000 time left   1006.6633225517580       s
+ 3DFS, ik       201001 knv3      500000 time left   996.66332265886012       s
+ 3DFS, ik       204001 knv3      500000 time left   1035.9964975189650       s
+ 3DFS, ik       207001 knv3      500000 time left   976.66332287306432       s
+ 3DFS, ik       210001 knv3      500000 time left   966.66333423360868       s
+ 3DFS, ik       213001 knv3      500000 time left   956.66333422429545       s
+ 3DFS, ik       216001 knv3      500000 time left   946.66333421498223       s
+ 3DFS, ik       219001 knv3      500000 time left   983.49649764469359       s
+ 3DFS, ik       222001 knv3      500000 time left   972.99649766983930       s
+ 3DFS, ik       225001 knv3      500000 time left   962.49650836635067       s
+ 3DFS, ik       228001 knv3      500000 time left   951.99649772013072       s
+ 3DFS, ik       231001 knv3      500000 time left   941.49649774527643       s
+ 3DFS, ik       234001 knv3      500000 time left   930.99649777042214       s
+ 3DFS, ik       237001 knv3      500000 time left   920.49650800127222       s
+ 3DFS, ik       240001 knv3      500000 time left   866.66333414047642       s
+ 3DFS, ik       243001 knv3      500000 time left   856.66333413116320       s
+ 3DFS, ik       246001 knv3      500000 time left   888.99650772746338       s
+ 3DFS, ik       249001 knv3      500000 time left   878.49649789615069       s
+ 3DFS, ik       252001 knv3      500000 time left   867.99649792129640       s
+ 3DFS, ik       255001 knv3      500000 time left   816.66332458669785       s
+ 3DFS, ik       258001 knv3      500000 time left   806.66333408459707       s
+ 3DFS, ik       261001 knv3      500000 time left   796.66333407528384       s
+ 3DFS, ik       264001 knv3      500000 time left   825.99650717984571       s
+ 3DFS, ik       267001 knv3      500000 time left   776.66333405665739       s
+ 3DFS, ik       270001 knv3      500000 time left   766.66333404734416       s
+ 3DFS, ik       273001 knv3      500000 time left   756.66333403803094       s
+ 3DFS, ik       276001 knv3      500000 time left   783.99649812246207       s
+ 3DFS, ik       279001 knv3      500000 time left   736.66333401940449       s
+ 3DFS, ik       282001 knv3      500000 time left   762.99649817275349       s
+ 3DFS, ik       285001 knv3      500000 time left   716.66333400077804       s
+ 3DFS, ik       288001 knv3      500000 time left   741.99649822304491       s
+ 3DFS, ik       291001 knv3      500000 time left   731.49649824819062       s
+ 3DFS, ik       294001 knv3      500000 time left   686.66333397283836       s
+ 3DFS, ik       297001 knv3      500000 time left   710.49649829848204       s
+ 3DFS, ik       300001 knv3      500000 time left   666.66333395421191       s
+ 3DFS, ik       303001 knv3      500000 time left   689.49649834877346       s
+ 3DFS, ik       306001 knv3      500000 time left   646.66333393558546       s
+ 3DFS, ik       309001 knv3      500000 time left   636.66333392627223       s
+ 3DFS, ik       312001 knv3      500000 time left   657.99649842421059       s
+ 3DFS, ik       315001 knv3      500000 time left   647.49649844935630       s
+ 3DFS, ik       318001 knv3      500000 time left   606.66333389833255       s
+ 3DFS, ik       321001 knv3      500000 time left   596.66333388901933       s
+ 3DFS, ik       324001 knv3      500000 time left   615.99649852479342       s
+ 3DFS, ik       327001 knv3      500000 time left   605.49649854993913       s
+ 3DFS, ik       330001 knv3      500000 time left   566.66332726425026       s
+ 3DFS, ik       333001 knv3      500000 time left   556.66333385176642       s
+ 3DFS, ik       336001 knv3      500000 time left   546.66333384245320       s
+ 3DFS, ik       339001 knv3      500000 time left   563.49650489810540       s
+ 3DFS, ik       342001 knv3      500000 time left   526.66333382382675       s
+ 3DFS, ik       345001 knv3      500000 time left   516.66333381451352       s
+ 3DFS, ik       348001 knv3      500000 time left   531.99649872595910       s
+ 3DFS, ik       351001 knv3      500000 time left   496.66333379588713       s
+ 3DFS, ik       354001 knv3      500000 time left   486.66333378657390       s
+ 3DFS, ik       357001 knv3      500000 time left   500.49649880139623       s
+ 3DFS, ik       360001 knv3      500000 time left   466.66333376794745       s
+ 3DFS, ik       363001 knv3      500000 time left   456.66333375863422       s
+ 3DFS, ik       366001 knv3      500000 time left   446.66333374932100       s
+ 3DFS, ik       369001 knv3      500000 time left   436.66333374000777       s
+ 3DFS, ik       372001 knv3      500000 time left   639.99500059604179       s
+ 3DFS, ik       375001 knv3      500000 time left   437.49650380287011       s
+ 3DFS, ik       378001 knv3      500000 time left   426.99649897741619       s
+ 3DFS, ik       381001 knv3      500000 time left   416.49649900256190       s
+ 3DFS, ik       384001 knv3      500000 time left   386.66333369344164       s
+ 3DFS, ik       387001 knv3      500000 time left   546.16183077252936       s
+ 3DFS, ik       390001 knv3      500000 time left   384.99649907799903       s
+ 3DFS, ik       393001 knv3      500000 time left   356.66333366550197       s
+ 3DFS, ik       396001 knv3      500000 time left   363.99649912829045       s
+ 3DFS, ik       399001 knv3      500000 time left   336.66332972759847       s
+ 3DFS, ik       402001 knv3      500000 time left   326.66333363756229       s
+ 3DFS, ik       405001 knv3      500000 time left   316.66333362824906       s
+ 3DFS, ik       408001 knv3      500000 time left   306.66333361893584       s
+ 3DFS, ik       411001 knv3      500000 time left   311.49649925401900       s
+ 3DFS, ik       414001 knv3      500000 time left   300.99650261636515       s
+ 3DFS, ik       417001 knv3      500000 time left   290.49649930431042       s
+ 3DFS, ik       420001 knv3      500000 time left   266.66333358168293       s
+ 3DFS, ik       423001 knv3      500000 time left   256.66333357236971       s
+ 3DFS, ik       426001 knv3      500000 time left   246.66333356305645       s
+ 3DFS, ik       429001 knv3      500000 time left   248.49649940489326       s
+ 3DFS, ik       432001 knv3      500000 time left   226.66333354443000       s
+ 3DFS, ik       435001 knv3      500000 time left   216.66333353511678       s
+ 3DFS, ik       438001 knv3      500000 time left   216.99649948033039       s
+ 3DFS, ik       441001 knv3      500000 time left   196.66333351649033       s
+ 3DFS, ik       444001 knv3      500000 time left   186.66333350717710       s
+ 3DFS, ik       447001 knv3      500000 time left   176.66333349786387       s
+ 3DFS, ik       450001 knv3      500000 time left   166.66333348855065       s
+ 3DFS, ik       453001 knv3      500000 time left   164.49649960605893       s
+ 3DFS, ik       456001 knv3      500000 time left   153.99649963120464       s
+ 3DFS, ik       459001 knv3      500000 time left   136.66333346061097       s
+ 3DFS, ik       462001 knv3      500000 time left   132.99649968149606       s
+ 3DFS, ik       465001 knv3      500000 time left   122.49649970664177       s
+ 3DFS, ik       468001 knv3      500000 time left   106.66333343267131       s
+ 3DFS, ik       471001 knv3      500000 time left   101.49649975693319       s
+ 3DFS, ik       474001 knv3      500000 time left   90.996499782078899       s
+ 3DFS, ik       477001 knv3      500000 time left   80.496499807224609       s
+ 3DFS, ik       480001 knv3      500000 time left   66.663333395418405       s
+ 3DFS, ik       483001 knv3      500000 time left   59.496499857516028       s
+ 3DFS, ik       486001 knv3      500000 time left   46.663333376791947       s
+ 3DFS, ik       489001 knv3      500000 time left   38.496499907807447       s
+ 3DFS, ik       492001 knv3      500000 time left   27.996499932953157       s
+ 3DFS, ik       495001 knv3      500000 time left   16.663333348852273       s
+ 3DFS, ik       498001 knv3      500000 time left   6.6633333395390464       s
+ >> All processors finished their job for fermisurface3D
+ Time cost for BulkFS is about         1725.272 s
+ << End of calculating the bulk FS
+  
+ Time cost for whole program is about         1740.378 s
+  
+  
+  =======================================================================
+  Congratulations! you finished the calculation.
+  I hope you could find something useful from this calculation.
+  If so, I would like to ask you to cite our this paper:
+  
+  WannierTools : An open-source software package for novel topological materials
+  QuanSheng Wu and ShengNan Zhang and Hai-Feng Song and Matthias Troyer and Alexey A. Soluyanov
+  Computer Physics Communications 224, 405 (2018)
+  https://doi.org/10.1016/j.cpc.2017.09.033
+  
+  For bugs, please report to wuquansheng@gmail.com                   
+  or wanniertools@groups.google.com.                 
+  More information could find on www.wanniertools.com            
+  See you next time :)
+  =======================================================================
