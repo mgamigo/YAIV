@@ -1,0 +1,7 @@
+#GITIGNORE FILE
+#
+build/
+dist/
+*egg-info/
+.ipynb_check*
+__pycache__/
