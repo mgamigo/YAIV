@@ -12,4 +12,4 @@ pip install ipykernel==6.17.1
 python -m ipykernel install --user --name=test_env
 jupyter kernelspec list
 cd $DIR
-pip install -e ./
+#pip install -e ./
