@@ -8,7 +8,8 @@ rm -r test_env
 virtualenv test_env
 source test_env/bin/activate
 pip install --upgrade pip
-pip install ipykernel==6.17.1
+pip install ipykernel
+#pip install ipykernel==6.17.1
 python -m ipykernel install --user --name=test_env
 jupyter kernelspec list
 cd $DIR
