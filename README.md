@@ -46,7 +46,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-YAIV is a collection of tools for plotting results of condensed matter ab initio codes such as *Quantum Espresso, VASP, Wannier90, Wannier Tools...* Although it can be used from the command line, the main intention of YAIV is to be used within JupyterLab, thereby allowing users to centralize the data analysis of a whole project into a single file. The goal is to provide both (1) fast and easy plotting defaults to glance over results, while (2) being flexible and powerful enough to generate publication-ready figures.
+YAIV is a collection of tools for plotting results of condensed matter ab initio codes such as *Quantum Espresso, VASP, Wannier90, Wannier Tools...* Although it can be used from the command line, the main intention of YAIV is to be used within JupyterLab, thereby allowing users to centralize the data analysis of a whole project into a single file. The goal is to provide both *(1)* fast and easy plotting defaults to glance over results, while *(2)* being flexible and powerful enough to generate publication-ready figures.
 
 ![gif demo](../media/demo.gif?raw=true)
 
