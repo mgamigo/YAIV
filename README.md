@@ -2,7 +2,7 @@
 <!-- PROJECT LOGO -->
 <div align="center">
   <h1 align="center">YAIV</h3>
-  <h3 align="center">Yet another Ab Initio Visualizer</h3>
+  <h3 align="center">Yet another Ab Initio Visualizer...</h3>
   <p align="center">
     A general purpose tool for condensed matter data analysis in jupyterlab
     <br />
