@@ -2,59 +2,131 @@
 
 import numpy as np
 import re
+from ase import io
 
 # GREPPING utilities***********************************************************************
 
-def grep_vectors(file,filetype='qe'):
-    """Greps the real vectors from a scf.pwo, bands.pwo (in the alat units) or file VASP OUTCAR 
-    (it may work with other output files of QE)
+class file:
+    """A class for file scraping, depending on the filetype a different set of attributes will initialize.
+    The filetype should be automatically detected, but can be manually introduced:
+    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in
+    VASP: POSCAR, OUTCAR, KPATH (KPOINTS in line mode), EIGENVAL
+    """
+    def __init__(self,file,filetype=None):
+        self.file = file
+        #Define file type
+        if filetype == None:
+            self.filetype = grep_filetype(file)
+        else:
+            self.filetype = filetype.lower()
+        #Read attributes:
+        if self.filetype in ['qe_scf_out','qe_scf_in','qe_bands_in','outcar','poscar']:
+            self.lattice = grep_lattice(file)
+        if self.filetype in ['qe_scf_out','outcar']:
+            self.electrons = grep_electrons(file,filetype=self.filetype)
+        if self.filetype in ['qe_scf_out','outcar']:
+            self.fermi = grep_fermi(file,filetype=self.filetype)
+        if self.filetype == 'kpath':
+            self.path,self.labels = grep_ticks_labels_KPATH(file)
+        if self.filetype == 'qe_bands_in':
+            self.path = grep_ticks_QE(file)
+    def __str__(self):
+        return str(self.filetype) + ':\n' + self.file
+
+def grep_filetype(file):
+    """Returns the filetype, currently it supports:
+    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in
+    VASP: POSCAR, OUTCAR, KPATH (KPOINTS in line mode), EIGENVAL
+    Anything else is considered a general 'data' type
+    """
+    lines = open(file)
+    counter=0
+    for line in lines:
+        if re.search('calculation.*scf.*',line,re.IGNORECASE) or re.search('calculation.*nscf.*',line,re.IGNORECASE):
+            filetype='qe_scf_in'
+            break
+        elif re.search('Program PWSCF',line,re.IGNORECASE):
+            filetype='qe_scf_out'
+            break
+        if re.search('calculation.*bands.*',line,re.IGNORECASE):
+            filetype='qe_bands_in'
+            break
+        elif re.search('direct',line,re.IGNORECASE) or re.search('cartesian',line,re.IGNORECASE):
+            filetype='poscar'
+            break
+        elif re.search('vasp',line,re.IGNORECASE):
+            filetype='outcar'
+            break
+        elif len(line.split()) == 4 and all([x.isdigit() for x in line.split()]):
+            filetype='eigenval' 
+            break
+        else:
+            filetype='data'
+    return filetype
+
+def grep_lattice(file):
+    """Greps the lattice vectors from a variety of outputs (it uses ase)
     OUTPUT= np.array([vec1,vec2,vec3])
     """
-    filetype=filetype.lower()
-    count=0
-    lattice_lines=False
-    lines=open(file,'r')
+    try:
+        data=io.read(file)
+        lattice=np.array(data.cell)
+    except:
+        lattice=None
+        print('No lattice data found')
+    return lattice
 
-    if filetype=='qe':
-        for line in lines:
-            if lattice_lines==True:
-                X=float(line.split()[3])
-                Y=float(line.split()[4])
-                Z=float(line.split()[5])
-                vec=np.array([X,Y,Z])
-                if count==0:
-                    vectors=vec
-                else:
-                    vectors=np.vstack((vectors,vec))            
-                count=count+1
-                if count>=3:
-                    break
-            if re.search('crystal axes',line,flags=re.IGNORECASE):
-                lattice_lines=True
-    elif filetype=='vasp':
-        for line in lines:
-            if re.search('direct lattice vectors',line):
-                lattice_lines=True
-            elif count>=3:
-                break
-            elif lattice_lines==True:
-                count=count+1
-                if count>0:
-                    l=line.split()
-                    X=float(l[0])
-                    Y=float(l[1])
-                    Z=float(l[2])
-                    vec=np.array([X,Y,Z])
-                    try:
-                        vectors=np.vstack([vectors,vec])
-                    except NameError:
-                        vectors=vec
-        norm=np.linalg.norm(vectors[0])
-        vectors=vectors/norm
+def grep_fermi(file,filetype=None):
+    """Greps the Fermi level from a variety of filetypes and returns it in eV
+    The filetype should be detected automatically, but it supports:
+    qe_scf_out (Quantum Espresso), OUTCAR (VASP)
+    """
+    E_f=None
+    if filetype == None:
+        filetype = grep_filetype(file)
     else:
-        print('FILETYPE NOT AVAILABLE')
-        print('could not grep vectors')
-    return vectors
+        filetype=filetype.lower()
+    if filetype[:2]=='qe':
+        scf_out=open(file,'r')
+        for line in scf_out:
+            if re.search('Fermi energy is',line):
+                E_f=float(line.split()[4])
+            if re.search('highest occupied',line):
+                if re.search('unoccupied',line):
+                    E1=float(line.split()[6])
+                    E2=float(line.split()[7])
+                    print('The gap is',(E2-E1)*1000,'meV')
+                    E_f=E1+(E2-E1)/2
+                else:
+                    E_f=float(line.split()[4])
+    elif filetype=='outcar':
+        OUTCAR=open(file,'r')
+        for line in OUTCAR:
+            if re.search('E-fermi',line):
+                E_f=float(line.split()[2])
+    return E_f
+
+def grep_electrons(file,filetype=None):
+    """Greps the number of electrons from a scf.pwo or OUTCAR file.
+    The filetype should be detected automatically, but it supports:
+    qe_scf_out (Quantum Espresso), OUTCAR (VASP)
+    """
+    num_elec=None
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
+    if filetype[:2]=='qe':
+        scf_out=open(file,'r')
+        for line in scf_out:
+            if re.search('number of electrons',line):
+                num_elec=int(float(line.split()[4]))
+    elif filetype=='outcar':
+        OUTCAR=open(file,'r')
+        for line in OUTCAR:
+            if re.search('NELECT',line):
+                num_elec=int(float(line.split()[2]))
+    return num_elec
 
 def grep_ticks_labels_KPATH(file):
     """Greps ticks and labels of the ticks from a KPATH file of VASP.
@@ -64,9 +136,14 @@ def grep_ticks_labels_KPATH(file):
     0 0.5 0 !X
     0.5 0.5 0 !
 
-    It generates the correct ticks to plot with my scripts (even with splitted paths)
+    It outputs two variables, the PATH:
+    np.array([K-point1, # of points to next],
+             [K-point2, # of points to next],
+              ...]
 
-    return ticks, labels
+
+    and a list of LABELS:
+    [label1, label2, label3 ...]
     """
     KPATH=open(file,'r')
     ticks=np.zeros(0)
@@ -117,7 +194,6 @@ def grep_ticks_labels_KPATH(file):
             num_labels=num_labels-1
         else:
             path=True
-#    print("you need to introduce",num_labels+1,"labels")
     while labels.count('000')>0:
         labels.remove('000')
     for i in range(len(labels)):
@@ -126,13 +202,11 @@ def grep_ticks_labels_KPATH(file):
         labels[i]='$'+labels[i]+'$'
     return ticks, labels
 
-def grep_ticks_QE(file):
-    """Greps the path and generates ticks from a bands.pwi file.
-    It takes into account when the distance between two points is 1 and therefore there is a splitted path for the bandstructure. It also informs for the number of labels needed.
-
-    (it may work with other output files of QE, easy to addapt to matdyn)
-
-    OUTPUT= np.array([tick1,tick2,tick3...])
+def grep_ticks_QE(file,silent=True):
+    """Greps the K-path from a bands.pwi file.
+    OUTPUT= np.array([K-point1, # of points to next],
+                     [K-point2, # of points to next],
+                     ...]
     """
     KPATH=open(file)
     ticks=np.zeros(0)
@@ -166,79 +240,6 @@ def grep_ticks_QE(file):
             num_labels=num_labels-1
         else:
             path=True
-    print("you need to introduce",num_labels+1,"labels")
+    if silent == False:
+        print("you need to introduce",num_labels+1,"labels")
     return ticks
-
-def grep_fermi(file,filetype='qe'):
-    """Greps the Fermi Energy from a scf.pwo, nscf.pwo ... or OUTCAR (VASP) file.
-   returns the Fermi energy in eV
-    """
-    filetype=filetype.lower()
-    if filetype=='qe':
-        scf_out=open(file,'r')
-        for line in scf_out:
-            if re.search('Fermi energy is',line):
-                E_f=float(line.split()[4])
-            if re.search('highest occupied',line):
-                if re.search('unoccupied',line):
-                    E1=float(line.split()[6])
-                    E2=float(line.split()[7])
-                    print('The gap is',(E2-E1)*1000,'meV')
-                    E_f=E1+(E2-E1)/2
-                else:
-                    E_f=float(line.split()[4])
-    elif filetype=='vasp':
-        OUTCAR=open(file,'r')
-        for line in OUTCAR:
-            if re.search('E-fermi',line):
-                E_f=float(line.split()[2])
-    return E_f
-
-def grep_electrons(file,filetype='qe'):
-    """Greps the number of electrons from a scf.pwo or OUTCAR file.
-   return num_elec
-    """
-    num_elec=None
-    filetype=filetype.lower()
-    if filetype=='qe':
-        scf_out=open(file,'r')
-        for line in scf_out:
-            if re.search('number of electrons',line):
-                num_elec=int(float(line.split()[4]))
-    elif filetype=='vasp':
-        OUTCAR=open(file,'r')
-        for line in OUTCAR:
-            if re.search('NELECT',line):
-                num_elec=int(float(line.split()[2]))
-    return num_elec
-
-def __grep_fermi_and_electrons(file,filetype='qe'):
-    """Greps the Fermi Energy and number of electrons from a scf.pwo or OUTCAR file.
-   returns the Fermi energy in eV
-   (The advantage is we just read the file once)
-    """
-    num_elec=None
-    filetype=filetype.lower()
-    if filetype=='qe':
-        scf_out=open(file,'r')
-        for line in scf_out:
-            if re.search('Fermi energy is',line):
-                E_f=float(line.split()[4])
-            if re.search('highest occupied',line):
-                if re.search('unoccupied',line):
-                    E1=float(line.split()[6])
-                    E2=float(line.split()[7])
-                    print('The gap is',(E2-E1)*1000,'meV')
-                    E_f=E1+(E2-E1)/2
-                else:
-                    E_f=float(line.split()[4])
-            if re.search('number of electrons',line):
-                num_elec=int(float(line.split()[4]))
-    elif filetype=='vasp':
-        OUTCAR=open(file,'r')
-        for line in OUTCAR:
-            if re.search('E-fermi',line):
-                E_f=float(line.split()[2])
-            if re.search('NELECT',line):
-                num_elec=int(float(line.split()[2]))
-    return E_f, num_elec

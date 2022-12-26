@@ -73,14 +73,14 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
     
     filename = File with the bands
     filetype = qe (quantum espresso bands.pwo)
-               vaps (VASP EIGENVAL file)
-               gnu (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
+               eigenval (VASP EIGENVAL file)
+               data (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
     vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
               Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
     """
     filetype=filetype.lower()
 
-    if filetype=="gnu" or filetype==None:
+    if filetype=="data" or filetype==None:
         data=np.loadtxt(fname=filename)
         data=data[:,:2]         #select the first two columns to process (for wannier tools)
         rows=1
@@ -93,7 +93,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
         final_columns=np.int_(columns/2-1)
         data=np.delete(data,np.s_[0:final_columns],1)
 
-    if filetype=="qe" or filetype==None:
+    if filetype[:2]=="qe":
         file=open(filename,'r')
         lines=file.readlines()
         for i,line in enumerate(lines):
@@ -123,7 +123,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 point1=np.array(l[2:5]).astype(np.float_)
                 coord1=point1              # Already in reciprocal cartesian coord (not like VASP)
                 delta=np.linalg.norm(coord1-coord0)
-                if delta>=0.25:                                  #fast fix for broken paths
+                if delta>=0.05:                                  #fast fix for broken paths
                     delta=0
                 dist=dist+delta
                 coord0=coord1
@@ -136,7 +136,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 data[i,j:j+len(energies)]=energies
                 j=j+len(energies)
        
-    elif filetype=="vasp":
+    elif filetype=="eigenval":
         file=open(filename,'r')
         lines=file.readlines()
         num_points=int(lines[5].split()[1])
@@ -159,7 +159,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 point1=np.array(line).astype(np.float_)[0:2]
                 coord1=np.matmul(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
-                if delta>=0.25:                                  #fast fix for broken paths
+                if delta>=0.05:                                  #fast fix for broken paths
                     delta=0
                 dist=dist+delta
                 data[i,0]=dist
@@ -173,7 +173,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 point1=np.array(line).astype(np.float_)[0:3]
                 coord1=np.matmul(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
-                if delta>=0.25:                                  #fast fix for broken paths
+                if delta>=0.05:                                  #fast fix for broken paths
                     delta=0
                 dist=dist+delta
                 data[i,0]=dist
@@ -234,7 +234,7 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=np.array(None),labels=None,
-               fermi=None,window=None,num_elec=None,color=None,filetype='qe',figsize=None,save_as=None,save_raw_data=None,axis=None):
+               fermi=None,window=None,num_elec=None,color=None,filetype=None,figsize=None,save_as=None,save_raw_data=None,axis=None):
     """Plots the:
         bands.pwo file of a band calculation in Quantum Espresso
         EIGENVALUES file of a VASP calculation
@@ -244,9 +244,10 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
 
     Minimal plots can be done with just:
         file = Path to the file with bandstructure
-        filetype = qe (quantum espresso bands.pwo)
-                   vasp (VASP EIGENVAL file)
-                   gnu (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
+        filetype = (It should be detected automatically)
+                   qe (quantum espresso bands.pwo)
+                   EIGENVAL (VASP EIGENVAL file)
+                   data (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
 
     Two aditional files can be provide to autocomplete almost everything:
         KPATH = File with PATH and legends for the HSP in the VASP format as provided by topologicalquantumchemistry.fr
@@ -271,22 +272,22 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
     save_raw_data = 'file.dat' The processed data ready to plot
     axis = ax in which to plot, if no axis is present new figure is created
     """
+    data=ut.file(file)
+    if filetype == None:
+        filetype = data.filetype
+    else:
+        filetype = filetype.lower()
+
     if KPATH!=None:
         ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
-    if filetype=='qe' and aux_file!=None:
-        vectors=ut.grep_vectors(file)
+    if filetype[:2]=='qe' and aux_file==None:
+        vectors=data.lattice
 
     if aux_file!=None:
-        lines=open(aux_file,'r')            #Automatically detected the kind of file, qe or VASP
-        for line in lines:
-            if re.search('VASP',line):
-                kind='vasp'
-                break
-            if re.search('ESPRESSO',line):
-                kind='qe'
-                break
-        v=ut.grep_vectors(aux_file,filetype=kind)
-        f,n=ut.__grep_fermi_and_electrons(aux_file,filetype=kind)
+        aux_data=ut.file(aux_file)
+        v=aux_data.lattice
+        f=aux_data.fermi
+        n=aux_data.electrons
         if fermi==None:
             fermi=f
         if num_elec==None:
@@ -299,7 +300,6 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
             window=1
         if num_elec!=None and color==None:
             color='VC'
-
 
     if axis == None:
         fig=plt.figure(figsize=figsize)
@@ -343,8 +343,8 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
     if axis == None:
         plt.show()
 
-def bands_compare(files,KPATH=None,filetypes=None,fermi=None,legends=None,title=None,aux_file=None,vectors=np.array(None),
-                  ticks=np.array(None),labels=None,window=1,figsize=None,save_as=None,
+def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=None,vectors=np.array(None),
+                  ticks=np.array(None),labels=None,window=1,figsize=None,save_as=None,filetypes=None,
                   styles=['-','--','-.',':'],
                   markers=['','','',''],
                   colors=['tab:blue','tab:red','tab:green','tab:orange'],
@@ -389,30 +389,26 @@ def bands_compare(files,KPATH=None,filetypes=None,fermi=None,legends=None,title=
     colors=colors*4
     markers=markers*4
 
+    if filetypes == None:
+        filetypes = [None] * len(files)
+        for i in range(len(filetypes)):
+            filetypes[i]=ut.grep_filetype(files[i])
+    else:
+        for i in range(len(filetypes)):
+            filetypes[i]=filetypes[i].lower()
+
     if fermi==None:
         fermi=np.zeros(len(files))
     if legends==None:
         legends=['Data ' + str(n+1) for n in range(len(files))]
-    if filetypes==None:
-        filetypes=['qe' for n in range(len(files))]
     if KPATH!=None:
         ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
     for i,kind in enumerate(filetypes):            #Automatically read vectors if possible
-        if kind=='qe' and aux_file==None and vectors.any()==None:
-            vectors=ut.grep_vectors(files[i],filetype='qe')
+        if kind[:2]=='qe' and aux_file==None and vectors.any()==None:
+            vectors=ut.grep_lattice(files[i])
             break
-    if aux_file!=None:
-        lines=open(aux_file,'r')            #Automatically detected the kind of file, qe or VASP
-        for line in lines:
-            if re.search('VASP',line):
-                kind='vasp'
-                break
-            if re.search('ESPRESSO',line):
-                kind='qe'
-                break
-        v=ut.grep_vectors(aux_file,filetype=kind)
-        if vectors.any()==None:
-            vectors=v
+    if aux_file!=None and vectors.any()==None:
+        vectors=ut.grep_lattice(aux_file)
     
     if axis == None:
         fig = plt.figure(figsize=figsize)
