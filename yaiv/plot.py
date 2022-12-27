@@ -28,7 +28,7 @@ def __ticks_generator(vectors,ticks,grid=None):
     
     returns either tick_pos or tick_pos, grid_pos
     """
-    K_vec=np.linalg.inv(vectors).transpose() #reciprocal vectors in columns
+    K_vec=ut.K_basis(vectors)
     path=0
     tick0=ticks[0][:3]
     ticks_pos=np.array(0)
@@ -38,26 +38,24 @@ def __ticks_generator(vectors,ticks,grid=None):
             tick0=tick1
         else:
             if np.any(grid!= None):
-                #print(tick0,tick1)
                 for point in grid:
                     dist=__lineseg_dist(point,tick0,tick1)
                     if np.around(dist,decimals=3)==0:
-                       # print(point)
                         if np.around(np.linalg.norm(point-tick0),decimals=3)==0:
                             delta=0
                         elif np.around(np.linalg.norm(point-tick1),decimals=3)==0:
                             vector=(tick1-tick0)
-                            delta=np.linalg.norm(np.matmul(vector,K_vec))
+                            delta=np.linalg.norm(ut.cryst2cartesian(vector,K_vec))
                         else:
                             vector=(point-tick0)
-                            delta=np.linalg.norm(np.matmul(vector,K_vec))
+                            delta=np.linalg.norm(ut.cryst2cartesian(vector,K_vec))
                         try:
                             if np.all(grid_ticks!=(path+delta)):  #grid_ticks are not degenerate
                                 grid_ticks=np.append(grid_ticks,path+delta)
                         except NameError:
                             grid_ticks=np.array(path+delta)
             vector=(tick1-tick0)
-            delta=np.matmul(vector,K_vec)
+            delta=ut.cryst2cartesian(vector,K_vec)
             path=path+np.linalg.norm(delta)
             ticks_pos=np.append(ticks_pos,path)
             tick0=tick1
@@ -146,7 +144,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
         data=np.zeros([num_points,num_bands+1])
         if vectors.all()!=None:                      #If there is no cell in the input
             vectors = vectors/np.linalg.norm(vectors[0])
-            K_vec=np.linalg.inv(vectors).transpose() #reciprocal vectors in columns
+            K_vec=ut.K_basis(vectors)
         else:
             K_vec=np.identity(3)
             print('CAUTIION: There was no cell introduced, threfore distances are wrong')
@@ -158,7 +156,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 line=data_lines[num]
                 line=line.split()
                 point1=np.array(line).astype(np.float_)[0:2]
-                coord1=np.matmul(point1,K_vec)
+                coord1=ut.cryst2cartesian(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
                 if delta>=0.25:                                  #fast fix for broken paths
                     delta=0
@@ -172,7 +170,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 line=data_lines[num]
                 line=line.split()
                 point1=np.array(line).astype(np.float_)[0:3]
-                coord1=np.matmul(point1,K_vec)
+                coord1=ut.cryst2cartesian(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
                 if delta>=0.25:                                  #fast fix for broken paths
                     delta=0
@@ -195,8 +193,8 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     BUT DOES NOT SHOW THE OUTPUT (not plt.show())
     file = Path to the file
     filetype = qe (quantum espresso bands.pwo)
-               vaps (VASP EIGENVAL file)
-               gnu (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
+               eigenval (VASP EIGENVAL file)
+               data (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
     vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
               Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
     ticks = np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
@@ -273,22 +271,26 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
     save_raw_data = 'file.dat' The processed data ready to plot
     axis = ax in which to plot, if no axis is present new figure is created
     """
-    data=ut.file(file)
+    #READ input
     if filetype == None:
-        filetype = data.filetype
+        file = ut.file(file)
     else:
-        filetype = filetype.lower()
+        file = ut.file(file,filetype)
+    if KPATH != None:
+        KPATH=ut.file(KPATH)
+    if aux_file != None:
+        aux_file=ut.file(aux_file)
 
+    #Select parameters
     if KPATH!=None:
-        ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
-    if filetype[:2]=='qe' and aux_file==None:
-        vectors=data.lattice
+        ticks,labels=KPATH.path,KPATH.labels
+    if file.filetype[:2]=='qe' and aux_file==None:
+        vectors=file.lattice
 
     if aux_file!=None:
-        aux_data=ut.file(aux_file)
-        v=aux_data.lattice
-        f=aux_data.fermi
-        n=aux_data.electrons
+        v=aux_file.lattice
+        f=aux_file.fermi
+        n=aux_file.electrons
         if fermi==None:
             fermi=f
         if num_elec==None:
@@ -307,7 +309,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
         ax = fig.add_subplot(111)
     else:
         ax=axis
-    limits=__plot_electrons(file,filetype,vectors,ticks,fermi,color=color,num_elec=num_elec,save_raw_data=save_raw_data,ax=ax)
+    limits=__plot_electrons(file.file,file.filetype,vectors,ticks,fermi,color=color,num_elec=num_elec,save_raw_data=save_raw_data,ax=ax)
 
     ax.set_ylabel('energy (eV)',labelpad=-1)
 
@@ -359,10 +361,10 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
 
     Minimal plots can be done with just:
         files = list of files with bandstructures 
-        filetypes = list with the filetype for each file
-                    qe (quantum espresso bands.pwo)
-                   vasp (VASP EIGENVAL file)
-                   gnu (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
+        filetypes = list with the filetype for each file (It should be detected automatically)
+                   qe (quantum espresso bands.pwo)
+                   EIGENVAL (VASP EIGENVAL file)
+                   data (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
 
     Four aditional parameters can be provide to autocomplete almost everything:
         KPATH = File with PATH and legends for the HSP in the VASP format as provided by topologicalquantumchemistry.fr
@@ -390,6 +392,7 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
     colors=colors*4
     markers=markers*4
 
+    #READ input
     if filetypes == None:
         filetypes = [None] * len(files)
         for i in range(len(filetypes)):
@@ -397,13 +400,18 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
     else:
         for i in range(len(filetypes)):
             filetypes[i]=filetypes[i].lower()
+    if KPATH != None:
+        KPATH=ut.file(KPATH)
+    if aux_file != None:
+        aux_file=ut.file(aux_file)
 
+    #Select parameters
     if fermi==None:
         fermi=np.zeros(len(files))
     if legends==None:
         legends=['Data ' + str(n+1) for n in range(len(files))]
     if KPATH!=None:
-        ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
+        ticks,labels=KPATH.path,KPATH.labels
     for i,kind in enumerate(filetypes):            #Automatically read vectors if possible
         if kind[:2]=='qe' and aux_file==None and vectors.any()==None:
             vectors=ut.grep_lattice(files[i])
@@ -459,3 +467,6 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
         plt.savefig(save_as, dpi=500)
     if axis == None:
         plt.show()
+
+
+# PLOTTING PHONONS**************************************************************************************

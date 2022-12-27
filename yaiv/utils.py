@@ -33,13 +33,19 @@ class file:
     def __str__(self):
         return str(self.filetype) + ':\n' + self.file
     def grep_lattice(self):
-        """Check grep_lattice"""
+        """Check grep_lattice function"""
         self.lattice = grep_lattice(self.file)
         return self.lattice
     def grep_lattice_alat(self):
-        """Check grep_lattice"""
+        """Check grep_lattice function"""
         self.lattice = grep_lattice(self.file,alat=True)
         return self.lattice
+    def reciprocal_lattice(self):
+        """Check K_basis function"""
+        if hasattr(self, 'lattice'):
+            return K_basis(self.lattice)
+        else:
+            print('No lattice data in order to compute reciprocal lattice')
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
@@ -258,3 +264,58 @@ def grep_ticks_QE(file,silent=True):
     if silent == False:
         print("you need to introduce",num_labels+1,"labels")
     return ticks
+
+
+# Transformation tools***********************************************************************
+
+def K_basis(lattice):
+    """With basis_vec being in rows, it returns the reciprocal basis vectors in rows
+    and units of 2pi"""
+    K_vec=np.linalg.inv(lattice).transpose() #reciprocal vectors in rows
+    return K_vec
+
+def cartesian2cryst(cartesian,cryst_basis,list_of_vec=False):
+    """Goes from cartesian units to cryst units. Either vectors or matrices (also list of vectors)
+    cartesian: coordinates or matrix in cartesian units
+    cryst_basis: crystaline basis written by rows
+    return crystal_coord"""
+    if len(np.shape(cartesian))==1 or list_of_vec==True:
+        crystal_coord=np.matmul(cartesian,np.linalg.inv(cryst_basis))
+    elif len(np.shape(cartesian))==2:
+        inv=np.linalg.inv(cryst_basis)
+        crystal_coord=np.matmul(np.transpose(inv),cartesian)
+        crystal_coord=np.matmul(crystal_coord,np.transpose(cryst_basis))
+    return crystal_coord
+
+def cryst2cartesian(cryst,cryst_basis,list_of_vec=False):
+    """Goes from crystaling units to cartesian units. Either vectors or matrices (also list of vectors)
+    cryst: coordinates or  matrix in cryst units
+    cryst_basis: crystaline basis written by rows
+    return cartesian_coord"""
+    if len(np.shape(cryst))==1 or list_of_vec==True:
+        cartesian_coord=np.matmul(cryst,cryst_basis)
+    elif len(np.shape(cryst))==2:
+        cartesian_coord=np.matmul(np.transpose(cryst_basis),cryst)
+        inv=np.linalg.inv(cryst_basis)
+        cartesian_coord=np.matmul(cartesian_coord,np.transpose(inv))
+    return cartesian_coord
+
+def cartesian2spherical(xyz,degrees=False):
+    """From cartesian to spherical coord
+    mod, theta(z^x), phi(x^y)"""
+    ptsnew = np.zeros(3)
+    xy = xyz[0]**2 + xyz[1]**2
+    ptsnew[0] = np.sqrt(xy + xyz[2]**2)
+    ptsnew[1] = np.arctan2(np.sqrt(xy), xyz[2]) # for elevation angle defined from Z-axis down
+    #ptsnew[1] = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
+    ptsnew[2] = np.arctan2(xyz[1], xyz[0])
+    if degrees==True:
+        ptsnew[1:]=ptsnew[1:]*180/np.pi
+    return ptsnew
+
+def cryst2spherical(cryst,cryst_basis,degrees=False):
+    """From crystal coord to spherical (usefull for SKEAF)
+    mod, theta(z^x), phi(x^y)"""
+    xyz=cryst2cartesian(cryst,cryst_basis)
+    spherical=cartesian2spherical(xyz,degrees)
+    return spherical
