@@ -123,7 +123,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 point1=np.array(l[2:5]).astype(np.float_)
                 coord1=point1              # Already in reciprocal cartesian coord (not like VASP)
                 delta=np.linalg.norm(coord1-coord0)
-                if delta>=0.05:                                  #fast fix for broken paths
+                if delta>=0.25:                                  #fast fix for broken paths
                     delta=0
                 dist=dist+delta
                 coord0=coord1
@@ -145,6 +145,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
 
         data=np.zeros([num_points,num_bands+1])
         if vectors.all()!=None:                      #If there is no cell in the input
+            vectors = vectors/np.linalg.norm(vectors[0])
             K_vec=np.linalg.inv(vectors).transpose() #reciprocal vectors in columns
         else:
             K_vec=np.identity(3)
@@ -159,7 +160,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 point1=np.array(line).astype(np.float_)[0:2]
                 coord1=np.matmul(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
-                if delta>=0.05:                                  #fast fix for broken paths
+                if delta>=0.25:                                  #fast fix for broken paths
                     delta=0
                 dist=dist+delta
                 data[i,0]=dist
@@ -173,7 +174,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 point1=np.array(line).astype(np.float_)[0:3]
                 coord1=np.matmul(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
-                if delta>=0.05:                                  #fast fix for broken paths
+                if delta>=0.25:                                  #fast fix for broken paths
                     delta=0
                 dist=dist+delta
                 data[i,0]=dist

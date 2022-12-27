@@ -32,6 +32,14 @@ class file:
             self.path = grep_ticks_QE(file)
     def __str__(self):
         return str(self.filetype) + ':\n' + self.file
+    def grep_lattice(self):
+        """Check grep_lattice"""
+        self.lattice = grep_lattice(self.file)
+        return self.lattice
+    def grep_lattice_alat(self):
+        """Check grep_lattice"""
+        self.lattice = grep_lattice(self.file,alat=True)
+        return self.lattice
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
@@ -60,17 +68,24 @@ def grep_filetype(file):
         elif len(line.split()) == 4 and all([x.isdigit() for x in line.split()]):
             filetype='eigenval' 
             break
+        elif re.search('line.mode',line,re.IGNORECASE):
+            filetype='kpath' 
+            break
         else:
             filetype='data'
     return filetype
 
-def grep_lattice(file):
+def grep_lattice(file,alat=False):
     """Greps the lattice vectors from a variety of outputs (it uses ase)
     OUTPUT= np.array([vec1,vec2,vec3])
     """
+    import warnings
+    warnings.filterwarnings("ignore", message="Non-collinear spin is not yet implemented. Setting magmom to x value.")
     try:
         data=io.read(file)
         lattice=np.array(data.cell)
+        if alat == True:
+            lattice = lattice/np.linalg.norm(lattice[0])
     except:
         lattice=None
         print('No lattice data found')
