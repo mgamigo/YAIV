@@ -1,4 +1,4 @@
-#PYTHON module for storing various constants:
+#PYTHON module for storing usefull constants:
 
 Ry2eV = 13.6056980659
 Ry2jul= 2.179872e-18
