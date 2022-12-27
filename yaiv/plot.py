@@ -470,3 +470,270 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
 
 
 # PLOTTING PHONONS**************************************************************************************
+
+def __lineseg_dist(p, a, b):
+    """Function lineseg_dist returns the distance the distance from point p to line segment [a,b]. p, a and b are np.arrays."""
+    # normalized tangent vector
+    d = np.divide(b - a, np.linalg.norm(b - a))
+    # signed parallel distance components
+    s = np.dot(a - p, d)
+    t = np.dot(p - b, d)
+    # clamped parallel distance
+    h = np.maximum.reduce([s, t, 0])
+    # perpendicular distance component
+    c = np.cross(p - a, d)
+    return np.hypot(h, np.linalg.norm(c))
+
+def __process_phonon_bands(gnu_file,matdyn_in=None):
+    if matdyn_in==None:
+        data=np.loadtxt(fname=gnu_file)
+    else:
+        #LOAD THE PATH FROM MATDYN FILE
+        KPATH=open(matdyn_in)
+        QE_path=np.zeros(0)
+        num_q=0
+        path_section=False
+        for line in KPATH:
+            if path_section==True:
+                if num_q==0:
+                    num_q=int(line)
+                    i=0
+                elif i<num_q:
+                    if len(line.split())!=0:
+                        X=float(line.split()[0])
+                        Y=float(line.split()[1])
+                        Z=float(line.split()[2])
+                        points=int(line.split()[3])
+                        q1=np.array([X,Y,Z,points])
+                        if len(QE_path)==0:
+                            QE_path=q1
+                        else:
+                            QE_path=np.vstack((QE_path,q1))
+                    i=i+1
+            if re.search('/',line) and 'matdyn' in matdyn_in:
+                path_section=True
+
+        #SELECT THE LINES WHERE THE PATH IS SPLITED
+        lines=[]
+        line=0
+        for i in range(num_q):
+            if QE_path[i,3]==1:
+                lines=lines+[line]
+            line=line+int(QE_path[i,3])
+
+        #LOAD THE DATA AND CORRECT THE SPLITS TO MAKE IT "CONTINOUS"
+        data=np.loadtxt(gnu_file)
+        for line in lines:
+            if line < data.shape[0]-1:
+                data[line+1:,0]=data[line+1:,0]-(data[line+1,0]-data[line,0])
+    return data
+
+def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
+                        color=None,style=None,legend=None,matdyn_in=None,ax=None):
+    """Print the phonons.freq.gp file of matdyn output (Quantum Espresso)
+    BUT DOES NOT SHOW THE OUTPUT (not plt.show())
+    plot_phonons(file,real_vecs,ticks)
+    file=Path to the file
+    vectors=np.array([[a1,a2,a3],...,[c1,c2,c3]])
+    ticks=np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
+    color = string with the color for the bands
+    style = string with the linestyle (solid, dashed, dotted)
+    legend = legend to add for the data set
+    matdyn_in = matdyn file for splitted paths, it will correct the path to make it "continous"
+    ax = ax in which to plot
+    """
+    data=__process_phonon_bands(file,matdyn_in)
+
+    if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
+        ticks=__ticks_generator(vectors,ticks)
+        x_lim=ticks[ticks.shape[0]-1]                #resize x_data for wannier and other codes output
+        data[:,0]=data[:,0]*(x_lim/data[:,0].max())
+
+    ax.plot(data[:,0],data[:,1],linestyle=style,linewidth=linewidth,color=color,label=legend)
+    ax.plot(data[:,0],data[:,2:],linestyle=style,linewidth=linewidth,color=color)
+
+    return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
+
+def phonons(file,KPATH=None,ph_out=None,matdyn_in=None,title=None,grid=True,vectors=np.array(None),
+                ticks=np.array(None),labels=None,save_as=None,figsize=None,color=None,linewidth=0.7,axis=None):
+    """Plots phonon spectra provided by Quantum Espresso output 
+    (it supports discontinous paths and highlights the computed points)
+    Minimal plots can be done with just:
+        file = Path to the freq.gp file provided by matdyn
+
+    Three aditional files can be provide to autocomplete almost everything:
+        KPATH = File with PATH and legends for the HSP in the VASP format as provided by topologicalquantumchemistry.fr
+        ph_out = ph.x output (Needed to read lattice parameters and grid where the phonons are computed)
+        matdyn_in = matdyn subroutine input (in order to read the KPATH and correct for discontinous paths)
+
+    However everything may be introduced manually:
+    title = 'Your nice and original title for the plot'
+    grid = Bolean (Whether you want the grid to be highlighted in pink)
+    vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
+              Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
+    ticks=np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
+    labels=["$\Gamma$","$X$","$M$","$\Gamma$"]
+    save_as='wathever.format'
+    figsize = (int,int) => Size and shape of the figure
+    color = color for your plot
+    linewidth = linewidth of your plot
+    axis = ax in which to plot, if no axis is present new figure is created
+    """
+
+    if KPATH!=None:
+        ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
+    if ph_out!=None:
+        v=ut.grep_vectors(ph_out,filetype='qe')
+        if vectors.any()==None:
+            vectors=v
+    if axis == None:
+        fig=plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    limits=__plot_phonons(file,linewidth,vectors,ticks,color=color,matdyn_in=matdyn_in,ax=ax)
+
+    ax.set_ylabel('Frequency $(cm^{-1})$')
+    ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
+
+    ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
+    delta_y=limits[3]-limits[2]
+    ax.set_ylim(limits[2]-delta_y*0.05,limits[3]+delta_y*0.1) #Limits in the y axis
+
+    if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
+        if ph_out!=None and grid==True:
+            grid_points=ut.grep_grid_points(ph_out,expanded=True,decimals=15) #to correctly find distances
+            ticks,grid=__ticks_generator(vectors,ticks,grid_points)
+            ax.set_xticks(ticks,labels)
+            for point in grid:
+                for i in range(len(ticks)):
+                    if point==ticks[i]:
+                        ticks=np.delete(ticks,i)
+                        break
+            for i in range(len(grid)):
+                ax.axvline(grid[i],color='deeppink',linestyle='-.',linewidth=0.5)
+        else:
+            ticks=__ticks_generator(vectors,ticks)
+            if labels != None:
+                ax.set_xticks(ticks,labels)
+            else:
+                ax.set_xticks(ticks)
+        for i in range(len(ticks)):
+            ax.axvline(ticks[i],color='gray',linestyle='--',linewidth=0.4)
+    else:
+        ax.set_xticks([])
+
+    if title!=None:                             #Title option
+        ax.set_title(title)
+
+    plt.tight_layout()
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
+
+def phonons_compare(files,KPATH=None,ph_outs=None,matdyn_in=None,legends=None,title=None,grid=True,
+                         vectors=np.array(None),ticks=np.array(None),labels=None,save_as=None,
+                         colors=['tab:blue','tab:red','tab:green','tab:orange'],
+                         styles=['solid','dashed','dashdot','dotted'],linewidth=0.7,figsize=None,axis=None):
+    """Plots phonon spectra provided by Quantum Espresso output 
+    (it supports discontinous paths and highlights the computed points)
+    Minimal plots can be done with just:
+        files = List of paths to the freq.gp file provided by matdyn
+
+    Four aditional parameters can be provide to autocomplete almost everything:
+        KPATH = File with PATH and legends for the HSP in the VASP format as provided by topologicalquantumchemistry.fr
+        ph_out = List of ph.x output files (Needed to read lattice parameters and grid where the phonons are computed)
+        matdyn_in = matdyn subroutine input (in order to read the KPATH and correct for discontinous paths)
+        legends = List with the legend for each dataset
+
+    However everything may be introduced manually:
+    title = 'Your nice and original title for the plot'
+    grid = Bolean (Whether you want the grid to be highlighted in pink)
+    vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
+              Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
+    ticks=np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
+    labels=["$\Gamma$","$X$","$M$","$\Gamma$"]
+    save_as='wathever.format'
+    figsize = (int,int) => Size and shape of the figure
+    linewidth = linewidth of your plot
+    colors = list with colors
+    styles = list with style lines (solid, dashed, dotted...)
+    axis = ax in which to plot, if no axis is present new figure is created
+    """
+    styles=styles*4
+    colors=colors*4
+
+    if legends==None:
+        legends=['Data ' + str(n+1) for n in range(len(files))]
+    if KPATH!=None:
+        ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
+    if ph_outs!=None:
+        v=ut.grep_vectors(ph_outs[0],filetype='qe')
+        if vectors.any()==None:
+            vectors=v
+
+
+    if axis == None:
+        fig=plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for num in range(len(files)):
+        data_limits=__plot_phonons(files[num],linewidth,vectors,ticks,color=colors[num]
+                                       ,style=styles[num],legend=legends[num],matdyn_in=matdyn_in,ax=ax)
+        if num==0:
+            limits=data_limits
+        else:
+            limits[0]=min(data_limits[0],limits[0])
+            limits[1]=max(data_limits[1],limits[1])
+            limits[2]=min(data_limits[2],limits[2])
+            limits[3]=max(data_limits[3],limits[3])
+
+    ax.set_ylabel('Frequency $(cm^{-1})$')
+    ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
+
+    ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
+    delta_y=limits[3]-limits[2]
+    ax.set_ylim(limits[2]-delta_y*0.05,limits[3]+delta_y*0.1) #Limits in the y axis
+
+    if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
+        if ph_outs!=None and grid==True:
+            grid_points=ut.grep_grid_points(ph_outs[0],expanded=True,decimals=15)
+            path=ticks
+            ticks,grid=__ticks_generator(vectors,ticks,grid_points)
+            ax.set_xticks(ticks,labels)
+            for num in range(len(ph_outs)):
+                grid_points=ut.grep_grid_points(ph_outs[num],expanded=True,decimals=15)
+                grid=__ticks_generator(vectors,path,grid_points)[1]
+                for point in grid:
+                    for i in range(len(ticks)):
+                        if point==ticks[i]:
+                            ticks=np.delete(ticks,i)
+                            break
+                for i in range(len(grid)):
+                    if len(ph_outs)==1:
+                        ax.axvline(grid[i],color='deeppink',linestyle='-.',linewidth=0.5)
+                    else:
+                        ax.axvline(grid[i],color=colors[num],linestyle=styles[num],linewidth=0.5)
+        else:
+            ticks=__ticks_generator(vectors,ticks)
+            if labels != None:
+                ax.set_xticks(ticks,labels)
+            else:
+                ax.set_xticks(ticks)
+        for tick in ticks:
+            ax.axvline(tick,color='gray',linestyle='--',linewidth=0.4)
+    else:
+        ax.set_xticks([])
+
+    if title!=None:                             #Title option
+        ax.set_title(title)
+    ax.legend()
+    plt.tight_layout()
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
