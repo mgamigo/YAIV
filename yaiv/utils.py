@@ -4,12 +4,14 @@ import numpy as np
 import re
 from ase import io
 
-# GREPPING utilities***********************************************************************
+import yaiv.constants as const
+
+# GREPPING utilities----------------------------------------------------------------
 
 class file:
     """A class for file scraping, depending on the filetype a different set of attributes will initialize.
     The filetype should be automatically detected, but can be manually introduced:
-    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in
+    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in, qe_ph_out, matdyn_in
     VASP: POSCAR, OUTCAR, KPATH (KPOINTS in line mode), EIGENVAL
     """
     def __init__(self,file,filetype=None):
@@ -20,25 +22,25 @@ class file:
         else:
             self.filetype = filetype.lower()
         #Read attributes:
-        if self.filetype in ['qe_scf_out','qe_scf_in','qe_bands_in','outcar','poscar']:
-            self.lattice = grep_lattice(file)
+        if self.filetype in ['qe_scf_out','qe_scf_in','qe_bands_in','qe_ph_out','outcar','poscar']:
+            self.lattice = grep_lattice(self.file,filetype=self.filetype)
         if self.filetype in ['qe_scf_out','outcar']:
             self.electrons = grep_electrons(file,filetype=self.filetype)
         if self.filetype in ['qe_scf_out','outcar']:
             self.fermi = grep_fermi(file,filetype=self.filetype)
         if self.filetype == 'kpath':
             self.path,self.labels = grep_ticks_labels_KPATH(file)
-        if self.filetype == 'qe_bands_in':
-            self.path = grep_ticks_QE(file)
+        if self.filetype in ['qe_bands_in','matdyn_in']:
+            self.path = grep_ticks_QE(self.file,self.filetype)
     def __str__(self):
         return str(self.filetype) + ':\n' + self.file
     def grep_lattice(self):
         """Check grep_lattice function"""
-        self.lattice = grep_lattice(self.file)
+        self.lattice = grep_lattice(self.file,filetype=self.filetype)
         return self.lattice
     def grep_lattice_alat(self):
         """Check grep_lattice function"""
-        self.lattice = grep_lattice(self.file,alat=True)
+        self.lattice = grep_lattice(self.file,alat=True,filetype=self.filetype)
         return self.lattice
     def reciprocal_lattice(self):
         """Check K_basis function"""
@@ -46,10 +48,19 @@ class file:
             return K_basis(self.lattice)
         else:
             print('No lattice data in order to compute reciprocal lattice')
+    def grep_ph_grid_points(self,expanded=False,decimals=3):
+        """Check grep_ph_grid_points function"""
+        if self.filetype != 'qe_ph_out':
+            print('This method if for ph.x outputs, which this is not...')
+            print('Check the documentation for grep_ph_grid_points function')
+        else:
+            grid = grep_ph_grid_points(self.file,expanded=expanded,decimals=decimals)
+            self.ph_grid_points = grid
+            return grid
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
-    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in
+    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in, qe_ph_out, matdyn_in
     VASP: POSCAR, OUTCAR, KPATH (KPOINTS in line mode), EIGENVAL
     Anything else is considered a general 'data' type
     """
@@ -62,8 +73,14 @@ def grep_filetype(file):
         elif re.search('Program PWSCF',line,re.IGNORECASE):
             filetype='qe_scf_out'
             break
-        if re.search('calculation.*bands.*',line,re.IGNORECASE):
+        elif re.search('Program PHONON',line,re.IGNORECASE):
+            filetype='qe_ph_out'
+            break
+        elif re.search('calculation.*bands.*',line,re.IGNORECASE):
             filetype='qe_bands_in'
+            break
+        elif re.search('flfrc',line,re.IGNORECASE):
+            filetype='matdyn_in'
             break
         elif re.search('direct',line,re.IGNORECASE) or re.search('cartesian',line,re.IGNORECASE):
             filetype='poscar'
@@ -81,20 +98,49 @@ def grep_filetype(file):
             filetype='data'
     return filetype
 
-def grep_lattice(file,alat=False):
+def grep_lattice(file,alat=False,filetype=None):
     """Greps the lattice vectors from a variety of outputs (it uses ase)
     OUTPUT= np.array([vec1,vec2,vec3])
     """
-    import warnings
-    warnings.filterwarnings("ignore", message="Non-collinear spin is not yet implemented. Setting magmom to x value.")
-    try:
-        data=io.read(file)
-        lattice=np.array(data.cell)
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype = filetype.lower()
+    if filetype=='qe_ph_out':
+        lattice_lines=False
+        lines=open(file,'r')
+        for line in lines:
+            if re.search('lattice parameter',line):
+                line=line.split()
+                alat_au=float(line[4])
+            elif lattice_lines==True:
+                X=float(line.split()[3])
+                Y=float(line.split()[4])
+                Z=float(line.split()[5])
+                vec=np.array([X,Y,Z])
+                try:
+                    lattice=np.vstack((lattice,vec))            
+                except NameError:
+                    lattice=vec
+                if lattice.shape == (3,3):
+                    break
+            elif re.search('crystal axes',line,flags=re.IGNORECASE):
+                lattice_lines=True
         if alat == True:
-            lattice = lattice/np.linalg.norm(lattice[0])
-    except:
-        lattice=None
-        print('No lattice data found')
+            return lattice
+        else:
+            return lattice*alat_au*const.au2ang
+    else:
+        import warnings
+        warnings.filterwarnings("ignore", message="Non-collinear spin is not yet implemented. Setting magmom to x value.")
+        try:
+            data=io.read(file)
+            lattice=np.array(data.cell)
+            if alat == True:
+                lattice = lattice/np.linalg.norm(lattice[0])
+        except:
+            lattice=None
+            print('No lattice data found')
     return lattice
 
 def grep_fermi(file,filetype=None):
@@ -223,12 +269,16 @@ def grep_ticks_labels_KPATH(file):
         labels[i]='$'+labels[i]+'$'
     return ticks, labels
 
-def grep_ticks_QE(file,silent=True):
-    """Greps the K-path from a bands.pwi file.
+def grep_ticks_QE(file,filetype=None,silent=True):
+    """Greps the K-path from a qe_bands_in or matdyn.in Quantum Espresso files.
     OUTPUT= np.array([K-point1, # of points to next],
                      [K-point2, # of points to next],
                      ...]
     """
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
     KPATH=open(file)
     ticks=np.zeros(0)
     num_q=0
@@ -250,9 +300,12 @@ def grep_ticks_QE(file,silent=True):
                     else:
                         ticks=np.vstack((ticks,q1))
                 i=i+1
-        if re.search('K_POINTS.*crystal_b',line,flags=re.IGNORECASE):
+            else:
+                break
+        elif re.search('K_POINTS.*crystal_b',line,flags=re.IGNORECASE):
             path_section=True
-
+        elif re.search('/',line) and filetype=='matdyn_in':
+            path_section=True
     num_labels=num_q
     path=True
     for i in range(num_q):
@@ -265,8 +318,65 @@ def grep_ticks_QE(file,silent=True):
         print("you need to introduce",num_labels+1,"labels")
     return ticks
 
+def grep_ph_grid_points(file,expanded=False,decimals=3):
+    """Greps the grid points from a ph.pwo file, it reads the points and the star of those
+    points given in the QE ouput and expresses them in reciprocal space lattice vectors. This grid
+    can be further expanded to equivalent points line (0,0,0.5) and (0,0,-0.5).
 
-# Transformation tools***********************************************************************
+    file='material.ph.pwo'
+    """
+    vectors=grep_lattice(file,alat=True,filetype='qe_ph_out')
+    text=open(file)
+    read_text=False
+    for line in text:
+        if read_text==True and line.split()[0]==str(i):
+            split=(line.split())
+            point=np.array([float(split[1]),float(split[2]),float(split[3])])
+            point=np.matmul(point,vectors.transpose())
+            try:
+                grid_points=np.vstack([grid_points,point])
+            except NameError:
+                grid_points=point
+            i=i+1
+            if i > num_star:
+                read_text=False
+        elif re.search('Number of q in the star',line):
+            num_star=int(line.split()[7])
+            i=1
+            read_text=True
+        elif re.search('In addition there is the',line):
+            i=1
+            read_text=True
+    grid_points=np.around(grid_points,decimals=decimals) #Fix for detecting the grid in the paths
+    
+    if expanded==True:
+        initial_grid=grid_points
+        for point in initial_grid:
+            expanded_star=__expand_star(point)
+            try:
+                grid=np.vstack([grid,expanded_star])
+            except NameError:
+                grid=expanded_star
+    else:
+        grid=grid_points
+    return grid
+
+def __expand_star(q_point):
+    """Expands the "star" of each point to equivalent points inside (111) (related by lattice) in the border of the BZ.
+    This is usefull when a High Sym point is the (0.5,0,0), this generates (-0.5,0,0), which is not in the star
+    since is it the same point.    
+    """
+    output=[q_point]
+    for i in range(3):
+        for point in output:
+            related1=np.array(point)
+            related2=np.array(point)
+            related1[i]=point[i]+1
+            related2[i]=point[i]-1
+            output=np.vstack([output,related1,related2])
+    return output
+
+# Transformation tools----------------------------------------------------------------
 
 def K_basis(lattice):
     """With basis_vec being in rows, it returns the reciprocal basis vectors in rows

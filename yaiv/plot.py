@@ -6,7 +6,7 @@ import re
 
 import yaiv.utils as ut
 
-# PLOTTING BANDS**************************************************************************************
+# PLOTTING BANDS----------------------------------------------------------------
 
 def __insert_space_before_minus(string):
     """A simple tool to reformat strings and improve reading"""
@@ -63,7 +63,6 @@ def __ticks_generator(vectors,ticks,grid=None):
         return ticks_pos, grid_ticks
     else:
         return ticks_pos
-
 
 def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
     """Process the bands from various file types with each band separately separated by blank lines
@@ -469,7 +468,7 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
         plt.show()
 
 
-# PLOTTING PHONONS**************************************************************************************
+# PLOTTING PHONONS----------------------------------------------------------------
 
 def __lineseg_dist(p, a, b):
     """Function lineseg_dist returns the distance the distance from point p to line segment [a,b]. p, a and b are np.arrays."""
@@ -484,39 +483,14 @@ def __lineseg_dist(p, a, b):
     c = np.cross(p - a, d)
     return np.hypot(h, np.linalg.norm(c))
 
-def __process_phonon_bands(gnu_file,matdyn_in=None):
-    if matdyn_in==None:
+def __process_phonon_bands(gnu_file,QE_path):
+    if QE_path.any()==None:
         data=np.loadtxt(fname=gnu_file)
     else:
-        #LOAD THE PATH FROM MATDYN FILE
-        KPATH=open(matdyn_in)
-        QE_path=np.zeros(0)
-        num_q=0
-        path_section=False
-        for line in KPATH:
-            if path_section==True:
-                if num_q==0:
-                    num_q=int(line)
-                    i=0
-                elif i<num_q:
-                    if len(line.split())!=0:
-                        X=float(line.split()[0])
-                        Y=float(line.split()[1])
-                        Z=float(line.split()[2])
-                        points=int(line.split()[3])
-                        q1=np.array([X,Y,Z,points])
-                        if len(QE_path)==0:
-                            QE_path=q1
-                        else:
-                            QE_path=np.vstack((QE_path,q1))
-                    i=i+1
-            if re.search('/',line) and 'matdyn' in matdyn_in:
-                path_section=True
-
         #SELECT THE LINES WHERE THE PATH IS SPLITED
         lines=[]
         line=0
-        for i in range(num_q):
+        for i in range(len(QE_path)):
             if QE_path[i,3]==1:
                 lines=lines+[line]
             line=line+int(QE_path[i,3])
@@ -529,7 +503,7 @@ def __process_phonon_bands(gnu_file,matdyn_in=None):
     return data
 
 def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
-                        color=None,style=None,legend=None,matdyn_in=None,ax=None):
+                        color=None,style=None,legend=None,QE_path=None,ax=None):
     """Print the phonons.freq.gp file of matdyn output (Quantum Espresso)
     BUT DOES NOT SHOW THE OUTPUT (not plt.show())
     plot_phonons(file,real_vecs,ticks)
@@ -539,10 +513,11 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
     color = string with the color for the bands
     style = string with the linestyle (solid, dashed, dotted)
     legend = legend to add for the data set
-    matdyn_in = matdyn file for splitted paths, it will correct the path to make it "continous"
+    QE_path = matdyn file for splitted paths, it will correct the path to make it "continous"
+    QE_path = reciprocal space path as given by the grep_ticks_QE or grep_ticks_labels_KPATH. It will fix splitted paths and correct the path to make it "continous"
     ax = ax in which to plot
     """
-    data=__process_phonon_bands(file,matdyn_in)
+    data=__process_phonon_bands(file,QE_path)
 
     if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
         ticks=__ticks_generator(vectors,ticks)
@@ -554,7 +529,7 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
 
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
-def phonons(file,KPATH=None,ph_out=None,matdyn_in=None,title=None,grid=True,vectors=np.array(None),
+def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vectors=np.array(None),
                 ticks=np.array(None),labels=None,save_as=None,figsize=None,color=None,linewidth=0.7,axis=None):
     """Plots phonon spectra provided by Quantum Espresso output 
     (it supports discontinous paths and highlights the computed points)
@@ -582,19 +557,19 @@ def phonons(file,KPATH=None,ph_out=None,matdyn_in=None,title=None,grid=True,vect
 
     if KPATH!=None:
         ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
-    if ph_out!=None:
-        v=ut.grep_vectors(ph_out,filetype='qe')
-        if vectors.any()==None:
-            vectors=v
+    if matdyn_in!=None:
+        ticks=ut.grep_ticks_QE(matdyn_in)
+    if ph_out!=None and vectors.any()==None:
+        vectors=ut.grep_lattice(ph_out)
     if axis == None:
         fig=plt.figure(figsize=figsize)
         ax = fig.add_subplot(111)
     else:
         ax=axis
 
-    limits=__plot_phonons(file,linewidth,vectors,ticks,color=color,matdyn_in=matdyn_in,ax=ax)
+    limits=__plot_phonons(file,linewidth,vectors,ticks,color=color,QE_path=ticks,ax=ax)
 
-    ax.set_ylabel('Frequency $(cm^{-1})$')
+    ax.set_ylabel('frequency $(cm^{-1})$')
     ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
 
     ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
@@ -603,7 +578,7 @@ def phonons(file,KPATH=None,ph_out=None,matdyn_in=None,title=None,grid=True,vect
 
     if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
         if ph_out!=None and grid==True:
-            grid_points=ut.grep_grid_points(ph_out,expanded=True,decimals=15) #to correctly find distances
+            grid_points=ut.grep_ph_grid_points(ph_out,expanded=True,decimals=15) #to correctly find distances
             ticks,grid=__ticks_generator(vectors,ticks,grid_points)
             ax.set_xticks(ticks,labels)
             for point in grid:
@@ -633,7 +608,7 @@ def phonons(file,KPATH=None,ph_out=None,matdyn_in=None,title=None,grid=True,vect
     if axis == None:
         plt.show()
 
-def phonons_compare(files,KPATH=None,ph_outs=None,matdyn_in=None,legends=None,title=None,grid=True,
+def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn_in=None,grid=True,
                          vectors=np.array(None),ticks=np.array(None),labels=None,save_as=None,
                          colors=['tab:blue','tab:red','tab:green','tab:orange'],
                          styles=['solid','dashed','dashdot','dotted'],linewidth=0.7,figsize=None,axis=None):
@@ -669,11 +644,10 @@ def phonons_compare(files,KPATH=None,ph_outs=None,matdyn_in=None,legends=None,ti
         legends=['Data ' + str(n+1) for n in range(len(files))]
     if KPATH!=None:
         ticks,labels=ut.grep_ticks_labels_KPATH(KPATH)
-    if ph_outs!=None:
-        v=ut.grep_vectors(ph_outs[0],filetype='qe')
-        if vectors.any()==None:
-            vectors=v
-
+    if matdyn_in!=None:
+        ticks=ut.grep_ticks_QE(matdyn_in)
+    if ph_outs!=None and vectors.any()==None:
+        vectors=ut.grep_lattice(ph_outs[0])
 
     if axis == None:
         fig=plt.figure(figsize=figsize)
@@ -683,7 +657,7 @@ def phonons_compare(files,KPATH=None,ph_outs=None,matdyn_in=None,legends=None,ti
 
     for num in range(len(files)):
         data_limits=__plot_phonons(files[num],linewidth,vectors,ticks,color=colors[num]
-                                       ,style=styles[num],legend=legends[num],matdyn_in=matdyn_in,ax=ax)
+                                       ,style=styles[num],legend=legends[num],QE_path=ticks,ax=ax)
         if num==0:
             limits=data_limits
         else:
@@ -692,7 +666,7 @@ def phonons_compare(files,KPATH=None,ph_outs=None,matdyn_in=None,legends=None,ti
             limits[2]=min(data_limits[2],limits[2])
             limits[3]=max(data_limits[3],limits[3])
 
-    ax.set_ylabel('Frequency $(cm^{-1})$')
+    ax.set_ylabel('frequency $(cm^{-1})$')
     ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
 
     ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
@@ -701,12 +675,12 @@ def phonons_compare(files,KPATH=None,ph_outs=None,matdyn_in=None,legends=None,ti
 
     if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
         if ph_outs!=None and grid==True:
-            grid_points=ut.grep_grid_points(ph_outs[0],expanded=True,decimals=15)
+            grid_points=ut.grep_ph_grid_points(ph_outs[0],expanded=True,decimals=15)
             path=ticks
             ticks,grid=__ticks_generator(vectors,ticks,grid_points)
             ax.set_xticks(ticks,labels)
             for num in range(len(ph_outs)):
-                grid_points=ut.grep_grid_points(ph_outs[num],expanded=True,decimals=15)
+                grid_points=ut.grep_ph_grid_points(ph_outs[num],expanded=True,decimals=15)
                 grid=__ticks_generator(vectors,path,grid_points)[1]
                 for point in grid:
                     for i in range(len(ticks)):
