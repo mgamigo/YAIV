@@ -9,7 +9,7 @@ import glob
 import os
 import subprocess
 import yaiv.plot as plot
-import yaiv.cell_analyzer as cell
+import yaiv.experimental.cell_analyzer as cell
 import yaiv.constants as cons
 import spglib as spg
 

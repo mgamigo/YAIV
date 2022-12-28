@@ -12,10 +12,10 @@ from scipy.interpolate import griddata
 import spglib as spg
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-import yaiv.cell_analyzer as cell
+import yaiv.experimental.cell_analyzer as cell
 import yaiv.constants as cons
 import yaiv.utils as ut
-import yaiv.transformations as trs
+#import yaiv.transformations as trs
 
 # PLOTTING BANDS**************************************************************************************
 
@@ -1969,7 +1969,7 @@ def brillouin_zone_3d(cell,ax,basis=True,sides=True,line_width=1,reciprocal=True
     if type(cell)==str:
         cell=ut.grep_vectors(cell)
     if reciprocal==True:
-        K_vec=trs.K_basis(cell)
+        K_vec=ut.K_basis(cell)
     else:
         K_vec=cell
     #Plot K_vec

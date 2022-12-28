@@ -8,9 +8,9 @@ import re
 import os
 from math import gcd
 
-import yaiv.transformations as trs
+#import yaiv.transformations as trs
 import yaiv.utils as ut
-import yaiv.cell_analyzer as cell
+import yaiv.experimental.cell_analyzer as cell
 import yaiv.constants as cons
 
 
@@ -113,7 +113,7 @@ def __find_dyn_file(q_cryst,results_ph_path):
     """
     dyn1_file=glob.glob(results_ph_path+'/*dyn1')
     basis=read_dyn_file(dyn1_file[0])[1]
-    K_vec=trs.K_basis(basis)
+    K_vec=ut.K_basis(basis)
 
     output=None
     dyn_files=glob.glob(results_ph_path+'/*dyn*')
@@ -123,7 +123,7 @@ def __find_dyn_file(q_cryst,results_ph_path):
             if re.search('q =',line):
                 l=line.split()
                 q=[float(l[i]) for i in range(3,6)]
-                q_c=trs.cartesian2cryst(q,K_vec)
+                q_c=ut.cartesian2cryst(q,K_vec)
                 deg=ut.__expand_star(q_c)
                 for q in deg:
                     diff=q_cryst-q
@@ -181,7 +181,7 @@ def read_dyn_file_q(file,q_cryst):
         if re.search('q =',line):
             l=line.split()
             q_point=np.array([float(l[3]),float(l[4]),float(l[5])])
-            q_c=trs.cartesian2cryst(q_point,trs.K_basis(basis_vec))
+            q_c=ut.cartesian2cryst(q_point,ut.K_basis(basis_vec))
             deg=ut.__expand_star(q_c)
             for q in deg:
                 diff=q-q_cryst
@@ -295,8 +295,8 @@ def __benchmark_diago(dyn_file,thr_freq=3,thr_vec=4):
     q,basis,positions,qe_freqs,qe_vecs=read_dyn_file(dyn_file)[0:5]
 
     #Find q_cryst
-    K_vec=trs.K_basis(basis)
-    q_cryst=trs.cartesian2cryst(q,K_vec)
+    K_vec=ut.K_basis(basis)
+    q_cryst=ut.cartesian2cryst(q,K_vec)
 
     #read the QE "dynamical matrix"
     tmp=dyn_file.split('/')
@@ -361,7 +361,7 @@ def __generate_supercell(q_point,basis_vec,cryst_units=False):
     return: supercell, q_cryst"""
     if len(np.shape(q_point))==1:
         if cryst_units==False:
-            q_cryst=trs.cartesian2cryst(q_point,trs.K_basis(basis_vec))
+            q_cryst=ut.cartesian2cryst(q_point,ut.K_basis(basis_vec))
         else:
             q_cryst=q_point
         scell=np.abs(q_cryst)
@@ -372,7 +372,7 @@ def __generate_supercell(q_point,basis_vec,cryst_units=False):
         supercell=supercell.astype(int)
     elif len(np.shape(q_point))==2:
         if cryst_units==False:
-            q_cryst=trs.cartesian2cryst(q_point,trs.K_basis(basis_vec),list_of_vec=True)
+            q_cryst=ut.cartesian2cryst(q_point,ut.K_basis(basis_vec),list_of_vec=True)
         else:
             q_cryst=q_point
         scell=np.abs(q_cryst)
@@ -416,7 +416,7 @@ def distort_phonon_old(q_cryst,freq,results_ph_path,dist=0,silent=False):
 
     #generate original crystal
     #print(positions)
-    atoms[1]=[trs.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
+    atoms[1]=[ut.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
     Pcell=basis*alat*cons.au2ang
     primitive=Atoms(symbols=atoms[0],scaled_positions=atoms[1],cell=Pcell)
 
@@ -447,7 +447,7 @@ def distort_phonon_old(q_cryst,freq,results_ph_path,dist=0,silent=False):
                 disp=np.real(vec*phase)
                 #print('Displacement in',i,j,k,':')
                 #print(np.around(disp,decimals=5))
-                disp=[trs.cartesian2cryst(d,basis) for d in disp]
+                disp=[ut.cartesian2cryst(d,basis) for d in disp]
                 new_pos[:,0]=new_pos[:,0]+i
                 new_pos[:,1]=new_pos[:,1]+j
                 new_pos[:,2]=new_pos[:,2]+k
@@ -456,7 +456,7 @@ def distort_phonon_old(q_cryst,freq,results_ph_path,dist=0,silent=False):
                     positions=np.vstack([positions,new_pos])
                 except NameError:
                     positions=new_pos
-    positions=[trs.cryst2cartesian(p,Pcell) for p in positions]
+    positions=[ut.cryst2cartesian(p,Pcell) for p in positions]
     distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
     if silent==False:
         cell.get_spacegroup(distorted)
@@ -512,7 +512,7 @@ def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=1,silent=False):
     vec=[d*dist for d in displacements]
 
     #READ ORIGINAL CRYTAL
-    atoms[1]=[trs.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
+    atoms[1]=[ut.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
     Pcell=basis*alat*cons.au2ang
 
     #BUILD CONMENSURATE SUPERCELL
@@ -546,13 +546,13 @@ def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=1,silent=False):
                     disp=np.real(OP[l]*vec[l]*phase)
                 #print('Displacement in',i,j,k,':')
                 #print(np.around(disp,decimals=5))
-                    disp=[trs.cartesian2cryst(d,basis) for d in disp]
+                    disp=[ut.cartesian2cryst(d,basis) for d in disp]
                     new_pos=new_pos+disp
                 try:
                     positions=np.vstack([positions,new_pos])
                 except NameError:
                     positions=new_pos
-    positions=[trs.cryst2cartesian(p,Pcell) for p in positions]
+    positions=[ut.cryst2cartesian(p,Pcell) for p in positions]
     distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
     if silent==False:
         cell.get_spacegroup(distorted)
