@@ -1,0 +1,61 @@
+
+     Program Q2R v.6.7MaX starts on 14Sep2021 at 12:29:45 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Parallel version (MPI), running on    10 processors
+
+     MPI processes distributed on     1 nodes
+     R & G space division:  proc/nbgrp/npool/nimage =      10
+
+     reading grid info from file ../results_ph/CsV3Sb5.dyn0    
+  reading force constants from file ../results_ph/CsV3Sb5.dyn1
+  Dielectric Tensor not found
+  nqs=            1
+ q=   0.00000000  0.00000000  0.00000000
+  reading force constants from file ../results_ph/CsV3Sb5.dyn2
+  nqs=            1
+ q=   0.00000000  0.00000000 -0.27859025
+  reading force constants from file ../results_ph/CsV3Sb5.dyn3
+  nqs=            6
+ q=   0.00000000  0.38490018  0.00000000
+ q=  -0.33333333  0.19245009  0.00000000
+ q=   0.33333333  0.19245009  0.00000000
+ q=  -0.33333333 -0.19245009  0.00000000
+ q=   0.33333333 -0.19245009  0.00000000
+ q=   0.00000000 -0.38490018  0.00000000
+  reading force constants from file ../results_ph/CsV3Sb5.dyn4
+  nqs=            6
+ q=   0.00000000  0.38490018 -0.27859025
+ q=  -0.33333333  0.19245009 -0.27859025
+ q=   0.33333333  0.19245009 -0.27859025
+ q=  -0.33333333 -0.19245009 -0.27859025
+ q=   0.33333333 -0.19245009 -0.27859025
+ q=   0.00000000 -0.38490018  0.27859025
+  reading force constants from file ../results_ph/CsV3Sb5.dyn5
+  nqs=            2
+ q=   0.33333333  0.57735027  0.00000000
+ q=  -0.33333333 -0.57735027  0.00000000
+  reading force constants from file ../results_ph/CsV3Sb5.dyn6
+  nqs=            2
+ q=   0.33333333  0.57735027 -0.27859025
+ q=  -0.33333333 -0.57735027  0.27859025
+
+      q-space grid ok, #points =   18
+
+      fft-check success (sum of imaginary terms < 10^-12)
+ 
+     Q2R          :      0.06s CPU      0.08s WALL
+
+ 
+   This run was terminated on:  12:29:45  14Sep2021            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=

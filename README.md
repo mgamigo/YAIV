@@ -2,9 +2,9 @@
 <!-- PROJECT LOGO -->
 <div align="center">
   <h1 align="center">YAIV</h3>
-  <h3 align="center">Yet another Ab Initio Visualizer</h3>
+  <h3 align="center">Yet another Ab Initio Visualizer...</h3>
   <p align="center">
-    A general purpose tool for condensed matter data analysis in jupyterlab
+    A general purpose tool for condensed matter data analysis in jupyterlab.
     <br />
     <a href="https://github.com/mgamigo/YAIV/issues">Report Bug</a>
     ·
@@ -100,9 +100,11 @@ All the functions are properly documented (remember that in JupyterLab all the d
 
 ### Plot module
 Contains most of the plotting functionalities, currently being:
-- **Electronic band structures** of Quantum Espresso, Vasp, Wannier90 and WannierTools.
-    - Plotting results of different codes against each other.
-
+- **Electronic band structures** from Quantum Espresso, Vasp, Wannier90 and WannierTools.
+    - Plotting results from different codes against each other.
+- **Phonon spectra** from Quantum Espresso.
+    - Plotting different phonon spectra. It can highlight the DFPT phonons from which the whole spectrum is interpolated.
+    
 Here are some simple examples:
 ```py
 plot.bands(file='DATA/bands/QE/results_bands/CsV3Sb5.bands.pwo',  #raw Quantum Espresso output file with the band structure
@@ -112,19 +114,38 @@ plot.bands(file='DATA/bands/QE/results_bands/CsV3Sb5.bands.pwo',  #raw Quantum E
 ```
 <img src="../media/bands.png" width="600">
 
-Combining YAIV tools with the usual matplotlib sintax one can generate complex plots as this one (check the [tutorial](Tutorial/Plot_module.ipynb)):
+```py
+plot.phonons(file='DATA/phonons/2x2x2/results_matdyn/CsV3Sb5.freq.gp', #raw data file with the phonon spectrum
+            KPATH='DATA/bands/KPATH',                                 #File with the Kpath (in order to plot the ticks at the High symmetry points)
+            ph_out='DATA/phonons/2x2x2/results_ph/CsV3Sb5.ph.pwo',    #File with the phonon grid points and lattice vectors.
+            title=' ( ͡❛ ͜ʖ ͡❛) Handles discontinious paths! (2x2x2) grid highlighted!',   # A title of your liking
+            grid=True,color='navy',linewidth=1)                        #Non-mandatory customization
+```
+<img src="../media/phonon.png" width="600">
 
-<img src="../media/bands_collage.png" width="800">
+Combining YAIV tools with the usual **matplotlib sintax** one can generate complex plots as this one (check the [tutorial](Tutorial/Plot_module.ipynb)):
+
+<img src="../media/collage.png" width="800">
 
 ### Utils module
 
 The utils module has a variety of utilities mostly focussed on scraping data from output files of different codes. This tools combined can be usefull for various porpuses. All the functions are demostrated in this [tutorial](/Tutorial/Utils_module.ipynb).
 So far the code supports:
-- **Grepping the number of electrons** from Quantum Espresso and VASP outputs.
-- **Grepping the Fermi level**.
-- **Grep the lattice parameters**.
-- **Grep the path** from a Quantum Espresso bands.pwi input.
-- **Grep the path and HSP labels** from a KPATH in the [TQC website](https://www.topologicalquantumchemistry.fr/#/) format. (Enter in any compound and click in the "Download KPATH" link).
+- **Grepping** tools (either by calling the function or using the **file class**):
+	- Grepping the **number of electrons** from Quantum Espresso and VASP outputs.
+	- Grepping the **Fermi level**.
+	- Grep the **lattice parameters**.
+	- Grep the **path** from a Quantum Espresso bands.pwi or madtyn.in input.
+	- Grep the **path and HSP labels** from a KPATH in the [TQC website](https://www.topologicalquantumchemistry.fr/#/) format. (Enter in any compound and click in the "Download KPATH" link).
+	- Grep the **phonon grid** from a Quantum Espresso ph.x output. 
+- **Transforming** tools (mainly usefull changes of coordinates):
+	- **K_basis**: Obtaining the reciprocal lattice vectors.
+	- **cartesian2cryst**: From cartesian to crystal coordinates.
+	- **cryst2cartesian**: From crystal to cartesian coordinates.
+	- **cartesian2spherical**: From cartesian to spherical coordinates.
+	- **cryst2spherical**: From crystal to spherical coordinates.
+
+
 
 _(For more examples, please refer to the [Tutorials](Tutorial))._
 
@@ -136,7 +157,7 @@ _(For more examples, please refer to the [Tutorials](Tutorial))._
 
 - [x] Plot module
     - [x] Plotting electronic band strucutres
-    - [ ] Plotting phonon spectras
+    - [x] Plotting phonon spectra
     - [ ] Plotting densities of states (DOS)
     - [ ] ...
 <!---
@@ -146,11 +167,13 @@ _(For more examples, please refer to the [Tutorials](Tutorial))._
 -->
 - [x] Utils module
     - [x] Grep tools to scrape data form OUTPUT files
+    - [x] Transformation tools for easy changing of coordinates
     - [ ] ...
 - [ ] Convergence analysis tools
     - [ ] Quantum Espresso self consistent calculations
     - [ ] Quantum Espresso phonon spectra
     - [ ] Wannierizations for Wannier90
+    - [ ] ...
 <!---
 - [ ] Crystall structure analysis tools
     - [ ] Symmetry analysis
@@ -167,7 +190,7 @@ _(For more examples, please refer to the [Tutorials](Tutorial))._
 
 ##### Built With
 
-[![NumPy][numpy.js]][numpy-url]  [![Matplotlib][matplo.js]][matplo-url] 
+[![NumPy][numpy.js]][numpy-url]  [![Matplotlib][matplo.js]][matplo-url]  [![ASE][ase.js]][ase-url] 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -177,3 +200,6 @@ _(For more examples, please refer to the [Tutorials](Tutorial))._
 
 [matplo-url]: https://matplotlib.org/
 [matplo.js]: https://img.shields.io/badge/Matplotlib-%23000000.svg?style=for-the-badge&logo=Matplotlib&logoColor=white
+
+[ase-url]: https://wiki.fysik.dtu.dk/ase/
+[ase.js]: https://img.shields.io/badge/ASE-%23006f5c.svg?style=for-the-badge&logoColor=FF6719

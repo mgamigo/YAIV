@@ -1,0 +1,33 @@
+
+     Program MATDYN v.6.7MaX starts on  7Sep2021 at 11:50:31 
+
+     This program is part of the open-source Quantum ESPRESSO suite
+     for quantum simulation of materials; please cite
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 21 395502 (2009);
+         "P. Giannozzi et al., J. Phys.:Condens. Matter 29 465901 (2017);
+          URL http://www.quantum-espresso.org", 
+     in publications or presentations arising from this work. More details at
+     http://www.quantum-espresso.org/quote
+
+     Parallel version (MPI), running on    10 processors
+
+     MPI processes distributed on     1 nodes
+     R & G space division:  proc/nbgrp/npool/nimage =      10
+ mass for atomic type   1 not given; uses mass from file CsV3Sb5.fc                                                                                                                                                                                                                                                      
+ mass for atomic type   2 not given; uses mass from file CsV3Sb5.fc                                                                                                                                                                                                                                                      
+ mass for atomic type   3 not given; uses mass from file CsV3Sb5.fc                                                                                                                                                                                                                                                      
+Norm of the difference between old and new effective charges:    0.00000000000000000000
+Norm of the difference between old and new force-constants:   0.00007664393292769879
+     Message from routine matdyn:
+     Z* not found in file CsV3Sb5.fc, TO-LO splitting at q=0 will be absent!
+     Message from routine matdyn:
+     Z* not found in file CsV3Sb5.fc, TO-LO splitting at q=0 will be absent!
+ 
+     MATDYN       :      1.49s CPU      1.94s WALL
+
+ 
+   This run was terminated on:  11:50:32   7Sep2021            
+
+=------------------------------------------------------------------------------=
+   JOB DONE.
+=------------------------------------------------------------------------------=
