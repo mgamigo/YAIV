@@ -15,7 +15,12 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "ipympl==0.9.1",
-        "ase"
+        "ase-notebook",
+        "spglib",
+        "pythreejs",
+#        "numpy",
+#        "matplotlib",
+#        "ase"
         ],
     classifiers=[
         "Programming Language :: Python :: 3",
