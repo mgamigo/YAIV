@@ -1,0 +1,12 @@
+
+&INPUTPH
+  prefix='CsV3Sb5',
+  recover=.true.
+  outdir='/scratch/martin/CsV3Sb5/P6mmm/phonons/3x3x2/tmp/',
+  fildyn='CsV3Sb5.dyn',
+  ldisp=.true.,
+  tr2_ph=1e-20
+  alpha_mix=0.35,
+  verbosity='high'
+  nq1=3, nq2=3, nq3=2,
+ /

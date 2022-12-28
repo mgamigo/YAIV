@@ -2,59 +2,198 @@
 
 import numpy as np
 import re
+from ase import io
 
-# GREPPING utilities***********************************************************************
+import yaiv.constants as const
 
-def grep_vectors(file,filetype='qe'):
-    """Greps the real vectors from a scf.pwo, bands.pwo (in the alat units) or file VASP OUTCAR 
-    (it may work with other output files of QE)
+# GREPPING utilities----------------------------------------------------------------
+
+class file:
+    """A class for file scraping, depending on the filetype a different set of attributes will initialize.
+    The filetype should be automatically detected, but can be manually introduced:
+    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in, qe_ph_out, matdyn_in
+    VASP: POSCAR, OUTCAR, KPATH (KPOINTS in line mode), EIGENVAL
+    """
+    def __init__(self,file,filetype=None):
+        self.file = file
+        #Define file type
+        if filetype == None:
+            self.filetype = grep_filetype(file)
+        else:
+            self.filetype = filetype.lower()
+        #Read attributes:
+        if self.filetype in ['qe_scf_out','qe_scf_in','qe_bands_in','qe_ph_out','outcar','poscar']:
+            self.lattice = grep_lattice(self.file,filetype=self.filetype)
+        if self.filetype in ['qe_scf_out','outcar']:
+            self.electrons = grep_electrons(file,filetype=self.filetype)
+        if self.filetype in ['qe_scf_out','outcar']:
+            self.fermi = grep_fermi(file,filetype=self.filetype)
+        if self.filetype == 'kpath':
+            self.path,self.labels = grep_ticks_labels_KPATH(file)
+        if self.filetype in ['qe_bands_in','matdyn_in']:
+            self.path = grep_ticks_QE(self.file,self.filetype)
+    def __str__(self):
+        return str(self.filetype) + ':\n' + self.file
+    def grep_lattice(self):
+        """Check grep_lattice function"""
+        self.lattice = grep_lattice(self.file,filetype=self.filetype)
+        return self.lattice
+    def grep_lattice_alat(self):
+        """Check grep_lattice function"""
+        self.lattice = grep_lattice(self.file,alat=True,filetype=self.filetype)
+        return self.lattice
+    def reciprocal_lattice(self):
+        """Check K_basis function"""
+        if hasattr(self, 'lattice'):
+            return K_basis(self.lattice)
+        else:
+            print('No lattice data in order to compute reciprocal lattice')
+    def grep_ph_grid_points(self,expanded=False,decimals=3):
+        """Check grep_ph_grid_points function"""
+        if self.filetype != 'qe_ph_out':
+            print('This method if for ph.x outputs, which this is not...')
+            print('Check the documentation for grep_ph_grid_points function')
+        else:
+            grid = grep_ph_grid_points(self.file,expanded=expanded,decimals=decimals)
+            self.ph_grid_points = grid
+            return grid
+
+def grep_filetype(file):
+    """Returns the filetype, currently it supports:
+    QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in, qe_ph_out, matdyn_in
+    VASP: POSCAR, OUTCAR, KPATH (KPOINTS in line mode), EIGENVAL
+    Anything else is considered a general 'data' type
+    """
+    lines = open(file)
+    counter=0
+    for line in lines:
+        if re.search('calculation.*scf.*',line,re.IGNORECASE) or re.search('calculation.*nscf.*',line,re.IGNORECASE):
+            filetype='qe_scf_in'
+            break
+        elif re.search('Program PWSCF',line,re.IGNORECASE):
+            filetype='qe_scf_out'
+            break
+        elif re.search('Program PHONON',line,re.IGNORECASE):
+            filetype='qe_ph_out'
+            break
+        elif re.search('calculation.*bands.*',line,re.IGNORECASE):
+            filetype='qe_bands_in'
+            break
+        elif re.search('flfrc',line,re.IGNORECASE):
+            filetype='matdyn_in'
+            break
+        elif re.search('direct',line,re.IGNORECASE) or re.search('cartesian',line,re.IGNORECASE):
+            filetype='poscar'
+            break
+        elif re.search('vasp',line,re.IGNORECASE):
+            filetype='outcar'
+            break
+        elif len(line.split()) == 4 and all([x.isdigit() for x in line.split()]):
+            filetype='eigenval' 
+            break
+        elif re.search('line.mode',line,re.IGNORECASE):
+            filetype='kpath' 
+            break
+        else:
+            filetype='data'
+    return filetype
+
+def grep_lattice(file,alat=False,filetype=None):
+    """Greps the lattice vectors from a variety of outputs (it uses ase)
     OUTPUT= np.array([vec1,vec2,vec3])
     """
-    filetype=filetype.lower()
-    count=0
-    lattice_lines=False
-    lines=open(file,'r')
-
-    if filetype=='qe':
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype = filetype.lower()
+    if filetype=='qe_ph_out':
+        lattice_lines=False
+        lines=open(file,'r')
         for line in lines:
-            if lattice_lines==True:
+            if re.search('lattice parameter',line):
+                line=line.split()
+                alat_au=float(line[4])
+            elif lattice_lines==True:
                 X=float(line.split()[3])
                 Y=float(line.split()[4])
                 Z=float(line.split()[5])
                 vec=np.array([X,Y,Z])
-                if count==0:
-                    vectors=vec
-                else:
-                    vectors=np.vstack((vectors,vec))            
-                count=count+1
-                if count>=3:
+                try:
+                    lattice=np.vstack((lattice,vec))            
+                except NameError:
+                    lattice=vec
+                if lattice.shape == (3,3):
                     break
-            if re.search('crystal axes',line,flags=re.IGNORECASE):
+            elif re.search('crystal axes',line,flags=re.IGNORECASE):
                 lattice_lines=True
-    elif filetype=='vasp':
-        for line in lines:
-            if re.search('direct lattice vectors',line):
-                lattice_lines=True
-            elif count>=3:
-                break
-            elif lattice_lines==True:
-                count=count+1
-                if count>0:
-                    l=line.split()
-                    X=float(l[0])
-                    Y=float(l[1])
-                    Z=float(l[2])
-                    vec=np.array([X,Y,Z])
-                    try:
-                        vectors=np.vstack([vectors,vec])
-                    except NameError:
-                        vectors=vec
-        norm=np.linalg.norm(vectors[0])
-        vectors=vectors/norm
+        if alat == True:
+            return lattice
+        else:
+            return lattice*alat_au*const.au2ang
     else:
-        print('FILETYPE NOT AVAILABLE')
-        print('could not grep vectors')
-    return vectors
+        import warnings
+        warnings.filterwarnings("ignore", message="Non-collinear spin is not yet implemented. Setting magmom to x value.")
+        try:
+            data=io.read(file)
+            lattice=np.array(data.cell)
+            if alat == True:
+                lattice = lattice/np.linalg.norm(lattice[0])
+        except:
+            lattice=None
+            print('No lattice data found')
+    return lattice
+
+def grep_fermi(file,filetype=None):
+    """Greps the Fermi level from a variety of filetypes and returns it in eV
+    The filetype should be detected automatically, but it supports:
+    qe_scf_out (Quantum Espresso), OUTCAR (VASP)
+    """
+    E_f=None
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
+    if filetype[:2]=='qe':
+        scf_out=open(file,'r')
+        for line in scf_out:
+            if re.search('Fermi energy is',line):
+                E_f=float(line.split()[4])
+            if re.search('highest occupied',line):
+                if re.search('unoccupied',line):
+                    E1=float(line.split()[6])
+                    E2=float(line.split()[7])
+                    print('The gap is',(E2-E1)*1000,'meV')
+                    E_f=E1+(E2-E1)/2
+                else:
+                    E_f=float(line.split()[4])
+    elif filetype=='outcar':
+        OUTCAR=open(file,'r')
+        for line in OUTCAR:
+            if re.search('E-fermi',line):
+                E_f=float(line.split()[2])
+    return E_f
+
+def grep_electrons(file,filetype=None):
+    """Greps the number of electrons from a scf.pwo or OUTCAR file.
+    The filetype should be detected automatically, but it supports:
+    qe_scf_out (Quantum Espresso), OUTCAR (VASP)
+    """
+    num_elec=None
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
+    if filetype[:2]=='qe':
+        scf_out=open(file,'r')
+        for line in scf_out:
+            if re.search('number of electrons',line):
+                num_elec=int(float(line.split()[4]))
+    elif filetype=='outcar':
+        OUTCAR=open(file,'r')
+        for line in OUTCAR:
+            if re.search('NELECT',line):
+                num_elec=int(float(line.split()[2]))
+    return num_elec
 
 def grep_ticks_labels_KPATH(file):
     """Greps ticks and labels of the ticks from a KPATH file of VASP.
@@ -64,9 +203,14 @@ def grep_ticks_labels_KPATH(file):
     0 0.5 0 !X
     0.5 0.5 0 !
 
-    It generates the correct ticks to plot with my scripts (even with splitted paths)
+    It outputs two variables, the PATH:
+    np.array([K-point1, # of points to next],
+             [K-point2, # of points to next],
+              ...]
 
-    return ticks, labels
+
+    and a list of LABELS:
+    [label1, label2, label3 ...]
     """
     KPATH=open(file,'r')
     ticks=np.zeros(0)
@@ -117,7 +261,6 @@ def grep_ticks_labels_KPATH(file):
             num_labels=num_labels-1
         else:
             path=True
-#    print("you need to introduce",num_labels+1,"labels")
     while labels.count('000')>0:
         labels.remove('000')
     for i in range(len(labels)):
@@ -126,14 +269,16 @@ def grep_ticks_labels_KPATH(file):
         labels[i]='$'+labels[i]+'$'
     return ticks, labels
 
-def grep_ticks_QE(file):
-    """Greps the path and generates ticks from a bands.pwi file.
-    It takes into account when the distance between two points is 1 and therefore there is a splitted path for the bandstructure. It also informs for the number of labels needed.
-
-    (it may work with other output files of QE, easy to addapt to matdyn)
-
-    OUTPUT= np.array([tick1,tick2,tick3...])
+def grep_ticks_QE(file,filetype=None,silent=True):
+    """Greps the K-path from a qe_bands_in or matdyn.in Quantum Espresso files.
+    OUTPUT= np.array([K-point1, # of points to next],
+                     [K-point2, # of points to next],
+                     ...]
     """
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
     KPATH=open(file)
     ticks=np.zeros(0)
     num_q=0
@@ -155,9 +300,12 @@ def grep_ticks_QE(file):
                     else:
                         ticks=np.vstack((ticks,q1))
                 i=i+1
-        if re.search('K_POINTS.*crystal_b',line,flags=re.IGNORECASE):
+            else:
+                break
+        elif re.search('K_POINTS.*crystal_b',line,flags=re.IGNORECASE):
             path_section=True
-
+        elif re.search('/',line) and filetype=='matdyn_in':
+            path_section=True
     num_labels=num_q
     path=True
     for i in range(num_q):
@@ -166,79 +314,118 @@ def grep_ticks_QE(file):
             num_labels=num_labels-1
         else:
             path=True
-    print("you need to introduce",num_labels+1,"labels")
+    if silent == False:
+        print("you need to introduce",num_labels+1,"labels")
     return ticks
 
-def grep_fermi(file,filetype='qe'):
-    """Greps the Fermi Energy from a scf.pwo, nscf.pwo ... or OUTCAR (VASP) file.
-   returns the Fermi energy in eV
-    """
-    filetype=filetype.lower()
-    if filetype=='qe':
-        scf_out=open(file,'r')
-        for line in scf_out:
-            if re.search('Fermi energy is',line):
-                E_f=float(line.split()[4])
-            if re.search('highest occupied',line):
-                if re.search('unoccupied',line):
-                    E1=float(line.split()[6])
-                    E2=float(line.split()[7])
-                    print('The gap is',(E2-E1)*1000,'meV')
-                    E_f=E1+(E2-E1)/2
-                else:
-                    E_f=float(line.split()[4])
-    elif filetype=='vasp':
-        OUTCAR=open(file,'r')
-        for line in OUTCAR:
-            if re.search('E-fermi',line):
-                E_f=float(line.split()[2])
-    return E_f
+def grep_ph_grid_points(file,expanded=False,decimals=3):
+    """Greps the grid points from a ph.pwo file, it reads the points and the star of those
+    points given in the QE ouput and expresses them in reciprocal space lattice vectors. This grid
+    can be further expanded to equivalent points line (0,0,0.5) and (0,0,-0.5).
 
-def grep_electrons(file,filetype='qe'):
-    """Greps the number of electrons from a scf.pwo or OUTCAR file.
-   return num_elec
+    file='material.ph.pwo'
     """
-    num_elec=None
-    filetype=filetype.lower()
-    if filetype=='qe':
-        scf_out=open(file,'r')
-        for line in scf_out:
-            if re.search('number of electrons',line):
-                num_elec=int(float(line.split()[4]))
-    elif filetype=='vasp':
-        OUTCAR=open(file,'r')
-        for line in OUTCAR:
-            if re.search('NELECT',line):
-                num_elec=int(float(line.split()[2]))
-    return num_elec
+    vectors=grep_lattice(file,alat=True,filetype='qe_ph_out')
+    text=open(file)
+    read_text=False
+    for line in text:
+        if read_text==True and line.split()[0]==str(i):
+            split=(line.split())
+            point=np.array([float(split[1]),float(split[2]),float(split[3])])
+            point=np.matmul(point,vectors.transpose())
+            try:
+                grid_points=np.vstack([grid_points,point])
+            except NameError:
+                grid_points=point
+            i=i+1
+            if i > num_star:
+                read_text=False
+        elif re.search('Number of q in the star',line):
+            num_star=int(line.split()[7])
+            i=1
+            read_text=True
+        elif re.search('In addition there is the',line):
+            i=1
+            read_text=True
+    grid_points=np.around(grid_points,decimals=decimals) #Fix for detecting the grid in the paths
+    
+    if expanded==True:
+        initial_grid=grid_points
+        for point in initial_grid:
+            expanded_star=__expand_star(point)
+            try:
+                grid=np.vstack([grid,expanded_star])
+            except NameError:
+                grid=expanded_star
+    else:
+        grid=grid_points
+    return grid
 
-def __grep_fermi_and_electrons(file,filetype='qe'):
-    """Greps the Fermi Energy and number of electrons from a scf.pwo or OUTCAR file.
-   returns the Fermi energy in eV
-   (The advantage is we just read the file once)
+def __expand_star(q_point):
+    """Expands the "star" of each point to equivalent points inside (111) (related by lattice) in the border of the BZ.
+    This is usefull when a High Sym point is the (0.5,0,0), this generates (-0.5,0,0), which is not in the star
+    since is it the same point.    
     """
-    num_elec=None
-    filetype=filetype.lower()
-    if filetype=='qe':
-        scf_out=open(file,'r')
-        for line in scf_out:
-            if re.search('Fermi energy is',line):
-                E_f=float(line.split()[4])
-            if re.search('highest occupied',line):
-                if re.search('unoccupied',line):
-                    E1=float(line.split()[6])
-                    E2=float(line.split()[7])
-                    print('The gap is',(E2-E1)*1000,'meV')
-                    E_f=E1+(E2-E1)/2
-                else:
-                    E_f=float(line.split()[4])
-            if re.search('number of electrons',line):
-                num_elec=int(float(line.split()[4]))
-    elif filetype=='vasp':
-        OUTCAR=open(file,'r')
-        for line in OUTCAR:
-            if re.search('E-fermi',line):
-                E_f=float(line.split()[2])
-            if re.search('NELECT',line):
-                num_elec=int(float(line.split()[2]))
-    return E_f, num_elec
+    output=[q_point]
+    for i in range(3):
+        for point in output:
+            related1=np.array(point)
+            related2=np.array(point)
+            related1[i]=point[i]+1
+            related2[i]=point[i]-1
+            output=np.vstack([output,related1,related2])
+    return output
+
+# Transformation tools----------------------------------------------------------------
+
+def K_basis(lattice):
+    """With basis_vec being in rows, it returns the reciprocal basis vectors in rows
+    and units of 2pi"""
+    K_vec=np.linalg.inv(lattice).transpose() #reciprocal vectors in rows
+    return K_vec
+
+def cartesian2cryst(cartesian,cryst_basis,list_of_vec=False):
+    """Goes from cartesian units to cryst units. Either vectors or matrices (also list of vectors)
+    cartesian: coordinates or matrix in cartesian units
+    cryst_basis: crystaline basis written by rows
+    return crystal_coord"""
+    if len(np.shape(cartesian))==1 or list_of_vec==True:
+        crystal_coord=np.matmul(cartesian,np.linalg.inv(cryst_basis))
+    elif len(np.shape(cartesian))==2:
+        inv=np.linalg.inv(cryst_basis)
+        crystal_coord=np.matmul(np.transpose(inv),cartesian)
+        crystal_coord=np.matmul(crystal_coord,np.transpose(cryst_basis))
+    return crystal_coord
+
+def cryst2cartesian(cryst,cryst_basis,list_of_vec=False):
+    """Goes from crystaling units to cartesian units. Either vectors or matrices (also list of vectors)
+    cryst: coordinates or  matrix in cryst units
+    cryst_basis: crystaline basis written by rows
+    return cartesian_coord"""
+    if len(np.shape(cryst))==1 or list_of_vec==True:
+        cartesian_coord=np.matmul(cryst,cryst_basis)
+    elif len(np.shape(cryst))==2:
+        cartesian_coord=np.matmul(np.transpose(cryst_basis),cryst)
+        inv=np.linalg.inv(cryst_basis)
+        cartesian_coord=np.matmul(cartesian_coord,np.transpose(inv))
+    return cartesian_coord
+
+def cartesian2spherical(xyz,degrees=False):
+    """From cartesian to spherical coord
+    mod, theta(z^x), phi(x^y)"""
+    ptsnew = np.zeros(3)
+    xy = xyz[0]**2 + xyz[1]**2
+    ptsnew[0] = np.sqrt(xy + xyz[2]**2)
+    ptsnew[1] = np.arctan2(np.sqrt(xy), xyz[2]) # for elevation angle defined from Z-axis down
+    #ptsnew[1] = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
+    ptsnew[2] = np.arctan2(xyz[1], xyz[0])
+    if degrees==True:
+        ptsnew[1:]=ptsnew[1:]*180/np.pi
+    return ptsnew
+
+def cryst2spherical(cryst,cryst_basis,degrees=False):
+    """From crystal coord to spherical (usefull for SKEAF)
+    mod, theta(z^x), phi(x^y)"""
+    xyz=cryst2cartesian(cryst,cryst_basis)
+    spherical=cartesian2spherical(xyz,degrees)
+    return spherical

@@ -1,0 +1,5 @@
+&INPUT
+  fildyn='../results_ph/CsV3Sb5.dyn',
+  zasr='simple',
+  flfrc='CsV3Sb5.fc'
+ /

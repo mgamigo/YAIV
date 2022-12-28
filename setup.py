@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="yaiv", # Replace with your username
-    version="0.0.1",
+    version="0.1.0",
     author="Martin Gutierrez-Amigo",
     author_email="<martin00gutierrez@outlook.com>",
     description="Yet another Ab Initio Visualizer with a variety of tools",
@@ -14,7 +14,8 @@ setuptools.setup(
     url="https://github.com/mgamigo/YAIV",
     packages=setuptools.find_packages(),
     install_requires=[
-        "ipympl==0.9.1"
+        "ipympl==0.9.1",
+        "ase"
         ],
     classifiers=[
         "Programming Language :: Python :: 3",
