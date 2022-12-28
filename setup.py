@@ -14,7 +14,8 @@ setuptools.setup(
     url="https://github.com/mgamigo/YAIV",
     packages=setuptools.find_packages(),
     install_requires=[
-        "ipympl==0.9.1"
+        "ipympl==0.9.1",
+        "ase"
         ],
     classifiers=[
         "Programming Language :: Python :: 3",
