@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import yaiv.constants as const
+import yaiv.utils as utils
 
 def __sort_Kgrids(Kgrids):
     """Using the list of Kgrids as input ['4x4x1','3x3x1','10x10x1']
@@ -27,7 +28,7 @@ def __read_number_of_atoms(file):
     return atoms_num
 
 def read_data(folder):
-    """from the folder where data is stored it reads the scf.pwo files
+    """from the folder where data is stored it reads the scf.pwo files (it autodetects the file extension .pwo, .out, whatever...)
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the cutoff number
@@ -40,15 +41,24 @@ def read_data(folder):
      [  110.         -1416.52358896    -1.4889     time    ...]
      [  120.         -1416.5240187     -1.4889     time    ...]]
      
-    where first column is the cutoff, the secondo is the total energy(per atom in meV) and the third is the Fermi Energy
+    where first column is the cutoff, the secondo is the total energy(per atom in meV) and the third is the Fermi Energy...
     """
     data=[]
     Kgrids=glob.glob(folder+"/*")
     Kgrids=[i.split("/")[-1] for i in Kgrids]
     Kgrids=__sort_Kgrids(Kgrids)
+
+    #Grep output extension
+    subfolders=glob.glob(folder+"/"+Kgrids[0]+"/*")
+    files=glob.glob(subfolders[0]+"/*")
+    for i,file in enumerate(files):
+        if utils.grep_filetype(file) == 'qe_scf_out':
+            extension=file.split('.')[-1]
+            break
+
     for i in range(len(Kgrids)):
         Kgrid=Kgrids[i]
-        files=glob.glob(folder+"/"+Kgrid+"/*/*pwo")
+        files=glob.glob(folder+"/"+Kgrid+"/*/*"+extension)
         grid_data=np.zeros([len(files),6])
         atoms_num=__read_number_of_atoms(files[0])
         for j in range(len(files)):
@@ -89,15 +99,54 @@ def read_data(folder):
         data[i+1]=plot_data=data[i+1][data[i+1][:,0].argsort()] #sort acording to first column (x axis)(cutoff)
     return data
 
-def energy_vs_cutoff(folder,grid=False,savefig=None,axis=None):
+def reverse_data(data):
+    """From the data obtained with read_data it reverses so that the format is:
+    ...
+    OUTPUT:
+    A list where odd numbers are the cutoffs and even numbers are the corresponding info:
+    [[   K1xK2xK3         -1416.5169454     -1.489      time          10GB    0.17]
+     [   K1xK2xK3         -1416.51803251    -1.489      time          30Gb     0.22]
+     [  K1xK2xK3    energy(meV/atom)  fermi(eV)  time(hours)    RAM    forces(meV/au*atom)]
+     [  K1xK2xK3         -1416.52358896    -1.4889     time    ...]
+     [  K1xK2xK3         -1416.5240187     -1.4889     time    ...]]
+     
+    where first column is the total of K points, the secondo is the total energy(per atom in meV) and the third is the Fermi Energy...
+    """
+
+    Kgrids=data[0::2]
+    cutoffs=[]
+    for dataset in data[1::2]:
+        for cutoff in dataset[:,0]:
+            if cutoff not in cutoffs:
+                cutoffs=cutoffs+[cutoff]
+    new_data=[]
+    for cutoff in cutoffs:
+        for i,dataset in enumerate(data[1::2]):
+            index=np.where(dataset[:,0]==cutoff)
+            if len(index)==1:
+                index=index[0][0]
+                grid_K=np.prod([int(x) for x in Kgrids[i].split('x')])
+                data_row=np.hstack((grid_K,dataset[index,1:]))
+                try:
+                    data_cutoff=np.vstack((data_cutoff,data_row))
+                except NameError:
+                    data_cutoff=data_row
+            elif len(index)>1:
+                print('Something really wrong happend...')
+        new_data=new_data+[cutoff]+[data_cutoff]
+        del data_cutoff
+    return new_data
+
+def energy_vs_cutoff(data,grid=False,savefig=None,axis=None):
     """It plots the energy as a function of cutoff for different k_grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the cutoff number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data)
 
     if axis == None:
         fig=plt.figure()
@@ -121,22 +170,19 @@ def energy_vs_cutoff(folder,grid=False,savefig=None,axis=None):
         plt.tight_layout()
         plt.show()
 
-def energy_vs_Kgrid(folder,grid=False,savefig=None,axis=None):
+
+def energy_vs_Kgrid(data,grid=False,savefig=None,axis=None):
     """It plots the total energy as a function of K_grid for different cutoffs
-    folder: where data is stored it reads the scf.pwo files and plots
+    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the cutoff number
     """
-    data=read_data(folder)
-
-    Kgrids=data[0::2]
-    #fig=plt.figure()
-    cutoffs=glob.glob(folder+"/*/*")
-    cutoffs=[i.split('/')[-1] for i in cutoffs]
-    cutoffs=list(set(cutoffs))
-    cutoffs.sort(key=int)
+    if type(data)==str:
+        data=read_data(data)
+        Kgrids=data[0::2]
+        data=reverse_data(data)
 
     if axis == None:
         fig=plt.figure()
@@ -144,20 +190,17 @@ def energy_vs_Kgrid(folder,grid=False,savefig=None,axis=None):
     else:
         ax=axis
 
-    for cutoff in cutoffs:
-        cutoff_data=[]
-        for i in range(len(Kgrids)):
-            grid=Kgrids[i].split('x')[0]
-            if os.path.isdir(folder+"/"+Kgrids[i]+"/"+cutoff):
-                cutoff_index=np.where(data[2*i+1][:,0]==int(cutoff))[0][0]
-                cutoff_data=cutoff_data+[int(grid),data[2*i+1][cutoff_index,1]]
-        ax.plot(cutoff_data[0::2],cutoff_data[1::2],'.-',label=cutoff)
-
-    ax.set_ylabel("Total energy/atom (meV)")
-    ax.set_xlabel("K grid first index")
-    ax.set_xticks([int(i.split('x')[0]) for i in Kgrids])
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,1],'.-',label=int(data[i]))
+    ax.set_ylabel("total energy/atom (meV)")
+    ax.set_xlabel("K point number")
+    grids_K=[]
+    for g in Kgrids:
+        n=np.prod([int(x) for x in g.split('x')])
+        grids_K=grids_K+[n]
+    ax.set_xticks(grids_K,labels=Kgrids,rotation=60)
     ax.legend(prop={'size': 7})
-    ax.tight_layout()
     if grid == True:
         ax.grid()
     if savefig!=None:
