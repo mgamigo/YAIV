@@ -123,7 +123,7 @@ def reverse_data(data):
     for cutoff in cutoffs:
         for i,dataset in enumerate(data[1::2]):
             index=np.where(dataset[:,0]==cutoff)
-            if len(index)==1:
+            if len(index[0])==1:
                 index=index[0][0]
                 grid_K=np.prod([int(x) for x in Kgrids[i].split('x')])
                 data_row=np.hstack((grid_K,dataset[index,1:]))

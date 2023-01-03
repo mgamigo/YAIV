@@ -208,4 +208,3 @@ def phonons(folder,grid=True,savefig=None):
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
     plt.show()
-
