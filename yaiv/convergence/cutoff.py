@@ -171,7 +171,7 @@ def energy_vs_cutoff(data,grid=False,savefig=None,axis=None):
         plt.show()
 
 
-def energy_vs_Kgrid(data,grid=False,savefig=None,axis=None):
+def energy_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
     """It plots the total energy as a function of K_grid for different cutoffs
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -210,3 +210,433 @@ def energy_vs_Kgrid(data,grid=False,savefig=None,axis=None):
     if axis == None:
         plt.tight_layout()
         plt.show()
+
+def fermi_vs_cutoff(data,grid=False,savefig=None,axis=None):
+    """It plots the Fermi energy as a function of cutoff for different k_grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,2],'.-',label=data[i])
+    ax.set_ylabel("Fermi energy (eV)")
+    ax.set_xlabel("cutoff (Ry)")
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+
+def fermi_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+    """It plots the Fermi energy as a function of K_grid for different cutoffs
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+        Kgrids=data[0::2]
+        data=reverse_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,2],'.-',label=int(data[i]))
+    ax.set_ylabel("Fermi energy (eV)")
+    ax.set_xlabel("K point number")
+    grids_K=[]
+    for g in Kgrids:
+        n=np.prod([int(x) for x in g.split('x')])
+        grids_K=grids_K+[n]
+    ax.set_xticks(grids_K,labels=Kgrids,rotation=60)
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+def time_vs_cutoff(data,grid=False,savefig=None,axis=None):
+    """It plots the computation time as a function of cutoff for different k_grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,3],'.-',label=data[i])
+    ax.set_ylabel("time in hours")
+    ax.set_xlabel("cutoff (Ry)")
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+
+def time_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+    """It plots the computation time as a function of K_grid for different cutoffs
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+        Kgrids=data[0::2]
+        data=reverse_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,3],'.-',label=int(data[i]))
+    ax.set_ylabel("time in hours")
+    ax.set_xlabel("K point number")
+    grids_K=[]
+    for g in Kgrids:
+        n=np.prod([int(x) for x in g.split('x')])
+        grids_K=grids_K+[n]
+    ax.set_xticks(grids_K,labels=Kgrids,rotation=60)
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+
+def RAM_vs_cutoff(data,grid=False,savefig=None,axis=None):
+    """It plots the RAM as a function of cutoff for different k_grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,4],'.-',label=data[i])
+    ax.set_ylabel("RAM (Gb)")
+    ax.set_xlabel("cutoff (Ry)")
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+
+def RAM_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+    """It plots the RAM as a function of K_grid for different cutoffs
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+        Kgrids=data[0::2]
+        data=reverse_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,4],'.-',label=int(data[i]))
+    ax.set_ylabel("RAM (Gb)")
+    ax.set_xlabel("K point number")
+    grids_K=[]
+    for g in Kgrids:
+        n=np.prod([int(x) for x in g.split('x')])
+        grids_K=grids_K+[n]
+    ax.set_xticks(grids_K,labels=Kgrids,rotation=60)
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+def forces_vs_cutoff(data,grid=False,savefig=None,axis=None):
+    """It plots the (total force)/(num atoms) as a function of cutoff for different k_grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,5],'.-',label=data[i])
+    ax.set_ylabel("Total force/atom (meV/au)")
+    ax.set_xlabel("cutoff (Ry)")
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+
+def forces_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+    """It plots the num atomsRAM as a function of K_grid for different cutoffs
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    if type(data)==str:
+        data=read_data(data)
+        Kgrids=data[0::2]
+        data=reverse_data(data)
+
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    for i in range(0,len(data),2):
+        plot_data=data[i+1]
+        ax.plot(plot_data[:,0],plot_data[:,5],'.-',label=int(data[i]))
+    ax.set_ylabel("Total force/atom (meV/au)")
+    ax.set_xlabel("K point number")
+    grids_K=[]
+    for g in Kgrids:
+        n=np.prod([int(x) for x in g.split('x')])
+        grids_K=grids_K+[n]
+    ax.set_xticks(grids_K,labels=Kgrids,rotation=60)
+    ax.legend(prop={'size': 7})
+    if grid == True:
+        ax.grid()
+    if savefig!=None:
+        plt.tight_layout()
+        plt.savefig(savefig,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+
+
+def energy(folder,savefig=None):
+    """It plots the total energy as a function of cutoffs and grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    data=read_data(folder)
+    data_K=reverse_data(data)
+    Kgrids=data[0::2]
+    
+    w, h = plt.figaspect(0.5)    
+    fig=plt.figure(figsize=(w, h))
+    fig.suptitle('Total energy')
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+
+    energy_vs_cutoff(data,grid=True,axis=ax1)
+    energy_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    
+    if savefig!=None:
+        plt.savefig(savefig,dpi=300)
+    plt.tight_layout()
+    plt.show()
+
+
+def fermi(folder,savefig=None):
+    """It plots the total fermi energy as a function of cutoffs and grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    data=read_data(folder)
+    data_K=reverse_data(data)
+    Kgrids=data[0::2]
+    
+    w, h = plt.figaspect(0.5)    
+    fig=plt.figure(figsize=(w, h))
+    fig.suptitle('Fermi Energy')
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+
+    fermi_vs_cutoff(data,grid=True,axis=ax1)
+    fermi_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    
+    if savefig!=None:
+        plt.savefig(savefig,dpi=300)
+    plt.tight_layout()
+    plt.show()
+
+
+def time(folder,savefig=None):
+    """It plots the total computation time as a function of cutoffs and grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    data=read_data(folder)
+    data_K=reverse_data(data)
+    Kgrids=data[0::2]
+    
+    w, h = plt.figaspect(0.5)    
+    fig=plt.figure(figsize=(w, h))
+    fig.suptitle('Computing time')
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+
+    time_vs_cutoff(data,grid=True,axis=ax1)
+    time_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    
+    if savefig!=None:
+        plt.savefig(savefig,dpi=300)
+    plt.tight_layout()
+    plt.show()
+
+def RAM(folder,savefig=None):
+    """It plots the total needed RAM as a function of cutoffs and grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    data=read_data(folder)
+    data_K=reverse_data(data)
+    Kgrids=data[0::2]
+    
+    w, h = plt.figaspect(0.5)    
+    fig=plt.figure(figsize=(w, h))
+    fig.suptitle('RAM (GB)')
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+
+    RAM_vs_cutoff(data,grid=True,axis=ax1)
+    RAM_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    
+    if savefig!=None:
+        plt.savefig(savefig,dpi=300)
+    plt.tight_layout()
+    plt.show()
+
+def forces(folder,savefig=None):
+    """It plots the total (total force)/(num atoms) as a function of cutoffs and grids
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    data=read_data(folder)
+    data_K=reverse_data(data)
+    Kgrids=data[0::2]
+    
+    w, h = plt.figaspect(0.5)    
+    fig=plt.figure(figsize=(w, h))
+    fig.suptitle('Total force')
+    ax1 = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+
+    forces_vs_cutoff(data,grid=True,axis=ax1)
+    forces_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    
+    if savefig!=None:
+        plt.savefig(savefig,dpi=300)
+    plt.tight_layout()
+    plt.show()
