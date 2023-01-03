@@ -23,7 +23,7 @@ def read_data(folder):
      [  0.014         -1416.52358896    -1.4889     time    ...]
      [  0.016         -1416.5240187     -1.4889     time    ...]]
     
-    where first column is the cutoff, the secondo is the total energy(per atom in meV) and the third is the Fermi Energy
+    where first column is the smearing, the secondo is the total energy(per atom in meV) and the third is the Fermi Energy
     """
     data=[]
     Kgrids=glob.glob(folder+"/*")
@@ -85,13 +85,13 @@ def read_data(folder):
         data[i+1]=plot_data=data[i+1][data[i+1][:,0].argsort()] #sort acording to first column (x axis)(smearing)
     return data
 
-def energy_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
+def energy_vs_smearing(data,grid=True,temp=False,savefig=None,axis=None):
     """It plots the energy as a function of smearing for different k_grids
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -122,13 +122,13 @@ def energy_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
         plt.show()
 
 
-def energy_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None):
+def energy_vs_Kgrid(data,grid=True,temp=False,savefig=None,axis=None,Kgrids=None):
     """It plots the total energy as a function of K_grid for different smearings
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -166,13 +166,13 @@ def energy_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=Non
         plt.tight_layout()
         plt.show()
 
-def fermi_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
+def fermi_vs_smearing(data,grid=True,temp=False,savefig=None,axis=None):
     """It plots the Fermi level as a function of smearing for different k_grids
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -203,13 +203,13 @@ def fermi_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
         plt.show()
 
 
-def fermi_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None):
+def fermi_vs_Kgrid(data,grid=True,temp=False,savefig=None,axis=None,Kgrids=None):
     """It plots the total Fermi level as a function of K_grid for different smearings
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -247,13 +247,13 @@ def fermi_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None
         plt.tight_layout()
         plt.show()
 
-def time_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
+def time_vs_smearing(data,grid=True,temp=False,savefig=None,axis=None):
     """It plots the computational time as a function of smearing for different k_grids
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -284,13 +284,13 @@ def time_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
         plt.show()
 
 
-def time_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None):
+def time_vs_Kgrid(data,grid=True,temp=False,savefig=None,axis=None,Kgrids=None):
     """It plots the total computational time as a function of K_grid for different smearings
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -329,13 +329,13 @@ def time_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None)
         plt.show()
 
 
-def RAM_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
+def RAM_vs_smearing(data,grid=True,temp=False,savefig=None,axis=None):
     """It plots the RAM a function of smearing for different k_grids
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -366,13 +366,13 @@ def RAM_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
         plt.show()
 
 
-def RAM_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None):
+def RAM_vs_Kgrid(data,grid=True,temp=False,savefig=None,axis=None,Kgrids=None):
     """It plots the RAM as a function of K_grid for different smearings
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -391,7 +391,7 @@ def RAM_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None):
             labels[i]=str(label)+" ("+str(int(const.smear2temp(label)))+"K)"
     for x,i in enumerate(range(0,len(data),2)):
         plot_data=data[i+1]
-        ax.plot(plot_data[:,0],plot_data[:,3],'.-',label=labels[x])
+        ax.plot(plot_data[:,0],plot_data[:,4],'.-',label=labels[x])
     ax.set_ylabel("RAM (Gb)")
     ax.set_xlabel("K point number")
     grids_K=[]
@@ -411,13 +411,13 @@ def RAM_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None):
         plt.show()
 
 
-def forces_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
+def forces_vs_smearing(data,grid=True,temp=False,savefig=None,axis=None):
     """It plots the (total force)/(num atoms) a function of smearing for different k_grids
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -448,13 +448,13 @@ def forces_vs_smearing(data,grid=False,temp=False,savefig=None,axis=None):
         plt.show()
 
 
-def forces_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=None):
+def forces_vs_Kgrid(data,grid=True,temp=False,savefig=None,axis=None,Kgrids=None):
     """It plots the (total force)/(num atoms) as a function of K_grid for different smearings
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -492,8 +492,7 @@ def forces_vs_Kgrid(data,grid=False,temp=False,savefig=None,axis=None,Kgrids=Non
         plt.tight_layout()
         plt.show()
 
-
-def energy(folder,savefig=None):
+def energy(folder,grid=True,temp=False,savefig=None):
     """It plots the total energy as a function of smearings and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -502,54 +501,25 @@ def energy(folder,savefig=None):
     And subfolders with the smearing number
     """
     data=read_data(folder)
+    data_K=conv.reverse_data(data)
+    Kgrids=data[0::2]
     
     w, h = plt.figaspect(0.5)    
     fig=plt.figure(figsize=(w, h))
     fig.suptitle('Total energy')
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    for i in range(0,len(data),2):
-        plot_data=data[i+1]
-        ax1.plot(plot_data[:,0],plot_data[:,1],'.-',label=data[i])
-    ax1.set_ylabel("Total energy/atom (meV)")
-    ax1.set_xlabel("Smearing")
-    ax1.legend(prop={'size': 7})
-    
-    
-    Kgrids=data[0::2]
-    #fig=plt.figure()
-    smearings=glob.glob(folder+"/*/*")
-    smearings=[i.split('/')[-1] for i in smearings]
-    smearings=list(set(smearings))
-    smearings.sort(key=float)
 
-    grids_K=[]
-    for smearing in smearings:
-        smearing_data=[]
-        for i in range(len(Kgrids)):
-            grid=[int(x) for x in Kgrids[i].split('x')]
-            num_k=np.prod(grid)
-            if num_k not in grids_K:
-                grids_K=grids_K+[num_k]
-            if os.path.isdir(folder+"/"+Kgrids[i]+"/"+smearing):
-                smearing_index=np.where(data[2*i+1][:,0]==float(smearing))[0][0]
-                smearing_data=smearing_data+[num_k,data[2*i+1][smearing_index,1]]
-        ax2.plot(smearing_data[0::2],smearing_data[1::2],'.-',label=smearing)
-
-    ax2.set_ylabel("Total energy/atom (meV)")
-    ax2.set_xlabel("K grid")
-#    ax2.set_xticks([int(i.split('x')[0]) for i in Kgrids])
-    ax2.set_xticks(grids_K)
-    ax2.set_xticklabels(Kgrids,rotation='vertical')
-    ax2.legend(prop={'size': 7})
+    energy_vs_smearing(data,grid=grid,temp=temp,axis=ax1)
+    energy_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
     plt.show()
-    
-def fermi(folder,savefig=None):
-    """It plots the total fermi energy as a function of smearings and grids
+
+def fermi(folder,grid=True,temp=False,savefig=None):
+    """It plots the total Fermi level as a function of smearings and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
@@ -557,53 +527,25 @@ def fermi(folder,savefig=None):
     And subfolders with the smearing number
     """
     data=read_data(folder)
+    data_K=conv.reverse_data(data)
+    Kgrids=data[0::2]
     
     w, h = plt.figaspect(0.5)    
     fig=plt.figure(figsize=(w, h))
     fig.suptitle('Fermi Energy')
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    for i in range(0,len(data),2):
-        plot_data=data[i+1]
-        ax1.plot(plot_data[:,0],plot_data[:,2],'.-',label=data[i])
-    ax1.set_ylabel("Fermi Energy (eV)")
-    ax1.set_xlabel("Smearing")
-    ax1.legend(prop={'size': 7})
-    
-    
-    Kgrids=data[0::2]
-    #fig=plt.figure()
-    smearings=glob.glob(folder+"/*/*")
-    smearings=[i.split('/')[-1] for i in smearings]
-    smearings=list(set(smearings))
-    smearings.sort(key=float)
 
-    grids_K=[]
-    for smearing in smearings:
-        smearing_data=[]
-        for i in range(len(Kgrids)):
-            grid=[int(x) for x in Kgrids[i].split('x')]
-            num_k=np.prod(grid)
-            if num_k not in grids_K:
-                grids_K=grids_K+[num_k]
-            if os.path.isdir(folder+"/"+Kgrids[i]+"/"+smearing):
-                smearing_index=np.where(data[2*i+1][:,0]==float(smearing))[0][0]
-                smearing_data=smearing_data+[num_k,data[2*i+1][smearing_index,2]]
-        ax2.plot(smearing_data[0::2],smearing_data[1::2],'.-',label=smearing)
-
-    ax2.set_ylabel("Fermi Energy (eV)")
-    ax2.set_xlabel("K grid")
-    ax2.set_xticks(grids_K)
-    ax2.set_xticklabels(Kgrids,rotation='vertical')
-    ax2.legend(prop={'size': 7})
+    fermi_vs_smearing(data,grid=grid,temp=temp,axis=ax1)
+    fermi_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
     plt.show()
-    
-def time(folder,savefig=None):
-    """It plots the total computation time as a function of smearings and grids
+
+def time(folder,grid=True,temp=False,savefig=None):
+    """It plots the total computational time as a function of smearings and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
@@ -611,52 +553,24 @@ def time(folder,savefig=None):
     And subfolders with the smearing number
     """
     data=read_data(folder)
+    data_K=conv.reverse_data(data)
+    Kgrids=data[0::2]
     
     w, h = plt.figaspect(0.5)    
     fig=plt.figure(figsize=(w, h))
     fig.suptitle('Computing time')
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    for i in range(0,len(data),2):
-        plot_data=data[i+1]
-        ax1.plot(plot_data[:,0],plot_data[:,3],'.-',label=data[i])
-    ax1.set_ylabel("time in hours")
-    ax1.set_xlabel("Smearing")
-    ax1.legend(prop={'size': 7})
-    
-    
-    Kgrids=data[0::2]
-    #fig=plt.figure()
-    smearings=glob.glob(folder+"/*/*")
-    smearings=[i.split('/')[-1] for i in smearings]
-    smearings=list(set(smearings))
-    smearings.sort(key=float)
 
-    grids_K=[]
-    for smearing in smearings:
-        smearing_data=[]
-        for i in range(len(Kgrids)):
-            grid=[int(x) for x in Kgrids[i].split('x')]
-            num_k=np.prod(grid)
-            if num_k not in grids_K:
-                grids_K=grids_K+[num_k]
-            if os.path.isdir(folder+"/"+Kgrids[i]+"/"+smearing):
-                smearing_index=np.where(data[2*i+1][:,0]==float(smearing))[0][0]
-                smearing_data=smearing_data+[num_k,data[2*i+1][smearing_index,3]]
-        ax2.plot(smearing_data[0::2],smearing_data[1::2],'.-',label=smearing)
-
-    ax2.set_ylabel("time in hours")
-    ax2.set_xlabel("K grid")
-    ax2.set_xticks(grids_K)
-    ax2.set_xticklabels(Kgrids,rotation='vertical')
-    ax2.legend(prop={'size': 7})
+    time_vs_smearing(data,grid=grid,temp=temp,axis=ax1)
+    time_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
     plt.show()
-    
-def RAM(folder,savefig=None):
+
+def RAM(folder,grid=True,temp=False,savefig=None):
     """It plots the total needed RAM as a function of smearings and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -665,54 +579,25 @@ def RAM(folder,savefig=None):
     And subfolders with the smearing number
     """
     data=read_data(folder)
+    data_K=conv.reverse_data(data)
+    Kgrids=data[0::2]
     
     w, h = plt.figaspect(0.5)    
     fig=plt.figure(figsize=(w, h))
-    fig.suptitle('RAM (GB)')
+    fig.suptitle('RAM (Gb)')
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    for i in range(0,len(data),2):
-        plot_data=data[i+1]
-        ax1.plot(plot_data[:,0],plot_data[:,4],'.-',label=data[i])
-    ax1.set_ylabel("RAM (GB)")
-    ax1.set_xlabel("Smearing")
-    ax1.legend(prop={'size': 7})
-    
-    
-    Kgrids=data[0::2]
-    #fig=plt.figure()
-    smearings=glob.glob(folder+"/*/*")
-    smearings=[i.split('/')[-1] for i in smearings]
-    smearings=list(set(smearings))
-    smearings.sort(key=float)
 
-    grids_K=[]
-    for smearing in smearings:
-        smearing_data=[]
-        for i in range(len(Kgrids)):
-            grid=[int(x) for x in Kgrids[i].split('x')]
-            num_k=np.prod(grid)
-            if num_k not in grids_K:
-                grids_K=grids_K+[num_k]
-            if os.path.isdir(folder+"/"+Kgrids[i]+"/"+smearing):
-                smearing_index=np.where(data[2*i+1][:,0]==float(smearing))[0][0]
-                smearing_data=smearing_data+[num_k,data[2*i+1][smearing_index,4]]
-        ax2.plot(smearing_data[0::2],smearing_data[1::2],'.-',label=smearing)
-
-    ax2.set_ylabel("RAM (GB)")
-    ax2.set_xlabel("K grid")
-    ax2.set_xticks(grids_K)
-    ax2.set_xticklabels(Kgrids,rotation='vertical')
-    ax2.legend(prop={'size': 7})
+    RAM_vs_smearing(data,grid=grid,temp=temp,axis=ax1)
+    RAM_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
     plt.show()
 
-
-def forces(folder,savefig=None):
-    """It plots the total Total force as a function of smearings and grids
+def forces(folder,grid=True,temp=False,savefig=None):
+    """It plots the (total force)/(num atom) as a function of smearings and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
     Data must be organized with parent folders with the K grid as:
@@ -720,45 +605,17 @@ def forces(folder,savefig=None):
     And subfolders with the smearing number
     """
     data=read_data(folder)
+    data_K=conv.reverse_data(data)
+    Kgrids=data[0::2]
     
     w, h = plt.figaspect(0.5)    
     fig=plt.figure(figsize=(w, h))
     fig.suptitle('Total force')
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
-    for i in range(0,len(data),2):
-        plot_data=data[i+1]
-        ax1.plot(plot_data[:,0],plot_data[:,5],'.-',label=data[i])
-    ax1.set_ylabel("Total force/atom (meV/au)")
-    ax1.set_xlabel("Smearing")
-    ax1.legend(prop={'size': 7})
-    
-    
-    Kgrids=data[0::2]
-    #fig=plt.figure()
-    smearings=glob.glob(folder+"/*/*")
-    smearings=[i.split('/')[-1] for i in smearings]
-    smearings=list(set(smearings))
-    smearings.sort(key=float)
 
-    grids_K=[]
-    for smearing in smearings:
-        smearing_data=[]
-        for i in range(len(Kgrids)):
-            grid=[int(x) for x in Kgrids[i].split('x')]
-            num_k=np.prod(grid)
-            if num_k not in grids_K:
-                grids_K=grids_K+[num_k]
-            if os.path.isdir(folder+"/"+Kgrids[i]+"/"+smearing):
-                smearing_index=np.where(data[2*i+1][:,0]==float(smearing))[0][0]
-                smearing_data=smearing_data+[num_k,data[2*i+1][smearing_index,5]]
-        ax2.plot(smearing_data[0::2],smearing_data[1::2],'.-',label=smearing)
-
-    ax2.set_ylabel("Total force/atom (meV/au)")
-    ax2.set_xlabel("K grid")
-    ax2.set_xticks(grids_K)
-    ax2.set_xticklabels(Kgrids,rotation='vertical')
-    ax2.legend(prop={'size': 7})
+    forces_vs_smearing(data,grid=grid,temp=temp,axis=ax1)
+    forces_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
@@ -766,6 +623,36 @@ def forces(folder,savefig=None):
     plt.show()
 
 
-# NEEEEWWWWW
+def convergence_analysis(folder,grid=True,temp=False,savefig=None):
+    """It plots all the posible comparisons for a full convergence analysis 
+    folder: where data is stored it reads the scf.pwo files and plots
 
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the smearing number
+    """
+    data=read_data(folder)
+    data_K=conv.reverse_data(data)
+    Kgrids=data[0::2]
 
+    fig,ax=plt.subplots(5,2,figsize=(10.5,14.5))
+
+    energy_vs_smearing(data,grid=grid,temp=temp,axis=ax[0,0])
+    energy_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax[0,1],Kgrids=Kgrids)
+
+    forces_vs_smearing(data,grid=grid,temp=temp,axis=ax[1,0])
+    forces_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax[1,1],Kgrids=Kgrids)
+
+    fermi_vs_smearing(data,grid=grid,temp=temp,axis=ax[2,0])
+    fermi_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax[2,1],Kgrids=Kgrids)
+
+    time_vs_smearing(data,grid=grid,temp=temp,axis=ax[3,0])
+    time_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax[3,1],Kgrids=Kgrids)
+
+    RAM_vs_smearing(data,grid=grid,temp=temp,axis=ax[4,0])
+    RAM_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax[4,1],Kgrids=Kgrids)
+
+    if savefig!=None:
+        plt.savefig(savefig,dpi=300)
+    plt.tight_layout()
+    plt.show()

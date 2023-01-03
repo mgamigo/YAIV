@@ -137,7 +137,7 @@ def reverse_data(data):
         del data_cutoff
     return new_data
 
-def energy_vs_cutoff(data,grid=False,savefig=None,axis=None):
+def energy_vs_cutoff(data,grid=True,savefig=None,axis=None):
     """It plots the energy as a function of cutoff for different k_grids
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -171,7 +171,7 @@ def energy_vs_cutoff(data,grid=False,savefig=None,axis=None):
         plt.show()
 
 
-def energy_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+def energy_vs_Kgrid(data,grid=True,savefig=None,axis=None,Kgrids=None):
     """It plots the total energy as a function of K_grid for different cutoffs
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -211,7 +211,7 @@ def energy_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
         plt.tight_layout()
         plt.show()
 
-def fermi_vs_cutoff(data,grid=False,savefig=None,axis=None):
+def fermi_vs_cutoff(data,grid=True,savefig=None,axis=None):
     """It plots the Fermi energy as a function of cutoff for different k_grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -245,7 +245,7 @@ def fermi_vs_cutoff(data,grid=False,savefig=None,axis=None):
         plt.show()
 
 
-def fermi_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+def fermi_vs_Kgrid(data,grid=True,savefig=None,axis=None,Kgrids=None):
     """It plots the Fermi energy as a function of K_grid for different cutoffs
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -285,7 +285,7 @@ def fermi_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
         plt.tight_layout()
         plt.show()
 
-def time_vs_cutoff(data,grid=False,savefig=None,axis=None):
+def time_vs_cutoff(data,grid=True,savefig=None,axis=None):
     """It plots the computation time as a function of cutoff for different k_grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -319,7 +319,7 @@ def time_vs_cutoff(data,grid=False,savefig=None,axis=None):
         plt.show()
 
 
-def time_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+def time_vs_Kgrid(data,grid=True,savefig=None,axis=None,Kgrids=None):
     """It plots the computation time as a function of K_grid for different cutoffs
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -360,7 +360,7 @@ def time_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
         plt.show()
 
 
-def RAM_vs_cutoff(data,grid=False,savefig=None,axis=None):
+def RAM_vs_cutoff(data,grid=True,savefig=None,axis=None):
     """It plots the RAM as a function of cutoff for different k_grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -394,7 +394,7 @@ def RAM_vs_cutoff(data,grid=False,savefig=None,axis=None):
         plt.show()
 
 
-def RAM_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+def RAM_vs_Kgrid(data,grid=True,savefig=None,axis=None,Kgrids=None):
     """It plots the RAM as a function of K_grid for different cutoffs
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -434,7 +434,7 @@ def RAM_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
         plt.tight_layout()
         plt.show()
 
-def forces_vs_cutoff(data,grid=False,savefig=None,axis=None):
+def forces_vs_cutoff(data,grid=True,savefig=None,axis=None):
     """It plots the (total force)/(num atoms) as a function of cutoff for different k_grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -468,7 +468,7 @@ def forces_vs_cutoff(data,grid=False,savefig=None,axis=None):
         plt.show()
 
 
-def forces_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
+def forces_vs_Kgrid(data,grid=True,savefig=None,axis=None,Kgrids=None):
     """It plots the num atomsRAM as a function of K_grid for different cutoffs
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -509,7 +509,7 @@ def forces_vs_Kgrid(data,grid=False,savefig=None,axis=None,Kgrids=None):
         plt.show()
 
 
-def energy(folder,savefig=None):
+def energy(folder,grid=True,savefig=None):
     """It plots the total energy as a function of cutoffs and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -527,8 +527,8 @@ def energy(folder,savefig=None):
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
-    energy_vs_cutoff(data,grid=True,axis=ax1)
-    energy_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    energy_vs_cutoff(data,grid=grid,axis=ax1)
+    energy_vs_Kgrid(data_K,grid=grid,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
@@ -536,7 +536,7 @@ def energy(folder,savefig=None):
     plt.show()
 
 
-def fermi(folder,savefig=None):
+def fermi(folder,grid=True,savefig=None):
     """It plots the total fermi energy as a function of cutoffs and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -554,8 +554,8 @@ def fermi(folder,savefig=None):
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
-    fermi_vs_cutoff(data,grid=True,axis=ax1)
-    fermi_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    fermi_vs_cutoff(data,grid=grid,axis=ax1)
+    fermi_vs_Kgrid(data_K,grid=grid,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
@@ -563,7 +563,7 @@ def fermi(folder,savefig=None):
     plt.show()
 
 
-def time(folder,savefig=None):
+def time(folder,grid=True,savefig=None):
     """It plots the total computation time as a function of cutoffs and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -581,15 +581,15 @@ def time(folder,savefig=None):
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
-    time_vs_cutoff(data,grid=True,axis=ax1)
-    time_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    time_vs_cutoff(data,grid=grid,axis=ax1)
+    time_vs_Kgrid(data_K,grid=grid,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
     plt.show()
 
-def RAM(folder,savefig=None):
+def RAM(folder,grid=True,savefig=None):
     """It plots the total needed RAM as a function of cutoffs and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -607,15 +607,15 @@ def RAM(folder,savefig=None):
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
-    RAM_vs_cutoff(data,grid=True,axis=ax1)
-    RAM_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    RAM_vs_cutoff(data,grid=grid,axis=ax1)
+    RAM_vs_Kgrid(data_K,grid=grid,axis=ax2,Kgrids=Kgrids)
     
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
     plt.show()
 
-def forces(folder,savefig=None):
+def forces(folder,grid=True,savefig=None):
     """It plots the total (total force)/(num atoms) as a function of cutoffs and grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -633,9 +633,44 @@ def forces(folder,savefig=None):
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
-    forces_vs_cutoff(data,grid=True,axis=ax1)
-    forces_vs_Kgrid(data_K,grid=True,axis=ax2,Kgrids=Kgrids)
+    forces_vs_cutoff(data,grid=grid,axis=ax1)
+    forces_vs_Kgrid(data_K,grid=grid,axis=ax2,Kgrids=Kgrids)
     
+    if savefig!=None:
+        plt.savefig(savefig,dpi=300)
+    plt.tight_layout()
+    plt.show()
+
+
+def convergence_analysis(folder,grid=True,savefig=None):
+    """It plots all the posible comparisons for a full convergence analysis 
+    folder: where data is stored it reads the scf.pwo files and plots
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    And subfolders with the cutoff number
+    """
+    data=read_data(folder)
+    data_K=reverse_data(data)
+    Kgrids=data[0::2]
+
+    fig,ax=plt.subplots(5,2,figsize=(10.5,14.5))
+
+    energy_vs_cutoff(data,grid=grid,axis=ax[0,0])
+    energy_vs_Kgrid(data_K,grid=grid,axis=ax[0,1],Kgrids=Kgrids)
+
+    forces_vs_cutoff(data,grid=grid,axis=ax[1,0])
+    forces_vs_Kgrid(data_K,grid=grid,axis=ax[1,1],Kgrids=Kgrids)
+
+    fermi_vs_cutoff(data,grid=grid,axis=ax[2,0])
+    fermi_vs_Kgrid(data_K,grid=grid,axis=ax[2,1],Kgrids=Kgrids)
+
+    time_vs_cutoff(data,grid=grid,axis=ax[3,0])
+    time_vs_Kgrid(data_K,grid=grid,axis=ax[3,1],Kgrids=Kgrids)
+
+    RAM_vs_cutoff(data,grid=grid,axis=ax[4,0])
+    RAM_vs_Kgrid(data_K,grid=grid,axis=ax[4,1],Kgrids=Kgrids)
+
     if savefig!=None:
         plt.savefig(savefig,dpi=300)
     plt.tight_layout()
