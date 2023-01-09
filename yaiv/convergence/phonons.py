@@ -55,7 +55,7 @@ def __get_cmap(n, name='tab10'):
     RGB color; the keyword argument name must be a standard mpl colormap name.'''
     return plt.cm.get_cmap(name, n)
 
-def phonons_vs_cutoff(data,freqs=None,grid=True,savefig=None,axis=None,title=None):
+def phonons_vs_cutoff(data,freqs=None,grid=True,save_as=None,axis=None,title=None):
     """It plots the frequencies as a function of cutoff for different k_grids
     folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -91,15 +91,15 @@ def phonons_vs_cutoff(data,freqs=None,grid=True,savefig=None,axis=None,title=Non
         fig.suptitle(title)
     if grid == True:
         ax.grid()
-    if savefig!=None:
+    if save_as!=None:
         plt.tight_layout()
-        plt.savefig(savefig,dpi=300)
+        plt.savefig(save_as,dpi=300)
         plt.show()
     if axis == None:
         plt.tight_layout()
         plt.show()
 
-def phonons_vs_smearing(data,freqs=None,grid=True,temp=False,savefig=None,axis=None,title=None):
+def phonons_vs_smearing(data,freqs=None,grid=True,temp=False,save_as=None,axis=None,title=None):
     """It plots the frequencies as a function of cutoff for different k_grids
     folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -138,16 +138,16 @@ def phonons_vs_smearing(data,freqs=None,grid=True,temp=False,savefig=None,axis=N
         secax.set_xlabel('T [K]')
     if grid == True:
         ax.grid()
-    if savefig!=None:
+    if save_as!=None:
         plt.tight_layout()
-        plt.savefig(savefig,dpi=300)
+        plt.savefig(save_as,dpi=300)
         plt.show()
     if axis == None:
         plt.tight_layout()
         plt.show()
 
 
-def phonons_vs_Kgrid_cutoff(data,freqs=None,grid=True,savefig=None,axis=None,Kgrids=None,title=None):
+def phonons_vs_Kgrid_cutoff(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title=None):
     """It plots the frequencies as a function of cutoff for different k_grids
     folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -190,15 +190,15 @@ def phonons_vs_Kgrid_cutoff(data,freqs=None,grid=True,savefig=None,axis=None,Kgr
         fig.suptitle(title)
     if grid == True:
         ax.grid()
-    if savefig!=None:
+    if save_as!=None:
         plt.tight_layout()
-        plt.savefig(savefig,dpi=300)
+        plt.savefig(save_as,dpi=300)
         plt.show()
     if axis == None:
         plt.tight_layout()
         plt.show()
 
-def phonons_vs_Kgrid_smearing(data,freqs=None,grid=True,temp=False,savefig=None,axis=None,Kgrids=None,title=None):
+def phonons_vs_Kgrid_smearing(data,freqs=None,grid=True,temp=False,save_as=None,axis=None,Kgrids=None,title=None):
     """It plots the frequencies as a function of cutoff for different k_grids
     folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -246,16 +246,16 @@ def phonons_vs_Kgrid_smearing(data,freqs=None,grid=True,temp=False,savefig=None,
         fig.suptitle(title)
     if grid == True:
         ax.grid()
-    if savefig!=None:
+    if save_as!=None:
         plt.tight_layout()
-        plt.savefig(savefig,dpi=300)
+        plt.savefig(save_as,dpi=300)
         plt.show()
     if axis == None:
         plt.tight_layout()
         plt.show()
 
 
-def phonons_cutoff(folder,freqs=None,grid=True,savefig=None,title=None):
+def phonons_cutoff(folder,freqs=None,grid=True,save_as=None,title=None):
     """It plots the frequencies as a function of cutoffs and different k_grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -280,12 +280,12 @@ def phonons_cutoff(folder,freqs=None,grid=True,savefig=None,title=None):
     
     if title!=None:
         fig.suptitle(title)
-    if savefig!=None:
-        plt.savefig(savefig,dpi=300)
+    if save_as!=None:
+        plt.savefig(save_as,dpi=300)
     plt.tight_layout()
     plt.show()
 
-def phonons_Kgrid(folder,freqs=None,grid=True,temp=False,savefig=None,title=None):
+def phonons_Kgrid(folder,freqs=None,grid=True,temp=False,save_as=None,title=None):
     """It plots the frequencies as a function of smearings and different k_grids
     folder: where data is stored it reads the scf.pwo files and plots
 
@@ -310,7 +310,7 @@ def phonons_Kgrid(folder,freqs=None,grid=True,temp=False,savefig=None,title=None
     
     if title!=None:
         fig.suptitle(title)
-    if savefig!=None:
-        plt.savefig(savefig,dpi=300)
+    if save_as!=None:
+        plt.savefig(save_as,dpi=300)
     plt.tight_layout()
     plt.show()
