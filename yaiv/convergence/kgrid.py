@@ -1,4 +1,4 @@
-#PYTHON module for Kgrid/smearing convergence analysis
+#PYTHON module for Kgrid & smearing convergence analysis
 
 import re
 import glob
@@ -9,7 +9,7 @@ import yaiv.constants as const
 import yaiv.utils as utils
 import yaiv.convergence.cutoff as conv
 
-def read_data(folder):
+def read_data(folder,shift=True):
     """from the folder where data is stored it reads the scf.pwo files (it autodetects the file extension .pwo, .out, whatever...)
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -83,9 +83,21 @@ def read_data(folder):
         data=data+[Kgrid]+[grid_data]
     for i in range(0,len(data),2):
         data[i+1]=plot_data=data[i+1][data[i+1][:,0].argsort()] #sort acording to first column (x axis)(smearing)
+
+    if shift==True:
+        MIN=None
+        for d in data[1::2]:
+            m=np.min(d[:,1])
+            if MIN==None:
+                MIN=m
+            elif MIN>m:
+                MIN=m
+        for i,d in enumerate(data[1::2]):
+            data[2*i+1][:,1]=d[:,1]-MIN
+
     return data
 
-def energy_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
+def energy_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None,shift=True):
     """It plots the energy as a function of smearing for different k_grids
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -94,7 +106,7 @@ def energy_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
     And subfolders with the smearing number
     """
     if type(data)==str:
-        data=read_data(data)
+        data=read_data(data,shift=shift)
 
     if axis == None:
         fig=plt.figure()
@@ -122,7 +134,7 @@ def energy_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
         plt.show()
 
 
-def energy_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None):
+def energy_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None,shift=True):
     """It plots the total energy as a function of K_grid for different smearings
     data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
 
@@ -131,7 +143,7 @@ def energy_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None
     And subfolders with the smearing number
     """
     if type(data)==str:
-        data=read_data(data)
+        data=read_data(data,shift=shift)
         Kgrids=data[0::2]
         data=conv.reverse_data(data)
 
