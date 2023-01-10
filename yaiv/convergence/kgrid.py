@@ -714,7 +714,7 @@ def forces(data,grid=True,temp=False,save_as=None):
     plt.show()
 
 
-def analysis(data,grid=True,temp=False,save_as=None,shift=True):
+def analysis(data,grid=True,temp=False,save_as=None,shift=True,title=None):
     """It plots all the posible comparisons for a full convergence analysis 
     
     data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
@@ -722,6 +722,7 @@ def analysis(data,grid=True,temp=False,save_as=None,shift=True):
     temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
     save_as = name.format in which to save your figure.
     shift = Bolean regarding the option os shifting the total energies to zero.
+    title = A title of your liking
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -748,6 +749,9 @@ def analysis(data,grid=True,temp=False,save_as=None,shift=True):
 
     RAM_vs_smearing(data,grid=grid,temp=temp,axis=ax[4,0])
     RAM_vs_Kgrid(data_K,grid=grid,temp=temp,axis=ax[4,1],Kgrids=Kgrids)
+    
+    if title!=None:
+        fig.suptitle(title,y=0.99,size=16)
 
     if save_as!=None:
         plt.savefig(save_as,dpi=300)
