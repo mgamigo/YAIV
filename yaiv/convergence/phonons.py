@@ -10,14 +10,14 @@ import yaiv.utils as utils
 import yaiv.convergence.cutoff as conv
 
 def read_data(folder):
-    """from the folder where data is stored it reads the scf.pwo files
+    """from the folder where data is stored it reads the foo.dyn1 files
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the (cutoff/smearing) number
     ...
     OUTPUT:
     A list where odd numbers are the Kdrid and even numbers are the corresponding folder info:
-    [[   80.        freq1  freq1  freq3 ...]
+    [[  (cutoff/smearing)        freq1  freq1  freq3 ...]
      [   90.        freq1  freq1  freq3 ...]
      [  100.        freq1  freq1  freq3 ...]]
 
@@ -57,7 +57,13 @@ def __get_cmap(n, name='tab10'):
 
 def phonons_vs_cutoff(data,freqs=None,grid=True,save_as=None,axis=None,title=None):
     """It plots the frequencies as a function of cutoff for different k_grids
-    folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored (it reads the foo.dyn1 files.)
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -100,12 +106,19 @@ def phonons_vs_cutoff(data,freqs=None,grid=True,save_as=None,axis=None,title=Non
         plt.show()
 
 def phonons_vs_smearing(data,freqs=None,grid=True,temp=False,save_as=None,axis=None,title=None):
-    """It plots the frequencies as a function of cutoff for different k_grids
-    folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    """It plots the frequencies as a function of the smearing for different k_grids
+    
+    data = Either the data, or folder where data is stored (it reads the foo.dyn1 files.)
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -148,8 +161,14 @@ def phonons_vs_smearing(data,freqs=None,grid=True,temp=False,save_as=None,axis=N
 
 
 def phonons_vs_Kgrid_cutoff(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title=None):
-    """It plots the frequencies as a function of cutoff for different k_grids
-    folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    """It plots the frequencies as a function of Kgrid for different cutoffs
+    
+    data = Either the data, or folder where data is stored (it reads the foo.dyn1 files.)
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -199,12 +218,19 @@ def phonons_vs_Kgrid_cutoff(data,freqs=None,grid=True,save_as=None,axis=None,Kgr
         plt.show()
 
 def phonons_vs_Kgrid_smearing(data,freqs=None,grid=True,temp=False,save_as=None,axis=None,Kgrids=None,title=None):
-    """It plots the frequencies as a function of cutoff for different k_grids
-    folder: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    """It plots the frequencies as a function of Kgrid for different smearings
+    
+    data = Either the data, or folder where data is stored (it reads the foo.dyn1 files.)
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
-    And subfolders with the cutoff number
+    And subfolders with the smearing number
     """
     if type(data)==str:
         data=read_data(data)
@@ -255,15 +281,21 @@ def phonons_vs_Kgrid_smearing(data,freqs=None,grid=True,temp=False,save_as=None,
         plt.show()
 
 
-def phonons_cutoff(folder,freqs=None,grid=True,save_as=None,title=None):
+def phonons_cutoff(data,freqs=None,grid=True,save_as=None,title=None):
     """It plots the frequencies as a function of cutoffs and different k_grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored (it reads the foo.dyn1 files.)
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    title = A title of your liking
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the cutoff number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
 
@@ -285,15 +317,22 @@ def phonons_cutoff(folder,freqs=None,grid=True,save_as=None,title=None):
     plt.tight_layout()
     plt.show()
 
-def phonons_Kgrid(folder,freqs=None,grid=True,temp=False,save_as=None,title=None):
+def phonons_Kgrid(data,freqs=None,grid=True,temp=False,save_as=None,title=None):
     """It plots the frequencies as a function of smearings and different k_grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored (it reads the foo.dyn1 files.)
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    title = A title of your liking
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
 

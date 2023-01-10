@@ -14,6 +14,8 @@ def read_data(folder,shift=True):
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
+    
+    shift = Bolean regarding the option os shifting the total energies to zero.
     ...
     OUTPUT:
     A list where odd numbers are the Kdrid and even numbers are the corresponding folder info:
@@ -23,7 +25,6 @@ def read_data(folder,shift=True):
      [  0.014         -1416.52358896    -1.4889     time    ...]
      [  0.016         -1416.5240187     -1.4889     time    ...]]
     
-    where first column is the smearing, the secondo is the total energy(per atom in meV) and the third is the Fermi Energy
     """
     data=[]
     Kgrids=glob.glob(folder+"/*")
@@ -86,20 +87,26 @@ def read_data(folder,shift=True):
 
     if shift==True:
         MIN=None
-        for d in data[1::2]:
+        for d in data[1::2]:        #Get the minimum total energy
             m=np.min(d[:,1])
             if MIN==None:
                 MIN=m
             elif MIN>m:
                 MIN=m
-        for i,d in enumerate(data[1::2]):
+        for i,d in enumerate(data[1::2]):          #Shift all the data accordingly
             data[2*i+1][:,1]=d[:,1]-MIN
 
     return data
 
 def energy_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None,shift=True):
     """It plots the energy as a function of smearing for different k_grids
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    shift = Bolean regarding the option os shifting the total energies to zero.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -134,9 +141,15 @@ def energy_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None,shift=Tr
         plt.show()
 
 
-def energy_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None,shift=True):
+def energy_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,shift=True,Kgrids=None):
     """It plots the total energy as a function of K_grid for different smearings
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    shift = Bolean regarding the option os shifting the total energies to zero.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -180,7 +193,12 @@ def energy_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None
 
 def fermi_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
     """It plots the Fermi level as a function of smearing for different k_grids
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -217,7 +235,12 @@ def fermi_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
 
 def fermi_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None):
     """It plots the total Fermi level as a function of K_grid for different smearings
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -261,7 +284,12 @@ def fermi_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None)
 
 def time_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
     """It plots the computational time as a function of smearing for different k_grids
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -298,7 +326,12 @@ def time_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
 
 def time_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None):
     """It plots the total computational time as a function of K_grid for different smearings
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -343,7 +376,12 @@ def time_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None):
 
 def RAM_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
     """It plots the RAM a function of smearing for different k_grids
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -380,7 +418,12 @@ def RAM_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
 
 def RAM_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None):
     """It plots the RAM as a function of K_grid for different smearings
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -425,7 +468,12 @@ def RAM_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None):
 
 def forces_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
     """It plots the (total force)/(num atoms) a function of smearing for different k_grids
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -462,7 +510,12 @@ def forces_vs_smearing(data,grid=True,temp=False,save_as=None,axis=None):
 
 def forces_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None):
     """It plots the (total force)/(num atoms) as a function of K_grid for different smearings
-    data: Either the data, or folder where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
@@ -504,15 +557,21 @@ def forces_vs_Kgrid(data,grid=True,temp=False,save_as=None,axis=None,Kgrids=None
         plt.tight_layout()
         plt.show()
 
-def energy(folder,grid=True,temp=False,save_as=None):
+def energy(data,grid=True,temp=False,save_as=None,shift=True):
     """It plots the total energy as a function of smearings and grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    shift = Bolean regarding the option os shifting the total energies to zero.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data,shift=shift)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
     
@@ -530,15 +589,20 @@ def energy(folder,grid=True,temp=False,save_as=None):
     plt.tight_layout()
     plt.show()
 
-def fermi(folder,grid=True,temp=False,save_as=None):
+def fermi(data,grid=True,temp=False,save_as=None):
     """It plots the total Fermi level as a function of smearings and grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
     
@@ -556,15 +620,20 @@ def fermi(folder,grid=True,temp=False,save_as=None):
     plt.tight_layout()
     plt.show()
 
-def time(folder,grid=True,temp=False,save_as=None):
+def time(data,grid=True,temp=False,save_as=None):
     """It plots the total computational time as a function of smearings and grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
     
@@ -582,15 +651,20 @@ def time(folder,grid=True,temp=False,save_as=None):
     plt.tight_layout()
     plt.show()
 
-def RAM(folder,grid=True,temp=False,save_as=None):
+def RAM(data,grid=True,temp=False,save_as=None):
     """It plots the total needed RAM as a function of smearings and grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
     
@@ -608,15 +682,20 @@ def RAM(folder,grid=True,temp=False,save_as=None):
     plt.tight_layout()
     plt.show()
 
-def forces(folder,grid=True,temp=False,save_as=None):
+def forces(data,grid=True,temp=False,save_as=None):
     """It plots the (total force)/(num atom) as a function of smearings and grids
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
     
@@ -635,15 +714,21 @@ def forces(folder,grid=True,temp=False,save_as=None):
     plt.show()
 
 
-def convergence_analysis(folder,grid=True,temp=False,save_as=None):
+def analysis(data,grid=True,temp=False,save_as=None,shift=True):
     """It plots all the posible comparisons for a full convergence analysis 
-    folder: where data is stored it reads the scf.pwo files and plots
+    
+    data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
+    grid = Bolean that allows for a grid in the plot.
+    temp = Bolean if you want a secondary axis with the Temperature equiv of the smearing value (usefull for Fermi-Dirac smearing).
+    save_as = name.format in which to save your figure.
+    shift = Bolean regarding the option os shifting the total energies to zero.
 
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
     And subfolders with the smearing number
     """
-    data=read_data(folder)
+    if type(data)==str:
+        data=read_data(data,shift=shift)
     data_K=conv.reverse_data(data)
     Kgrids=data[0::2]
 

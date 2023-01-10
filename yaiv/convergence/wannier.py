@@ -94,7 +94,11 @@ def read_w90out(file):
 
 def w90_wannierization(data,grid=True,save_as=None,axis=None):
     """ Plots the evolution of the wannierization of the w90 routine (total spread).
-    Uses either the .wout file or the output of read_w90out(file) as input.
+
+    data = Either the .wout file or the output of read_w90out(file).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
     """
     if type(data)==str:
         data=read_w90out(data)
@@ -139,7 +143,11 @@ def w90_wannierization(data,grid=True,save_as=None,axis=None):
 
 def w90_disentanglement(data,grid=True,save_as=None,axis=None):
     """ Plots the disentanglement procedure of the w90 routine (the gauge invariant spread).
-    Uses either the .wout file or the output of read_w90out(file) as input.
+    
+    data = Either the .wout file or the output of read_w90out(file).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
     """
     if type(data)==str:
         data=read_w90out(data)
@@ -182,7 +190,11 @@ def w90_disentanglement(data,grid=True,save_as=None,axis=None):
 
 def w90_centers(data,grid=True,save_as=None,axis=None):
     """ Plots the evolution of the wannier centers of the w90 routine.
-    Uses either the .wout file or the output of read_w90out(file) as input.
+    
+    data = Either the .wout file or the output of read_w90out(file).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
     """
     if type(data)==str:
         data=read_w90out(data)
@@ -231,7 +243,11 @@ def w90_centers(data,grid=True,save_as=None,axis=None):
 
 def w90_spreads(data,grid=True,save_as=None,axis=None):
     """ Plots the evolution of the individual spreads of the w90 routine.
-    Uses either the .wout file or the output of read_w90out(file) as input.
+
+    data = Either the .wout file or the output of read_w90out(file).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
     """
     if type(data)==str:
         data=read_w90out(data)
@@ -269,7 +285,13 @@ def w90_spreads(data,grid=True,save_as=None,axis=None):
 
 def w90(data,grid=True,save_as=None):
     """ Plots the evolution of Wannierization routine.
-    Uses either the .wout file or the output of read_w90out(file) as input.
+   
+    data = Either the .wout file or the output of read_w90out(file).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+
+    returns a figure where:
+
     ax1: Wannierization of the w90 routine (total spread)
     ax2: Disentanglement procedure of the w90 routine (the gauge invariant spread)
     ax3: Evolution of the individual spreads of the w90 routine
@@ -297,4 +319,3 @@ def w90(data,grid=True,save_as=None):
     if save_as!=None:
         plt.savefig(save_as,dpi=300)
     plt.show()
-
