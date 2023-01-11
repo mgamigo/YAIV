@@ -718,11 +718,7 @@ def forces(data,grid=True,save_as=None):
     plt.show()
 
 
-<<<<<<< HEAD
-def analysis(folder,grid=True,save_as=None):
-=======
 def analysis(data,grid=True,save_as=None,shift=True,title=None):
->>>>>>> 0bbfd641b5eac77d2a7de1f496b4431923eaf41b
     """It plots all the posible comparisons for a full convergence analysis 
     
     data = Either the data, or folder where data is stored it reads the scf.pwo files and plots.
