@@ -100,6 +100,11 @@ def grep_filetype(file):
 
 def grep_lattice(file,alat=False,filetype=None):
     """Greps the lattice vectors from a variety of outputs (it uses ase)
+
+    alat = Bolean controling if you want your lattice normalized (mod(a0) = 1, alat units)
+   
+    The filetype should be given by the function grep_filetype(file)
+
     OUTPUT= np.array([vec1,vec2,vec3])
     """
     if filetype == None:
