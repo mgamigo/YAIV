@@ -34,18 +34,14 @@ class file:
             self.path = grep_ticks_QE(self.file,self.filetype)
     def __str__(self):
         return str(self.filetype) + ':\n' + self.file
-    def grep_lattice(self):
+    def grep_lattice(self,alat=False):
         """Check grep_lattice function"""
-        self.lattice = grep_lattice(self.file,filetype=self.filetype)
+        self.lattice = grep_lattice(self.file,filetype=self.filetype,alat=alat)
         return self.lattice
-    def grep_lattice_alat(self):
-        """Check grep_lattice function"""
-        self.lattice = grep_lattice(self.file,alat=True,filetype=self.filetype)
-        return self.lattice
-    def reciprocal_lattice(self):
+    def reciprocal_lattice(self,alat=False):
         """Check K_basis function"""
         if hasattr(self, 'lattice'):
-            return K_basis(self.lattice)
+            return K_basis(self.lattice,alat=alat)
         else:
             print('No lattice data in order to compute reciprocal lattice')
     def grep_ph_grid_points(self,expanded=False,decimals=3):
@@ -100,6 +96,11 @@ def grep_filetype(file):
 
 def grep_lattice(file,alat=False,filetype=None):
     """Greps the lattice vectors from a variety of outputs (it uses ase)
+
+    alat = Bolean controling if you want your lattice normalized (mod(a0) = 1, alat units)
+   
+    The filetype should be given by the function grep_filetype(file)
+
     OUTPUT= np.array([vec1,vec2,vec3])
     """
     if filetype == None:
@@ -378,9 +379,11 @@ def __expand_star(q_point):
 
 # Transformation tools----------------------------------------------------------------
 
-def K_basis(lattice):
+def K_basis(lattice,alat=False):
     """With basis_vec being in rows, it returns the reciprocal basis vectors in rows
     and units of 2pi"""
+    if alat == True:
+        lattice=lattice/np.linalg.norm(lattice[0])
     K_vec=np.linalg.inv(lattice).transpose() #reciprocal vectors in rows
     return K_vec
 
