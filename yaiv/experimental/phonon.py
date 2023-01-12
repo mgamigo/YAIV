@@ -221,20 +221,8 @@ def __pol_matmul(a,b):
         dot=dot+part
     return dot
 
-def __qe_norm_factor2(QE_disp,masses):
-    """Gets the normalization factor for each QE displacement vector (squared).
-    With the QE dynamical matrix and QE normalized displacements the output of the sandwitch:
-    <Qe_disp|Qe_Dynamical|Qe_disp> = N^2 freq^2  (freq in Ry)
-    Where N^2 is given by this function using eig=QE_disp"""
-    atoms=len(masses)
-    N=0
-    if np.shape(QE_disp)[0]==1:    # If onedimensional format
-        QE_disp=QE_disp.reshape(atoms,3)
-    for i in range(atoms):
-        N=N+masses[i]*(np.linalg.norm(QE_disp[i]))**2
-    return N
 
-def __freq_disp_matdyn(dyn_mat,masses,qe_format_in=True,qe_format_out=True):
+def diago_dyn(dyn_mat,masses,qe_format_in=True,qe_format_out=True):
     """Given the dynamical matrix and masses in QE.dyn units it replicates QE output:
     frequencies (cm-1), displacements(normalized).
 
@@ -317,7 +305,7 @@ def __benchmark_diago(dyn_file,thr_freq=3,thr_vec=4):
     q,basis,positions,alat,dynmat,masses=read_dyn_q(q_cryst,path)
 
     #"diagonalize" the matrix to find displacements and frequencies:
-    freqs,vecs=__freq_disp_matdyn(dynmat,masses)
+    freqs,vecs=diago_dyn(dynmat,masses)
 
     #check frequencies
     for i,f in enumerate(freqs):
@@ -365,50 +353,129 @@ def __benchmark_all(results_ph_path,thr_freq=3,thr_vec=3):
 
 def __generate_supercell(q_point,basis_vec,cryst_units=False):
     """Returns the supercell conmensurate with the q_point and the q_point in crystalline units:
-    q_point: q point in 2pi/alat as printed by ph.dyn
-    basis_vec: Real space basis vectors in alat as printed by ph.dyn
-    cryst_units: Wether the input is in crystal units
+
+    q_point = list of  q points in 2pi/alat as printed by ph.dyn (or cryst units optionally)
+    basis_vec = Real space basis vectors in alat as printed by ph.dyn
+    cryst_units = Wether the input is in crystal units
+
     return: supercell, q_cryst"""
+    supercell=np.zeros(3)
     if len(np.shape(q_point))==1:
         if cryst_units==False:
             q_cryst=ut.cartesian2cryst(q_point,ut.K_basis(basis_vec))
         else:
             q_cryst=q_point
-        scell=np.abs(q_cryst)
-        for i,num in enumerate(scell):
-            if np.around(num,4)==0:
-                scell[i]=1
-        supercell=np.around(np.ones(3)/scell)
-        supercell=supercell.astype(int)
+        for i,k in enumerate(q_cryst):
+            for cell in range(1,101):
+                phase=cell*k
+                if phase == np.around(phase,0):
+                    supercell[i]=cell
+                    break
+                if cell==100:
+                    print("WARNING!: Conmensurate supercell reached 100 cells in certain direction")
     elif len(np.shape(q_point))==2:
+        supercell=np.ones(3).astype(int)
         if cryst_units==False:
             q_cryst=ut.cartesian2cryst(q_point,ut.K_basis(basis_vec),list_of_vec=True)
         else:
             q_cryst=q_point
-        scell=np.abs(q_cryst)
-        supercell=np.ones(3).astype(int)
-        for i,vec in enumerate(scell): #For all K-vectors
-            for j,num in enumerate(vec): #For each component j of every vector(i)
-                if np.around(num,4)==0:
-                    scell[i,j]=1
-            p_super=np.ones(3)/scell[i]  #Partial supercell for each vector
+        for i,vec in enumerate(q_cryst): #For all K-vectors
+            p_super=np.zeros(3)     #Partial supercell for each vector
+            for j,k in enumerate(vec): #For each component j of every vector(i)
+                for cell in range(1,101):
+                    phase=cell*k
+                    if phase == np.around(phase,0):
+                        p_super[j]=cell
+                        break
+                    if cell==100:
+                        print("WARNING!: Conmensurate supercell reached 100 cells in certain direction")
             p_super=np.around(p_super).astype(int)
             for j,num in enumerate(p_super): #Find conmensurate between supercell and p_super
                 mcm=supercell[j]*p_super[j]/gcd(supercell[j],p_super[j])
                 supercell[j]=mcm
+    supercell=supercell.astype(int)
     return supercell,q_cryst
 
-def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=1,silent=False):
+def __grep_displacement_vectors(q_cryst,freq,results_ph_path,silent=True):
+    """Grep the displacement vectors from QE from a a list of different (or equivalent) q_points and frequencies.
+
+    q_cryst = q points you are interested in crystaline units.
+    freq = index of the frequenzies you are interested in (starting at 1).
+    results_ph_path = Folder where you ph.x output is stored.
+    silent = No text output
+
+    returns: q_alats, dis_freqs, displacements
+    """
+    displacements=[]
+    q_alats=[]
+    dis_freqs=[]
+    for i,q in enumerate(q_cryst):
+        q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q,results_ph_path)
+        q_freqs,q_displacements=diago_dyn(dynmat,atoms_mass)
+        if silent==False:
+            print('q=',q_alat,'// Frequency =',q_freqs[freq[i]-1],'cm-1')
+            print('Displacement vector = ')
+            print(np.around(q_displacements[freq[i]-1],decimals=6))
+            print()
+        #The list of displacements
+        displacements=displacements+[q_displacements[freq[i]-1]]
+        q_alats=q_alats+[q_alat]
+        dis_freqs=dis_freqs+[q_freqs[freq[i]-1]]
+    return q_alats, dis_freqs, displacements
+
+def __distort_structure(supercell,Pcell,p_pos,basis,q_cryst,OP,displacements):
+    """Distort structure and returns the atomic positions for the distorted one in cartesian units
+
+    supercell = [x,y,z] defining the supercell conmensurate with the distortion.
+    Pcell = Primitive cell in anstroms.
+    p_pos = Initial atomic positions in the primitive cell in crystal coordinates. 
+    basis = In alat units
+    q_cryst = the respective q points of each of the displacements
+    OP = Order Parameter
+         Desired linear combination for the condensing modes.
+    displacements =  Displacements to apply in QE_format (as a Nx3 matrix)
+
+    """
+    #DISTORT THE SUPERSTRUCTURE
+    indices=supercell
+    #iter withing the different subcells of the supercell (different phases)
+    for i in range(indices[0]):
+        for j in range(indices[1]):
+            for k in range(indices[2]):
+                #new set of positions for subcell
+                new_pos=np.array(p_pos)
+                new_pos[:,0]=new_pos[:,0]+i
+                new_pos[:,1]=new_pos[:,1]+j
+                new_pos[:,2]=new_pos[:,2]+k
+                #add each of the distortions
+                for l,q in enumerate(q_cryst):
+                    #Phase factor
+                    dot=np.matmul(q,np.array([i,j,k]))
+                    phase=np.exp(2j*np.pi*dot)
+                    #Add phase to the displacement
+                    disp=np.real(OP[l]*displacements[l]*phase)
+                    #Pass to crystal units
+                    disp=[ut.cartesian2cryst(d,basis) for d in disp]
+                    new_pos=new_pos+disp
+                try:
+                    positions=np.vstack([positions,new_pos])
+                except NameError:
+                    positions=new_pos
+    positions=[ut.cryst2cartesian(p,Pcell) for p in positions]
+    return positions
+
+def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=0.01,silent=False):
     """Distort the structure according to given active phonons and get an ase.Atoms superstructure as output.
 
     In order to point that phonon you need:
     q_cryst = q points you are interested in crystaline units.
-    freqs = index of the frequenzies you are interested in.
+    freq = index of the frequenzies you are interested in (starting at 1).
     results_ph_path = Folder where you ph.x output is stored.
 
     #VALUES TO DEFINE YOUR ORDER PARAMETER:
     OP = Order Parameter
          Desired linear combination for the condensing modes.
+
     dist = Amount of distortion in the desired direction.
            Usefull for continuous plots in a single direction.
 
@@ -425,35 +492,41 @@ def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=1,silent=False):
         freq=[freq]
         OP=[OP]
     if np.any(OP)==None:
-        OP=np.zeros(len(q_cryst))
+        OP=np.ones(len(q_cryst))
 
+    if silent==False:
+        print('Order parameter =',OP,' // ','Global factor = ', dist)
+        print('---------------------------------------------------')
+
+    #Get alat, structure, masses...
+    q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q_cryst[0],results_ph_path)
     #GET FREQS and DISPLACEMENTS
-    displacements=[]
-    for i,q in enumerate(q_cryst):
-        dyn=__find_dyn_file(q,results_ph_path)
-       #read the dyn file
-        if silent==False:
-            print('reading point from',dyn,'...')
-        q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(dyn,q)
-        q_freqs,q_displacements=__freq_disp_matdyn(dynmat,atoms_mass)
-        if silent==False:
-            print('q=',q_alat,'// Frequency =',q_freqs[freq[i]-1],'cm-1')
-            print('Displacement vector =')
-            print(np.around(q_displacements[freq[i]-1],decimals=6)*dist)
+    q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path)
+    if silent==False:
+        for i,q_alat in enumerate(q_alats):
+            print('q=',q_alats[i],'// Frequency =',dis_freqs[i],'cm-1')
+            print('Displacement vector (alat) = ',OP[i]*dist, 'x')
+            print(np.around(displacements[i],decimals=6))
             print()
-        #The list of displacements
-        displacements=displacements+[q_displacements[freq[i]-1]]
     
-    #displacement vector for the unit cell
+    #Final displacement vector for the unit cell (still as a list of displacements)
     vec=[d*dist for d in displacements]
+    if silent==False:
+        final_vec=0
+        for i,v in enumerate(vec):
+            final_vec=final_vec+OP[i]*v
+        print('---------------------------------------------------')
+        print('Final applied displacement (Å): (OrderParameter*Global_factor)')
+        print(np.around(final_vec,decimals=6)*alat*cons.au2ang)
 
-    #READ ORIGINAL CRYTAL
+    #Prepare ORIGINAL CRYSTAL
     atoms[1]=[ut.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
-    Pcell=basis*alat*cons.au2ang
+    Pcell=basis*alat*cons.au2ang  #primitive cell in angstroms
 
     #BUILD CONMENSURATE SUPERCELL
     supercell,q_cryst=__generate_supercell(q_cryst,basis,cryst_units=True)
     if silent==False:
+        print()
         print('Conmensurate supercell:',supercell)
     #GENERATE UNDISTORTED SUPERCELL
     #simbols and supercell lattice
@@ -462,39 +535,34 @@ def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=1,silent=False):
     for i in range(3):
         scell[i]=Pcell[i]*supercell[i]
 
-    #DISTORT THE SUPERSTRUCTURE
-    indices=supercell
-    #iter withing the different subcells of the supercell (different phases)
-    for i in range(indices[0]):
-        for j in range(indices[1]):
-            for k in range(indices[2]):
-                #new set of positions for subcell
-                new_pos=np.array(atoms[1])
-                new_pos[:,0]=new_pos[:,0]+i
-                new_pos[:,1]=new_pos[:,1]+j
-                new_pos[:,2]=new_pos[:,2]+k
-                #add each of the distortions
-                for l,q in enumerate(q_cryst):
-                    #Phase factor
-                    dot=np.matmul(q,np.array([i,j,k]))
-                    phase=np.exp(2j*np.pi*dot)
-                    #Add phase to the displacement
-                    disp=np.real(OP[l]*vec[l]*phase)
-                #print('Displacement in',i,j,k,':')
-                #print(np.around(disp,decimals=5))
-                    disp=[ut.cartesian2cryst(d,basis) for d in disp]
-                    new_pos=new_pos+disp
-                try:
-                    positions=np.vstack([positions,new_pos])
-                except NameError:
-                    positions=new_pos
-    positions=[ut.cryst2cartesian(p,Pcell) for p in positions]
+    positions=__distort_structure(supercell,Pcell,atoms[1],basis,q_cryst,OP,vec)
+
     distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
     if silent==False:
         cell.get_spacegroup(distorted)
     return distorted
 
-def energy_surface_pwi(q_cryst,freqs,results_ph_path,OP,dest_folder,
+def __grid_generator(grid):
+
+def energy_surface_pwi(q_cryst,freqs,results_ph_path):
+    """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters
+    
+    q_cryst = q points you are interested in crystaline units.
+    freqs = index of the frequenzies you are interested in.
+    results_ph_path = Folder where you ph.x output is stored.
+    """
+    #READ STRUCTURE
+    if len(np.shape(q_cryst))==1:
+        q_cryst=[q_cryst]
+        freq=[freq]
+    DIM = len(q_cryst)
+
+    #Get alat, structure, masses...
+    q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q_cryst[0],results_ph_path)
+    #GET FREQS and DISPLACEMENTS
+    q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path)
+
+def energy_surface_pwi_old(q_cryst,freqs,results_ph_path,OP,dest_folder,
                        template,neg_d=-0.025,pos_d=0.025,step=0.0005,symprec=1e-05):
     """Creates the necessary QE inputs to create an energy landscape in the
     direction of a certain order parameter.
@@ -786,6 +854,20 @@ def energy_landscape_fit(data,results_ph_path=None,q_cryst=None,freq=None,poli_o
         frequency=frozen_phonon_freq(data,results_ph_path,q_cryst,freq,poli_order=poli_order) #data is allready trimed
         return frequency
 
+def __qe_norm_factor2(QE_disp,masses):
+    """Gets the normalization factor for each QE displacement vector (squared).
+    With the QE dynamical matrix and QE normalized displacements the output of the sandwitch:
+    <Qe_disp|Qe_Dynamical|Qe_disp> = N^2 freq^2  (freq in Ry)
+    Where N^2 is given by this function using eig=QE_disp"""
+    atoms=len(masses)
+    N=0
+    if np.shape(QE_disp)[0]==1:    # If onedimensional format
+        QE_disp=QE_disp.reshape(atoms,3)
+    for i in range(atoms):
+        N=N+masses[i]*(np.linalg.norm(QE_disp[i]))**2
+    return N
+
+
 def frozen_phonon_freq(data,results_ph_path,q_cryst,freq,poli_order='automatic',trim_points=None):
     """Return the frozen phono frequency in (cm-1)
     data = Either the folder containing the energy landscape calculations or the already read data
@@ -803,7 +885,7 @@ def frozen_phonon_freq(data,results_ph_path,q_cryst,freq,poli_order='automatic',
     #get the QE_norm factor
     file=__find_dyn_file(q_cryst,results_ph_path)
     q_point, basis, positions, alat, QE_dynamical_matrix, atoms_mass=read_dyn_q(file,q_cryst)
-    freqs,displacements=__freq_disp_matdyn(QE_dynamical_matrix,atoms_mass)
+    freqs,displacements=diago_dyn(QE_dynamical_matrix,atoms_mass)
     mass_conv=91.22000/83141.9438563716 #taken from Zr
     norm2=__qe_norm_factor2(displacements[freq-1],atoms_mass)*mass_conv   # in u units
 
@@ -944,7 +1026,7 @@ def distort_phonon_old(q_cryst,freq,results_ph_path,dist=0,silent=False):
     if silent==False:
         print('point q =',q)
     #Get frequencies and displacements:
-    freqs,displacements=__freq_disp_matdyn(dynmat,atoms_mass)
+    freqs,displacements=diago_dyn(dynmat,atoms_mass)
     if silent==False:
         print('Frequency =',freqs[freq-1],'cm-1')
         print('Displacement vector =')
