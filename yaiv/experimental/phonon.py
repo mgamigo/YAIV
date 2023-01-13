@@ -6,7 +6,9 @@ import glob
 from ase import Atoms
 import re
 import os
+import sys
 from math import gcd
+import spglib as spg
 
 #import yaiv.transformations as trs
 import yaiv.utils as ut
@@ -368,7 +370,7 @@ def __generate_supercell(q_point,basis_vec,cryst_units=False):
         for i,k in enumerate(q_cryst):
             for cell in range(1,101):
                 phase=cell*k
-                if phase == np.around(phase,0):
+                if phase%1 == 0:  # If it is an integer
                     supercell[i]=cell
                     break
                 if cell==100:
@@ -384,7 +386,7 @@ def __generate_supercell(q_point,basis_vec,cryst_units=False):
             for j,k in enumerate(vec): #For each component j of every vector(i)
                 for cell in range(1,101):
                     phase=cell*k
-                    if phase == np.around(phase,0):
+                    if phase%1 == 0:
                         p_super[j]=cell
                         break
                     if cell==100:
@@ -413,9 +415,9 @@ def __grep_displacement_vectors(q_cryst,freq,results_ph_path,silent=True):
         q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q,results_ph_path)
         q_freqs,q_displacements=diago_dyn(dynmat,atoms_mass)
         if silent==False:
-            print('q=',q_alat,'// Frequency =',q_freqs[freq[i]-1],'cm-1')
+            print('q =',q_alat,'// Frequency =',q_freqs[freq[i]-1],'cm-1')
             print('Displacement vector = ')
-            print(np.around(q_displacements[freq[i]-1],decimals=6))
+            print(np.around(q_displacements[freq[i]-1],decimals=8))
             print()
         #The list of displacements
         displacements=displacements+[q_displacements[freq[i]-1]]
@@ -464,18 +466,18 @@ def __distort_structure(supercell,Pcell,p_pos,basis,q_cryst,OP,displacements):
     positions=[ut.cryst2cartesian(p,Pcell) for p in positions]
     return positions
 
-def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=0.01,silent=False):
+def distort_phonon(q_cryst,results_ph_path,OP=None,freq=None,dist=0.01,silent=False):
     """Distort the structure according to given active phonons and get an ase.Atoms superstructure as output.
 
     In order to point that phonon you need:
     q_cryst = q points you are interested in crystaline units.
-    freq = index of the frequenzies you are interested in (starting at 1).
     results_ph_path = Folder where you ph.x output is stored.
 
     #VALUES TO DEFINE YOUR ORDER PARAMETER:
     OP = Order Parameter
          Desired linear combination for the condensing modes.
 
+    freq = index of the frequenzies you are interested in (starting at 1).
     dist = Amount of distortion in the desired direction.
            Usefull for continuous plots in a single direction.
 
@@ -489,17 +491,25 @@ def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=0.01,silent=False):
     #READ STRUCTURE
     if len(np.shape(q_cryst))==1:
         q_cryst=[q_cryst]
-        freq=[freq]
         OP=[OP]
+    DIM=len(q_cryst)
+    if freq==None:
+        freq=np.ones(DIM).astype(int)
+    elif type(freq)==int:
+        freq= [freq]
     if np.any(OP)==None:
-        OP=np.ones(len(q_cryst))
-
-    if silent==False:
-        print('Order parameter =',OP,' // ','Global factor = ', dist)
-        print('---------------------------------------------------')
+        OP=np.ones(DIM)
 
     #Get alat, structure, masses...
     q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q_cryst[0],results_ph_path)
+
+    if silent==False:
+        print('Order parameter =',OP,' // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
+        print()
+        print('The general displacement at each config is given by:')
+        print('(OP * Global_factor * displacements)*alat')
+        print('---------------------------------------------------')
+
     #GET FREQS and DISPLACEMENTS
     q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path)
     if silent==False:
@@ -517,7 +527,7 @@ def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=0.01,silent=False):
             final_vec=final_vec+OP[i]*v
         print('---------------------------------------------------')
         print('Final applied displacement (Å): (OrderParameter*Global_factor)')
-        print(np.around(final_vec,decimals=6)*alat*cons.au2ang)
+        print(np.around(final_vec*alat*cons.au2ang,decimals=6))
 
     #Prepare ORIGINAL CRYSTAL
     atoms[1]=[ut.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
@@ -542,541 +552,349 @@ def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=0.01,silent=False):
         cell.get_spacegroup(distorted)
     return distorted
 
-def __grid_generator(grid):
-
-def energy_surface_pwi(q_cryst,freqs,results_ph_path):
-    """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters
-    
-    q_cryst = q points you are interested in crystaline units.
-    freqs = index of the frequenzies you are interested in.
-    results_ph_path = Folder where you ph.x output is stored.
+def __grid_generator(grid,add_zero=False):
     """
+    Generate an uniform grid from [-1,1] in any dimensions and returns a list of the points conforming the grid.
+
+    grid = [N1,N2,N3...] describing your grid (between [-1,1])
+            If Ni=1 then Xi=1 for all points
+    add_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension
+                will be between [0,1].
+
+    returns list_of_points
+    """
+    #Generate the GRID
+    DIM=len(grid)
+    temp=[]
+    for g in grid:
+        if add_zero==True and g%2==0:
+            s=0
+        elif g==1:
+            s=1
+        else:
+            s=-1
+        temp=temp+[np.linspace(s,1,g)]
+    res_to_unpack = np.meshgrid(*temp)
+    assert(len(res_to_unpack)==DIM)
+    
+    #Unpack the grid as points
+    for x in res_to_unpack:
+        c=x.reshape(np.prod(np.shape(x)),1)
+        try:
+            coords=np.hstack((coords,c))
+        except NameError:
+            coords=c
+    return coords
+
+def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,add_zero=False,dist=0.01,symprec=1e-5,silent=True,size=False,OUT=False):
+    """Performs a CDW symmetry analysis for a given number of unstable modes. Tries all the possible order parameter combinations
+    within a privided grid and outputs the resulting Space Group.
+
+    q_cryst = q points you are interested in crystaline units.
+    results_ph_path = Folder where you ph.x output is stored.
+    freq = index of the frequenzies you are interested in (starting at 1).
+            By default it will take the lowest frequency ones.
+    grid = [N1,N2,N3...] describing your grid (between [-1,1])
+            By default will be a [2,2,2...] grid
+            If Ni=1 then Xi=1 for all points
+    add_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
+    dist = Amount of distortion in the desired direction.
+           The final distortion will be multiplied by this factor.
+    symprec = Symmetry thushold as defined by spglib.
+    silent = (Bolean) Minimum text output.
+    size = (Bolean) New cell size compared to the original one.
+    OUT = (Bolean) If true, instead of printing only returns the Order Parameter and corresponding SpaceGroups and cell sizes.
+    """
+    
     #READ STRUCTURE
     if len(np.shape(q_cryst))==1:
         q_cryst=[q_cryst]
-        freq=[freq]
-    DIM = len(q_cryst)
-
+    DIM=len(q_cryst)
+    if len(np.shape(q_cryst))==1:
+        q_cryst=[q_cryst]
+    if freq==None:
+        freq=np.ones(DIM).astype(int)
+    elif type(freq)==int:
+        freq= [freq]
+    if np.any(grid == None):
+        grid=np.ones(DIM).astype(int)*2
+        add_zero=True
+    elif type(grid)==int:
+        grid= [grid]
+    elif type(grid)!=list:
+        grid=grid.astype(int)
+    
     #Get alat, structure, masses...
     q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q_cryst[0],results_ph_path)
+
+    if silent==False:
+        print('Order parameter in a',grid,'grid  // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
+        print()
+        print('The general displacement at each config is given by:')
+        print('(OP * Global_factor * displacements)*alat')
+        print('---------------------------------------------------')
+
     #GET FREQS and DISPLACEMENTS
-    q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path)
+    q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path,silent=silent)
+    #Final displacement vector for the unit cell (still as a list of displacements)
+    vec=[d*dist for d in displacements]
 
-def energy_surface_pwi_old(q_cryst,freqs,results_ph_path,OP,dest_folder,
-                       template,neg_d=-0.025,pos_d=0.025,step=0.0005,symprec=1e-05):
-    """Creates the necessary QE inputs to create an energy landscape in the
-    direction of a certain order parameter.
-
-    In order to point that phonon you need:
-
-    q_cryst = q points you are interested in crystaline units.
-    freqs = index of the frequenzies you are interested in.
-    results_ph_path = Folder where you ph.x output is stored.
-    OP = Order Parameter
-         Desired linear combination for the condensing modes.
-    dest_folder = Folder where your inputs will be stored
-    template = A template input you want to copy
-    neg_d = "minimum" displacement (the most negative)
-    pos_d = "maximum" displacement (the most positive)
-    step = steps in which you want to increase the displacement
-    symprec = precision for the symmetry analysis
-    """
-    d_values=np.arange(0,neg_d-step,-step)
-    d_values=np.hstack([d_values,np.arange(step,pos_d+step,step)])
-    d_values=np.sort(d_values)
-    os.mkdir(dest_folder)
-    print('Creating...')
-    for d in d_values:
-        struct=distort_phonon(q_cryst,freqs,results_ph_path,OP,dist=d,silent=True)
-        SG=cell.get_spacegroup(struct,symprec=symprec,silent=True)
-        d=np.around(d,decimals=3)
-        line_new = '%7s  %7s  %2s' % ('Disp =',d, SG)
-        print(line_new)
-        if d>0:
-            name=str(d)
-        elif d==0:
-            name=str(0.0)
-        elif d<0:
-            name='n'+str(np.abs(d))
-        file=dest_folder+'/'+name+'.pwi'
-        cell.store_structure_QE_pwi(struct,file,template)
-
-
-def read_energy_landscape(folder,relative=True):
-    """Reads the output of your energy landscape calculations. It expects for the files to be named 0.025.pwo or n0.025.pwo (where n stands for "negative" and the number for the "displacement")
-    folder = path to the folder containing the outputs
-    relative = If relative is true then the relative energy respect the undistorted is plotted
-
-    Returns an array with two columns where the first one stands for the displacements (the number uppon which you have multiplied the QE "polarization vector" (displacement)) and the second are energies in meV
-    output: [displacements, energies (meV)]
-    """
-    outputs=glob.glob(folder+'/*pwo')
-    for out in outputs:
-        #get the float of the displacemnt, the "d" by which I am multipling the pol. vector
-        disp=out.split('/')[-1]
-        disp=disp[:-4]
-        if "n" in disp:
-            disp=-float(disp[1:])
-        else:
-            disp=float(disp)
-
-        #get the energy for each scf
-        energy=ut.grep_total_energy(out)
-        if energy != False:
-            try:
-                data=np.vstack((data,[disp,energy]))
-            except NameError:
-                data=np.array([disp,energy])
-
-    if relative==True:
-        i=np.where(data[:,0]==0)[0][0]
-        data[:,1]=(data[:,1]-data[i,1])*cons.Ry2eV*1000
-    else:
-        data[:,1]=data[:,1]*cons.Ry2eV*1000
-    sorted_data = data[np.argsort(data[:,0])]
-    return sorted_data
-
-def plot_energy_landscape(data,results_ph_path=None,q_cryst=None,freq=None,trim_points=None,title=None,markersize=5,relative=True,save_as=None):
-    """Plots and energy landscape
-    data = Either the folder containing the energy landscape calculations or the already read data
-    results_ph_path = Folder where you ph.x output is stored.
-    q_cryst = q point you are interested in crystaline units
-    freq = index of the frequenzy you are interested in.
-    trim_points = Amount of points to be trimmed from the energy landscape data at each of the sides (left,right)
-    title = 'THE TITLE'
-    relative = If relative is true then the relative energy respect the undistorted is plotted
-    save_as = 'name.png' or whatever format
-
-    When results_ph_path, q_cryst and freq are present a secondary axis with the maximum displacement on any atom is ploted
-    """
-    if type(data)==str:
-        data=read_energy_landscape(data,relative=relative)
-    if results_ph_path!=None and freq!=None and q_cryst!=None:    # Prepare second x axis
-        dyn=__find_dyn_file(q_cryst,results_ph_path)
-        #read a displacement vector related to the one we are analyzing (the "modulus" will be the same)
-        disp=read_dyn_file(dyn)[4][freq-1]
-        largest=0
-        for d in disp:               #Find the largest displacement
-            norm=np.linalg.norm(d)
-            if norm > largest:
-                largest=norm
-        #create a maximum displacement (in Ang) axis defining the necesary functions
-        def d2ang(x):
-            return x*largest
-        def ang2d(x):
-            return x/largest
-
-    #PLOTTING PART
-    fig, ax = plt.subplots()
-    if trim_points==None:
-        ax.plot(data[:,0],data[:,1],".")
-    else:
-        s=trim_points[0]
-        f=len(data[:,0])-trim_points[1]
-        ax.plot(data[s:f,0],data[s:f,1],".",markersize=markersize)
-
-    ax.axvline(x=0,linewidth=0.2,color='grey')
-    if title!=None:
-        plt.title(title)
-    ax.set_ylabel("Energy difference (meV)")
-    ax.set_xlabel("Order parameter (d)")
-    if results_ph_path!=None and freq!=None and q_cryst!=None:    # Prepare second x axis
-        secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
-        secax.set_xlabel('Maximum displacement [Ang]')
-    ax.grid()
-    plt.tight_layout()
-    if save_as!=None:
-        plt.savefig(save_as,dpi=300)
-    plt.show()
-
-def plot_energy_landscape_compare(data_set,results_ph_path=None,q_cryst=None,freq=None,trim_points=None,title=None,legend=None,markersize=5,relative=True,save_as=None):
-    """Compare different energy landscapes in the same plot
-    data_set = An array either the folders containing the energy landscapes calculations or the already read data
-    results_ph_path = Folder where you ph.x output is stored.
-    q_cryst = q point you are interested in crystaline units
-    freq = index of the frequenzy you are interested in.
-    trim_points = Amount of points to be trimmed from the energy landscape data at each of the sides (left,right)
-    title = 'THE TITLE'
-    relative = If relative is true then the relative energy respect the undistorted is plotted
-    save_as = 'name.png' or whatever format
-       
-    When results_ph_path, q_cryst and freq are present a secondary axis with the maximum displacement on any atom is ploted
-    """
-    
-    if results_ph_path!=None and freq!=None and q_cryst!=None:    # Prepare second x axis
-        dyn=__find_dyn_file(q_cryst,results_ph_path)
-        #read a displacement vector related to the one we are analyzing (the "modulus" will be the same)
-        disp=read_dyn_file(dyn)[4][freq-1]
-        largest=0
-        for d in disp:               #Find the largest displacement
-            norm=np.linalg.norm(d)
-            if norm > largest:
-                largest=norm
-        #create a maximum displacement (in Ang) axis defining the necesary functions
-        def d2ang(x):
-            return x*largest
-        def ang2d(x):
-            return x/largest
-            
-    #PLOTTING
-    fig, ax = plt.subplots()
-    for i,data in enumerate(data_set):
-        if type(data)==str:
-            data=read_energy_landscape(data,relative)
-        if trim_points==None:
-            ax.plot(data[:,0],data[:,1],".")
-        else:
-            s=trim_points[0]
-            f=len(data[:,0])-trim_points[1]
-            ax.plot(data[s:f,0],data[s:f,1],".",markersize=markersize)
-    ax.axvline(x=0,linewidth=0.2,color='grey')
-    if title!=None:
-        plt.title(title)
-    ax.set_ylabel("Energy difference (meV)")
-    ax.set_xlabel("Order parameter (d)")
-    if results_ph_path!=None and freq!=None and q_cryst!=None:    # Prepare second x axis
-        secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
-        secax.set_xlabel('Maximum displacement [Ang]')
-    if legend != None:
-        ax.legend(legend)
-    ax.grid()
-    plt.tight_layout()
-    if save_as!=None:
-        plt.savefig(save_as,dpi=300)
-    plt.show()
-
-
-def poli(x,coef):
-    """Generates the y value at the x point for a polinomy defined by certain coeficients
-    x = point to evaluate
-    coef = coeficients from the highest degree to the lowest (weird)
-    """
-    y=0
-    for deg in range(coef.shape[0]):
-        y=y+coef[deg]*x**(coef.shape[0]-1-deg)
-    return y
-
-def energy_landscape_fit(data,results_ph_path=None,q_cryst=None,freq=None,poli_order='automatic',title=None,
-                         trim_points=None,fit_lim=None,save_as=None,markersize=5):
-    """Fit a polinomial to your energy landscape
-    data = Either the folder containing the energy landscape calculations or the already read data
-    results_ph_path = Folder where you ph.x output is stored.
-    q_cryst = q point you are interested in crystaline units
-    freq = index of the frequenzy you are interested in.
-    poli_order = Order of the polinomy (automatically it will select the highest possible up to 20)
-    title = 'THE TITLE'
-    trim_points = Amount of points to be trimmed from the energy landscape data at each of the sides (left,right)
-    fit_lim = limits in which you want your fit your polinomy (depending on the number of points the order of the polynomia is limited)
-    save_as = 'name.png' or whatever format
-
-    When results_ph_path, q_cryst and freq are present:
-        - A secondary axis with the maximum displacement on any atom is ploted
-        - returns the frozen phonon frequency (cm-1)
-    """
-    if type(data)==str:
-        data=read_energy_landscape(data)
-
-    if results_ph_path!=None and freq!=None and q_cryst!=None:    # Prepare second x axis
-        dyn=__find_dyn_file(q_cryst,results_ph_path)
-        #read a displacement vector related to the one we are analyzing (the "modulus" will be the same)
-        disp=read_dyn_file(dyn)[4][freq-1]
-        largest=0
-        for d in disp:               #Find the largest displacement
-            norm=np.linalg.norm(d)
-            if norm > largest:
-                largest=norm
-        #create a maximum displacement (in Ang) axis defining the necesary functions
-        def d2ang(x):
-            return x*largest
-        def ang2d(x):
-            return x/largest
-
-    #Trim data (remove points that you don't want)
-    if trim_points!=None:
-        s=trim_points[0]
-        f=len(data[:,0])-trim_points[1]
-        data=data[s:f]
-
-    #generate the polinomial (using the points between the fit_lim)
-    if fit_lim==None:
-        minl=0
-        maxl=len(data[:,0])
-    else:
-        for i in range(len(data[:,0])):
-            if data[i,0]>fit_lim[0]:
-                minl=i
-                maxl=i
-                break
-        for i in range(len(data[:,0])):
-            if data[i,0]>fit_lim[1]:
-                maxl=i
-                break
-            if maxl==minl:
-                maxl=len(data[:,0])
-    if poli_order=='automatic':
-        poli_order=len(data[minl:maxl,0])-1
-        if poli_order>20:
-            poli_order=20
-    coef=np.polyfit(data[minl:maxl,0],data[minl:maxl,1],poli_order)
-    poli_fit = poli(data[:,0],coef)
-#    print('The second derivative at zero is',2*coef[-3])
-
-    #PLOTTING
-    fig, ax = plt.subplots()
-    ax.plot(data[:,0],data[:,1],".")    #scf data
-    ax.plot(data[:,0],poli_fit,label="curve fit",linewidth=1)   # polinomial fit data
-
-    ax.axvline(x=0,linewidth=0.2,color='grey')
-
-    # polinomial fit_lim limits
-    ax.axvline(data[minl,0],linestyle="--",linewidth=1,color="limegreen")
-    ax.axvline(data[maxl-1,0],linestyle="--",linewidth=1,color="limegreen")
-
-    #y limits of the plot
-    ymax=max(data[:,1])
-    ymin=min(data[:,1])
-    interval=ymax-ymin
-    ax.set_ylim(ymin-0.05*interval,ymax+0.05*interval)
-
-    if title!=None:
-        plt.title(title)
-    ax.set_ylabel("Energy difference (meV)")
-    ax.set_xlabel("Order parameter (d)")
-    if results_ph_path!=None and freq!=None and q_cryst!=None:    # Prepare second x axis
-        secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
-        secax.set_xlabel('Maximum displacement [Ang]')
-    #ax.grid()y
-    plt.tight_layout()
-    if save_as!=None:
-        plt.savefig(save_as,dpi=300)
-    plt.show()
-    if results_ph_path!=None and freq!=None and q_cryst!=None:    # Return frequency eigenvalue in cm-1
-        frequency=frozen_phonon_freq(data,results_ph_path,q_cryst,freq,poli_order=poli_order) #data is allready trimed
-        return frequency
-
-def __qe_norm_factor2(QE_disp,masses):
-    """Gets the normalization factor for each QE displacement vector (squared).
-    With the QE dynamical matrix and QE normalized displacements the output of the sandwitch:
-    <Qe_disp|Qe_Dynamical|Qe_disp> = N^2 freq^2  (freq in Ry)
-    Where N^2 is given by this function using eig=QE_disp"""
-    atoms=len(masses)
-    N=0
-    if np.shape(QE_disp)[0]==1:    # If onedimensional format
-        QE_disp=QE_disp.reshape(atoms,3)
-    for i in range(atoms):
-        N=N+masses[i]*(np.linalg.norm(QE_disp[i]))**2
-    return N
-
-
-def frozen_phonon_freq(data,results_ph_path,q_cryst,freq,poli_order='automatic',trim_points=None):
-    """Return the frozen phono frequency in (cm-1)
-    data = Either the folder containing the energy landscape calculations or the already read data
-    results_ph_path = Folder where you ph.x output is stored.
-    q_cryst = q point you are interested in crystaline units
-    freq = index of the frequenzy you are interested in.
-    poli_order = Order of the polinomy (automatically it will select the highest possible up to 20)
-    trim_points = Amount of points to be trimmed from the energy landscape data at each of the sides (left,right)
-
-    Returns the frozen phonon frequency (cm-1)
-    """
-    if type(data)==str:
-        data=read_energy_landscape(data)
-
-    #get the QE_norm factor
-    file=__find_dyn_file(q_cryst,results_ph_path)
-    q_point, basis, positions, alat, QE_dynamical_matrix, atoms_mass=read_dyn_q(file,q_cryst)
-    freqs,displacements=diago_dyn(QE_dynamical_matrix,atoms_mass)
-    mass_conv=91.22000/83141.9438563716 #taken from Zr
-    norm2=__qe_norm_factor2(displacements[freq-1],atoms_mass)*mass_conv   # in u units
-
-    #Trim data (remove points that you don't want)
-    if trim_points!=None:
-        s=trim_points[0]
-        f=len(data[:,0])-trim_points[1]
-        data=data[s:f]
-
-    if poli_order=='automatic':
-        poli_order=len(data[:,0])-1
-        if poli_order>20:
-            poli_order=20
-
-    Norm=np.sqrt(norm2)
-    data_q=np.array(data)
-    data_q[:,0]=data[:,0]*Norm*alat
-    data_q[:,1]=data_q[:,1]/(cons.Ry2eV*1000)
-    coef=np.polyfit(data_q[:,0],data_q[:,1],poli_order)
-    quadra = coef[coef.shape[0]-3]
-    if quadra<0:
-        sign=-1
-        quadra=-quadra
-    else:
-        sign=1
-    freq=np.sqrt((quadra*2*cons.Ry2jul)/(cons.u2Kg*cons.bohr2metre**2))
-    freq=sign*freq*cons.hz2cm/(2*np.pi)
-    return freq
-
-def read_dyn_file_q_old(q_cryst,results_ph_path):
-    """Read the .dyn# file generated by QE and outputs:
-    q_point(alat), basis(alat), atomic_positions(alat), alat(a.u), QE_dynamical matrix, atomic_masses(2m_e).
-    INPUT:
-    q_cryst = q point you are interested in crystaline units
-    results_ph_path = Folder where you ph.x output is stored.
-
-    notice that:
-    q_point = q point you have read in alat units (as QE prints it)
-    QE_dynamical matrix is not the true dynamical matrix, instead is what QE print as the dynamical matrix.
-    It is multiplied by sqrt(MiMj) where Mi and Mj are the masses of i and j atoms related by the matrix.
-    You have to multiply by these masses each (3x3) submatrix in order to diagonalize and get freq^2 (Ry)
-    as eigenvalues.
-
-    return: q_point, basis, positions, alat, QE_dynamical_matrix, atom_mass"""
-
-    file=__find_dyn_file(q_cryst,results_ph_path)
-
-    read_dynmat=False
-    first_vec=True
-    atom_types=[]
-    atom_mass=[]
-    dyn_out=open(file,'r')
-    for line_n, line in enumerate(dyn_out):
-        if line_n==2: # reads atom types and atoms number
-            l=line.split()
-            num_atoms=int(l[1])
-            num_types=int(l[0])
-            alat=float(l[3])
-        if line_n>2 and line_n in range(7,7+num_types): #read atom types
-            l=line.split()
-            atom_types=atom_types+[l[1][1:]]
-            atom_mass=atom_mass+[float(l[3])]
-        if line_n>2 and line_n in range(7+num_types,7+num_types+num_atoms): # read positions
-            l=line.split()
-            l=[float(i) for i in l]
-            pos=np.array(l)
-            try:
-                positions=np.vstack([positions,pos])
-            except NameError:
-                positions=pos
-        if line_n in [4,5,6]:
-            l=line.split()
-            b=np.array([float(l[0]),float(l[1]),float(l[2])])
-            try:
-                basis_vec=np.vstack([basis_vec,b])
-            except NameError:
-                basis_vec=b
-        if re.search('q =',line):
-            l=line.split()
-            q_point=np.array([float(l[3]),float(l[4]),float(l[5])])
-            q_c=ut.cartesian2cryst(q_point,ut.K_basis(basis_vec))
-            deg=ut.__expand_star(q_c)
-            for q in deg:
-                diff=q-q_cryst
-                if np.all(np.around(diff,decimals=4)==0):
-                    dim=num_atoms*3
-                    dyn_mat=np.zeros([dim,dim],dtype=complex)
-                    read_dynmat=True
-        if read_dynmat==True:
-            #read dinamical matrix
-            l=line.split()
-            if len(l)==2: #block indices
-                n=int(l[0])
-                m=int(l[1])
-                num=0
-            elif len(l)==6: #matrix components
-                X=complex(float(l[0]),float(l[1]))
-                Y=complex(float(l[2]),float(l[3]))
-                Z=complex(float(l[4]),float(l[5]))
-                row=np.array([X,Y,Z])
-                if num==0:
-                    sub_mat=row
-                    num=1
-                else:
-                    sub_mat=np.vstack([sub_mat,row])
-                    num=num+1
-                if num==3:
-                    i=(n-1)*3
-                    j=(m-1)*3
-                    dyn_mat[i:i+3,j:j+3]=sub_mat
-            if re.search('Dynamical',line) or re.search('Diagonalizing',line):
-                break
-    atoms=[]
-    masses=[]
-    for p in positions:
-        atoms=atoms+[atom_types[int(p[1])-1]]
-        masses=masses+[atom_mass[int(p[1])-1]]
-    positions=[atoms,positions[:,2:]]
-    return q_point,basis_vec,positions,alat,dyn_mat,masses
-
-def distort_phonon_old(q_cryst,freq,results_ph_path,dist=0,silent=False):
-    """Distort the structure according to a given active phonon and get an ase.Atoms superstructure as output.
-
-    In order to point that phonon you need:
-    q_cryst = q point you are interested in crystaline units.
-    freq = index of the frequenzy you are interested in.
-    results_ph_path = Folder where you ph.x output is stored.
-    dist = Amount of distortion in the desired direction.
-    silent = No text output
-    """
-    #Find correct file to read
-    dyn=__find_dyn_file(q_cryst,results_ph_path)
-
-    #read the dyn file
-    if silent==False:
-        print('reading',dyn,'...')
-    q,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(dyn,q_cryst)
-    if silent==False:
-        print('point q =',q)
-    #Get frequencies and displacements:
-    freqs,displacements=diago_dyn(dynmat,atoms_mass)
-    if silent==False:
-        print('Frequency =',freqs[freq-1],'cm-1')
-        print('Displacement vector =')
-        print(np.around(displacements[freq-1],decimals=6))
-
-    #generate original crystal
-    #print(positions)
+    #Prepare ORIGINAL CRYSTAL
     atoms[1]=[ut.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
-    Pcell=basis*alat*cons.au2ang
-    primitive=Atoms(symbols=atoms[0],scaled_positions=atoms[1],cell=Pcell)
+    Pcell=basis*alat*cons.au2ang  #primitive cell in angstroms
 
-    #find conmensurate supercell
-    supercell,q_cryst=__generate_supercell(q,basis)
-    supercell=[np.int(np.around(s)) for s in supercell]
+    supercell,q_cryst=__generate_supercell(q_cryst,basis,cryst_units=True)
     if silent==False:
         print('Conmensurate supercell:',supercell)
-
-    #GENERATE DISTORTED SUPERCELL
-    #simbols and supercell
+        print('---------------------------------------------------')
+    
+    #GENERATE UNDISTORTED SUPERCELL
+    #simbols and supercell lattice
     symbols=np.prod(supercell)*atoms[0]
     scell=np.ones([3,3])
     for i in range(3):
         scell[i]=Pcell[i]*supercell[i]
 
-    #displacement vector for the unit cell
-    f=freqs[freq-1]
-    vec=displacements[freq-1]*dist
-    indices=supercell
+    #Get OrderParameters within the grid
+    OPs=__grid_generator(grid,add_zero=add_zero)
 
-    for i in range(indices[0]):
-        for j in range(indices[1]):
-            for k in range(indices[2]):
-                new_pos=np.array(atoms[1])
-                dot=np.matmul(q_cryst,np.array([i,j,k]))
-                phase=np.exp(2j*np.pi*dot)
-                disp=np.real(vec*phase)
-                #print('Displacement in',i,j,k,':')
-                #print(np.around(disp,decimals=5))
-                disp=[ut.cartesian2cryst(d,basis) for d in disp]
-                new_pos[:,0]=new_pos[:,0]+i
-                new_pos[:,1]=new_pos[:,1]+j
-                new_pos[:,2]=new_pos[:,2]+k
-                new_pos=new_pos+disp
+    i_atoms=len(atoms[1])
+    SGs=[]
+    sizes=[]
+    for OP in OPs:
+        positions=__distort_structure(supercell,Pcell,atoms[1],basis,q_cryst,OP,vec)
+        distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
+        SG=cell.get_spacegroup(distorted,symprec=symprec,silent=True)
+        if size==True:
+            o_atoms=len(spg.find_primitive(cell.ase2spglib(distorted),symprec=symprec)[1])
+            s=int(o_atoms/i_atoms)
+            sizes=sizes+[s]
+        if size==True and OUT==False:
+            print(OP,SG,' (x'+str(s)+')')
+        elif OUT==False:
+            print(OP,SG)
+        SGs=SGs+[SG]
+    if size==False:
+        return OPs, SGs
+    else:
+        return OPs, SGs, sizes
+
+
+def pp_CDW_sym_analysis(OPs,SGs):
+    """It process the output of CDW_sym_analysis returning a reduce list of the distinct possible SpaceGroups, as well
+    as a corresponding list with the indices for such items in the OrderParameter list.
+
+    example:
+    diff_SGs[i] appears in all OPs[indices[i]]
+
+    return diff_SGs,indices
+    """
+    diff_SGs=list(set(SGs))
+    SGs=np.array(SGs)
+    indices=[]
+    for SG in diff_SGs:
+        ind=np.where(SGs==SG)
+        indices=indices+[ind]
+    return diff_SGs,indices
+
+def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,freq=None,add_zero=False,dist=0.01,
+                       symprec=1e-5,write=False):
+    """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters
+    
+    q_cryst = q points you are interested in crystaline units.
+    results_ph_path = Folder where you ph.x output is stored.
+    dest_folder = Folder where your inputs will be stored.
+    template = A template QE input you want to copy to generate your inputs.
+    grid = [N1,N2,N3...] describing your grid (between [-1,1])
+            By default will be a [2,2,2...] grid
+            If Ni=1 then Xi=1 for all points
+    freq = index of the frequenzies you are interested in (starting at 1).
+            By default it will take the lowest frequency ones.
+    add_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
+    dist = Amount of distortion in the desired direction.
+           It also supports a LIST input so you define a different value for each grid component.
+           The final distortion will be multiplied by this factor.
+    symprec = Symmetry thushold as defined by spglib.
+    write = (Bolean) Whether to write the results in your filesystem. Defaulted to False in order to avoid overwritting a previous configuration.
+    """
+    #READ STRUCTURE
+    if len(np.shape(q_cryst))==1:
+        q_cryst=[q_cryst]
+    DIM=len(q_cryst)
+    if len(np.shape(q_cryst))==1:
+        q_cryst=[q_cryst]
+    if freq==None:
+        freq=np.ones(DIM).astype(int)
+    elif type(freq)==int:
+        freq= [freq]
+    if np.any(grid == None):
+        grid=np.ones(DIM).astype(int)*2
+        add_zero=True
+    elif type(grid)==int:
+        grid= [grid]
+    elif type(grid)!=list:
+        grid=grid.astype(int)
+    
+    if write==True:
+        if not os.path.exists(dest_folder):
+            os.makedirs(dest_folder)
+
+        file=open(dest_folder+'/dic.txt','w')
+        orig_stdout = sys.stdout
+        sys.stdout = file
+
+    #Get alat, structure, masses...
+    q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q_cryst[0],results_ph_path)
+
+    print('---------------------------------------------------')
+    print('Order parameter in a',grid,'grid  // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
+    print()
+    print('The general displacement at each config is given by:')
+    print('(OP * Global_factor * displacements)*alat')
+    if write==True:
+        print()
+        print('Original Lattice (alat) =')
+        print(basis)
+        print()
+        print('Atomic positions (alat)',atoms[0],'=')
+        print(atoms[1])
+        print()
+    print('---------------------------------------------------')
+    #GET FREQS and DISPLACEMENTS
+    q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path,silent=False)
+    #Final displacement vector for the unit cell (still as a list of displacements)
+    if type(dist)==float or type(dist)==int:
+        vec=[d*dist for d in displacements]
+    else:
+        vec=[]
+        for i,d in enumerate(displacements):
+            vec=vec+[d*dist[i]]
+    
+    final_vec=0
+    for i,v in enumerate(vec):
+        final_vec=final_vec+v
+    print('---------------------------------------------------')
+    print('Final applied "maximum" displacement (Å): (Sum[Displacements]*Global_factor) =')
+    print()
+    print(np.around(final_vec*alat*cons.au2ang,decimals=5))
+
+    #Prepare ORIGINAL CRYSTAL
+    atoms[1]=[ut.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
+    Pcell=basis*alat*cons.au2ang  #primitive cell in angstroms
+
+    supercell,q_cryst=__generate_supercell(q_cryst,basis,cryst_units=True)
+    print()
+    print('Conmensurate supercell:',supercell)
+    print('---------------------------------------------------')
+    print('#DATA (', np.prod(grid),'configs )')
+
+    #GENERATE UNDISTORTED SUPERCELL
+    #simbols and supercell lattice
+    symbols=np.prod(supercell)*atoms[0]
+    scell=np.ones([3,3])
+    for i in range(3):
+        scell[i]=Pcell[i]*supercell[i]
+
+    #Get OrderParameters within the grid
+    OPs=__grid_generator(grid,add_zero=add_zero)
+    #Create every configuration
+    for i,OP in enumerate(OPs):
+        positions=__distort_structure(supercell,Pcell,atoms[1],basis,q_cryst,OP,vec)
+        distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
+        SG=cell.get_spacegroup(distorted,symprec=symprec,silent=True)
+        if write==True:
+            cell.store_structure_QE_pwi(distorted,dest_folder+'/'+str(i)+'.pwi',template)
+        try:
+            OUT=np.vstack((OUT,np.array([i,OP,SG])))
+        except NameError:
+            OUT=np.array([i,OP,SG])
+
+    #Save the output in the corresponding file (sys.stdout is redefined if write==True)
+    np.savetxt(sys.stdout,OUT,fmt=['%-10d','%-50s','%s'])
+    if write==True:
+        sys.stdout = orig_stdout
+        file.close()
+
+def __read_energy_surf_data_dic(file):
+    """ Reads the file in which the different OPs corresponding SpaceGroups when generating the grid.
+
+    return OPs,SGs
+    """
+    lines=open(file,'r')
+    READ=False
+    SGs=[]
+    for line in lines:
+        if READ==True:
+            l=line.split('[')
+            i=int(l[0])
+            p1,p2=l[1].split(']')
+            OP=np.array(p1.split(),dtype=float)
+            SG=p2.split()
+            SG=SG[0]+' '+SG[1]
+            SGs=SGs+[SG]
+            try:
+                OPs=np.vstack((OPs,OP))
+            except NameError:
+                OPs=OP
+        if re.search('#DATA',line):
+            READ=True
+    return OPs,SGs
+
+
+def __read_energy_surf_data_dic(file):
+    """ Reads the file in which the different OPs (order parameters), the corresponding SpaceGroups, original displacements, global factors and alat(a.u).
+
+    Essentially all the necesary information to build the configurations.
+
+    The general displacement at each config is given by:
+    (OP * Global_factor * displacements * phase_factor)*alat
+
+    return OPs,SGs,displacements,global_factor,alat
+    """
+    lines=open(file,'r') 
+    DATA=False
+    DISP=False
+    SGs=[]
+    displacements=[]
+    for line in lines:
+        if re.search('Global factor',line):
+            p1,p2,p3=line.split('//')
+            dist=p2.split('=')[1]
+            dist=dist.split('[')[-1].split(']')[0].split(',')
+            dist=np.array([float(x) for x in dist])
+            alat=float(p3.split()[2])
+        if re.search('Displacement vector',line):
+            DISP=True
+        elif DISP==True:
+            if len(line)>3:
+                l=[x+'j' for x in (line.split('[')[-1].split(']')[0].split('j'))][:3]
+                for i,s in enumerate(l):
+                    c=''
+                    for j in s.split():
+                        c=c+j
+                    l[i]=c
+                d=np.array([complex(x) for x in l])
                 try:
-                    positions=np.vstack([positions,new_pos])
+                    new=np.vstack((new,d))
                 except NameError:
-                    positions=new_pos
-    positions=[ut.cryst2cartesian(p,Pcell) for p in positions]
-    distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
-    if silent==False:
-        cell.get_spacegroup(distorted)
-    return distorted
-
+                    new=d
+            else:
+                DISP=False
+                displacements=displacements+[new]
+                del new
+        if DATA==True:
+            l=line.split('[')
+            i=int(l[0])
+            p1,p2=l[1].split(']')
+            OP=np.array(p1.split(),dtype=float)
+            SG=p2.split()
+            SG=SG[0]+' '+SG[1]
+            SGs=SGs+[SG]
+            try:
+                OPs=np.vstack((OPs,OP))
+            except NameError:
+                OPs=OP
+        elif re.search('#DATA',line):
+            DATA=True
+    lines.close()
+    return OPs,SGs,displacements,dist,alat
