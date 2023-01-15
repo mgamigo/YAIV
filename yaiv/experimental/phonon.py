@@ -697,7 +697,7 @@ def pp_CDW_sym_analysis(OPs,SGs):
         indices=indices+[ind]
     return diff_SGs,indices
 
-def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,freq=None,add_zero=False,dist=0.01,
+def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,add_zero=False,dist=0.01,
                        symprec=1e-5,write=False):
     """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters
     
@@ -705,6 +705,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,fr
     results_ph_path = Folder where you ph.x output is stored.
     dest_folder = Folder where your inputs will be stored.
     template = A template QE input you want to copy to generate your inputs.
+    OP = 
     grid = [N1,N2,N3...] describing your grid (between [-1,1])
             By default will be a [2,2,2...] grid
             If Ni=1 then Xi=1 for all points
@@ -721,20 +722,30 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,fr
     if len(np.shape(q_cryst))==1:
         q_cryst=[q_cryst]
     DIM=len(q_cryst)
-    if len(np.shape(q_cryst))==1:
-        q_cryst=[q_cryst]
     if freq==None:
         freq=np.ones(DIM).astype(int)
     elif type(freq)==int:
         freq= [freq]
-    if np.any(grid == None):
-        grid=np.ones(DIM).astype(int)*2
-        add_zero=True
-    elif type(grid)==int:
-        grid= [grid]
-    elif type(grid)!=list:
-        grid=grid.astype(int)
-    
+    if OP != None or DIM==1:
+        grid_mode = False
+    else:
+        grid_mode = True
+
+    if grid_mode == True:
+        if np.any(grid == None):
+            grid=np.ones(DIM).astype(int)*2
+            add_zero=True
+        elif type(grid)==int:
+            grid= [grid]
+        elif type(grid)!=list:
+            grid=grid.astype(int)
+    else:
+        if OP== None:
+            OP=[1]
+        if type(dist)==int or type(dist)==float:
+            dist=[-dist,dist]
+        if grid==None:
+            grid=51
     if write==True:
         if not os.path.exists(dest_folder):
             os.makedirs(dest_folder)
@@ -747,7 +758,10 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,fr
     q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_q(q_cryst[0],results_ph_path)
 
     print('---------------------------------------------------')
-    print('Order parameter in a',grid,'grid  // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
+    if grid_mode == True:
+        print('Order parameter in a',grid,'grid  // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
+    else:
+        print('Order parameter in a',OP,'direction  // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
     print()
     print('The general displacement at each config is given by:')
     print('(OP * Global_factor * displacements)*alat')
@@ -765,16 +779,28 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,fr
     #Final displacement vector for the unit cell (still as a list of displacements)
     if type(dist)==float or type(dist)==int:
         vec=[d*dist for d in displacements]
+    elif grid_mode == False:
+        vec = displacements
     else:
         vec=[]
         for i,d in enumerate(displacements):
             vec=vec+[d*dist[i]]
     
     final_vec=0
-    for i,v in enumerate(vec):
-        final_vec=final_vec+v
+    if grid_mode == True:
+        for i,v in enumerate(vec):
+            final_vec=final_vec+v
+    else:
+        for i,v in enumerate(vec):
+            final_vec=final_vec+OP[i]*v
+        M=(max(np.abs(dist[0]),np.abs(dist[1])))
+        final_vec=final_vec*M
+
     print('---------------------------------------------------')
-    print('Final applied "maximum" displacement (Å): (Sum[Displacements]*Global_factor) =')
+    if grid_mode == True:
+        print('Final applied "maximum" displacement (Å): (Sum[Displacements]*Global_factor) =')
+    else:
+        print('Final applied "maximum" displacement (Å): (Sum[OP*Displacements]*max(abs(Global_factor))) =')
     print()
     print(np.around(final_vec*alat*cons.au2ang,decimals=5))
 
@@ -786,7 +812,10 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,fr
     print()
     print('Conmensurate supercell:',supercell)
     print('---------------------------------------------------')
-    print('#DATA (', np.prod(grid),'configs )')
+    if grid_mode == True:
+        print('#DATA (', np.prod(grid),'configs ) // [ID, OP, SG]')
+    else:
+        print('#DATA (', np.prod(grid),'configs ) // [ID, OP*dist, SG]')
 
     #GENERATE UNDISTORTED SUPERCELL
     #simbols and supercell lattice
@@ -796,7 +825,14 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,fr
         scell[i]=Pcell[i]*supercell[i]
 
     #Get OrderParameters within the grid
-    OPs=__grid_generator(grid,add_zero=add_zero)
+    if grid_mode == True:
+        OPs=__grid_generator(grid,add_zero=add_zero)
+    else:
+        factors=np.linspace(dist[0],dist[1],grid)
+        OPs=np.array([list(OP)]*grid,dtype=float)
+        for i,x in enumerate(OPs):
+            OPs[i]=OPs[i]*factors[i]
+
     #Create every configuration
     for i,OP in enumerate(OPs):
         positions=__distort_structure(supercell,Pcell,atoms[1],basis,q_cryst,OP,vec)
@@ -816,32 +852,6 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,grid=None,fr
         file.close()
 
 def __read_energy_surf_data_dic(file):
-    """ Reads the file in which the different OPs corresponding SpaceGroups when generating the grid.
-
-    return OPs,SGs
-    """
-    lines=open(file,'r')
-    READ=False
-    SGs=[]
-    for line in lines:
-        if READ==True:
-            l=line.split('[')
-            i=int(l[0])
-            p1,p2=l[1].split(']')
-            OP=np.array(p1.split(),dtype=float)
-            SG=p2.split()
-            SG=SG[0]+' '+SG[1]
-            SGs=SGs+[SG]
-            try:
-                OPs=np.vstack((OPs,OP))
-            except NameError:
-                OPs=OP
-        if re.search('#DATA',line):
-            READ=True
-    return OPs,SGs
-
-
-def __read_energy_surf_data_dic(file):
     """ Reads the file in which the different OPs (order parameters), the corresponding SpaceGroups, original displacements, global factors and alat(a.u).
 
     Essentially all the necesary information to build the configurations.
@@ -854,6 +864,8 @@ def __read_energy_surf_data_dic(file):
     lines=open(file,'r') 
     DATA=False
     DISP=False
+    LAT=False
+    ATOMS=False
     SGs=[]
     displacements=[]
     for line in lines:
@@ -863,8 +875,37 @@ def __read_energy_surf_data_dic(file):
             dist=dist.split('[')[-1].split(']')[0].split(',')
             dist=np.array([float(x) for x in dist])
             alat=float(p3.split()[2])
-        if re.search('Displacement vector',line):
+        elif re.search('Displacement vector',line):
             DISP=True
+        elif re.search('Original Lattice',line):
+            LAT=True
+        elif re.search('Atomic positions',line):
+            ATOMS=True
+            atoms=line.split('[')[-1].split(']')[0].split(',')
+            atoms=[x.split('\'')[1] for x in atoms]
+            
+        #READ LATTICE
+        elif LAT==True:
+            if len(line)>3:
+                new=np.array([float(x) for x in line.split('[')[-1].split(']')[0].split()])
+                try:
+                    lattice=np.vstack((lattice,new))
+                except NameError:
+                    lattice=new
+            else:
+                LAT=False
+                print(lattice)
+        #READ ATOMIC POSITIONS
+        elif ATOMS==True:
+            if len(line)>3:
+                new_pos=np.array([float(x) for x in line.split('[')[-1].split(']')[0].split()])
+                try:
+                    positions=np.vstack((positions,new_pos))
+                except NameError:
+                    positions=new_pos
+            else:
+                ATOMS=False
+        #READING DISPERSION DATA
         elif DISP==True:
             if len(line)>3:
                 l=[x+'j' for x in (line.split('[')[-1].split(']')[0].split('j'))][:3]
@@ -878,11 +919,15 @@ def __read_energy_surf_data_dic(file):
                     new=np.vstack((new,d))
                 except NameError:
                     new=d
+#                num=complex(num)
+#                print(num)
+                #print(complex(l[0]+'j'))
             else:
                 DISP=False
                 displacements=displacements+[new]
                 del new
-        if DATA==True:
+        #READ MAIN DATA
+        elif DATA==True:
             l=line.split('[')
             i=int(l[0])
             p1,p2=l[1].split(']')
@@ -897,4 +942,4 @@ def __read_energy_surf_data_dic(file):
         elif re.search('#DATA',line):
             DATA=True
     lines.close()
-    return OPs,SGs,displacements,dist,alat
+    return lattice, atoms, positions, alat, dist, OPs, SGs, displacements
