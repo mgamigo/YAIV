@@ -604,6 +604,9 @@ def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,add_zero=False,
     silent = (Bolean) Minimum text output.
     size = (Bolean) New cell size compared to the original one.
     OUT = (Bolean) If true, instead of printing only returns the Order Parameter and corresponding SpaceGroups and cell sizes.
+
+
+    return OPs, SGs(, sizes)
     """
     
     #READ STRUCTURE
@@ -697,24 +700,34 @@ def pp_CDW_sym_analysis(OPs,SGs):
         indices=indices+[ind]
     return diff_SGs,indices
 
-def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,add_zero=False,dist=0.01,
+def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,boundary=0.01,add_zero=False,
                        symprec=1e-5,write=False):
-    """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters
+    """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters.
+    All the information of the created configurations will be saved into a "dic.txt" file.
+    There are two main modes:
+        GRIDMODE : It creates an uniform grid in the Order parameter space.
+        LINEMODE : It explores a predefined direction in the Order parameter space.
     
     q_cryst = q points you are interested in crystaline units.
     results_ph_path = Folder where you ph.x output is stored.
     dest_folder = Folder where your inputs will be stored.
     template = A template QE input you want to copy to generate your inputs.
-    OP = 
-    grid = [N1,N2,N3...] describing your grid (between [-1,1])
+    OP = If OP is defined, then LINEMODE is activated and OP defines your direction in the Order Parameter space.
+    grid = In GRIDMODE:
+            [N1,N2,N3...] describing your grid (between [-1,1])
             By default will be a [2,2,2...] grid
             If Ni=1 then Xi=1 for all points
+           In LINEMODE:
+            It defines the number of points in your line.
     freq = index of the frequenzies you are interested in (starting at 1).
             By default it will take the lowest frequency ones.
+    boundary = In GRIDMODE:
+               Amount of distortion in any the desired direction.
+               It also supports a LIST input so you define a different value for each grid component.
+               The final distortion will be multiplied by this factor.
+               In LINEMODE:
+               The boundary factors by which you want to multiply your order parameter (OP).
     add_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
-    dist = Amount of distortion in the desired direction.
-           It also supports a LIST input so you define a different value for each grid component.
-           The final distortion will be multiplied by this factor.
     symprec = Symmetry thushold as defined by spglib.
     write = (Bolean) Whether to write the results in your filesystem. Defaulted to False in order to avoid overwritting a previous configuration.
     """
@@ -733,8 +746,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
 
     if grid_mode == True:
         if np.any(grid == None):
-            grid=np.ones(DIM).astype(int)*2
-            add_zero=True
+            grid=np.ones(DIM).astype(int)*3
         elif type(grid)==int:
             grid= [grid]
         elif type(grid)!=list:
@@ -742,8 +754,8 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
     else:
         if OP== None:
             OP=[1]
-        if type(dist)==int or type(dist)==float:
-            dist=[-dist,dist]
+        if type(boundary)==int or type(boundary)==float:
+            boundary=[-boundary,boundary]
         if grid==None:
             grid=51
     if write==True:
@@ -759,9 +771,9 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
 
     print('---------------------------------------------------')
     if grid_mode == True:
-        print('Order parameter in a',grid,'grid  // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
+        print('Order parameter in a',grid,'grid  // ','Global factor = ', boundary, ' // alat =',alat,'(a.u)')
     else:
-        print('Order parameter in a',OP,'direction  // ','Global factor = ', dist, ' // alat =',alat,'(a.u)')
+        print('Order parameter in a',OP,'direction  // ','Global factor = ', boundary, ' // alat =',alat,'(a.u)')
     print()
     print('The general displacement at each config is given by:')
     print('(OP * Global_factor * displacements)*alat')
@@ -777,14 +789,14 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
     #GET FREQS and DISPLACEMENTS
     q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path,silent=False)
     #Final displacement vector for the unit cell (still as a list of displacements)
-    if type(dist)==float or type(dist)==int:
-        vec=[d*dist for d in displacements]
+    if type(boundary)==float or type(boundary)==int:
+        vec=[d*boundary for d in displacements]
     elif grid_mode == False:
         vec = displacements
     else:
         vec=[]
         for i,d in enumerate(displacements):
-            vec=vec+[d*dist[i]]
+            vec=vec+[d*boundary[i]]
     
     final_vec=0
     if grid_mode == True:
@@ -793,7 +805,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
     else:
         for i,v in enumerate(vec):
             final_vec=final_vec+OP[i]*v
-        M=(max(np.abs(dist[0]),np.abs(dist[1])))
+        M=(max(np.abs(boundary[0]),np.abs(boundary[1])))
         final_vec=final_vec*M
 
     print('---------------------------------------------------')
@@ -815,7 +827,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
     if grid_mode == True:
         print('#DATA (', np.prod(grid),'configs ) // [ID, OP, SG]')
     else:
-        print('#DATA (', np.prod(grid),'configs ) // [ID, OP*dist, SG]')
+        print('#DATA (', np.prod(grid),'configs ) // [ID, OP*Glob_factor, SG]')
 
     #GENERATE UNDISTORTED SUPERCELL
     #simbols and supercell lattice
@@ -828,7 +840,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
     if grid_mode == True:
         OPs=__grid_generator(grid,add_zero=add_zero)
     else:
-        factors=np.linspace(dist[0],dist[1],grid)
+        factors=np.linspace(boundary[0],boundary[1],grid)
         OPs=np.array([list(OP)]*grid,dtype=float)
         for i,x in enumerate(OPs):
             OPs[i]=OPs[i]*factors[i]
@@ -856,10 +868,13 @@ def __read_energy_surf_data_dic(file):
 
     Essentially all the necesary information to build the configurations.
 
-    The general displacement at each config is given by:
-    (OP * Global_factor * displacements * phase_factor)*alat
+    In grid mode the general displacement at each config is given by:
+        (OP * Global_factor * displacements * phase_factor) * alat
+    In line mode the general displacement at each config is given by:
+        (OP * displacements * phase_factor) * alat
+        The global factor is absorved by OP
 
-    return OPs,SGs,displacements,global_factor,alat
+    return lattice, atoms, positions, alat, boundary, OPs, SGs, displacements
     """
     lines=open(file,'r') 
     DATA=False
@@ -871,9 +886,9 @@ def __read_energy_surf_data_dic(file):
     for line in lines:
         if re.search('Global factor',line):
             p1,p2,p3=line.split('//')
-            dist=p2.split('=')[1]
-            dist=dist.split('[')[-1].split(']')[0].split(',')
-            dist=np.array([float(x) for x in dist])
+            boundary=p2.split('=')[1]
+            boundary=boundary.split('[')[-1].split(']')[0].split(',')
+            boundary=np.array([float(x) for x in boundary])
             alat=float(p3.split()[2])
         elif re.search('Displacement vector',line):
             DISP=True
@@ -942,4 +957,4 @@ def __read_energy_surf_data_dic(file):
         elif re.search('#DATA',line):
             DATA=True
     lines.close()
-    return lattice, atoms, positions, alat, dist, OPs, SGs, displacements
+    return lattice, atoms, positions, alat, boundary, OPs, SGs, displacements
