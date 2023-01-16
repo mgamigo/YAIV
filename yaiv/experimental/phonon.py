@@ -788,6 +788,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
         print()
         print('Atomic masses (2m_e)',atoms[0],'=')
         print(atoms_mass)
+        print()
     print('---------------------------------------------------')
     #GET FREQS and DISPLACEMENTS
     q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path,silent=False)
