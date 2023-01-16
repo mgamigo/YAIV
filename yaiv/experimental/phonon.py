@@ -204,12 +204,13 @@ def __QEdyn2Realdyn(dyn_mat,masses):
     returns dyn_mat
     """
     dim=len(masses)
+    dyn = np.copy(dyn_mat)
     for n in range(dim):
         for m in range(dim):
             i=3*n
             j=3*m
-            dyn_mat[i:i+3,j:j+3]=dyn_mat[i:i+3,j:j+3]/np.sqrt(masses[n]*masses[m])
-    return dyn_mat
+            dyn[i:i+3,j:j+3]=dyn[i:i+3,j:j+3]/np.sqrt(masses[n]*masses[m])
+    return dyn
 
 def __pol_matmul(a,b):
     """Dot product between two polarization vectors written as default QE output.
@@ -236,8 +237,8 @@ def diago_dyn(dyn_mat,masses,qe_format_in=True,qe_format_out=True):
     return: freqs, displacements"""
     #get the real dinamical matrix mat
     if qe_format_in==True:
-        dyn_mat = __QEdyn2Realdyn(dyn_mat,masses)
-    eig,pol=np.linalg.eig(dyn_mat)
+        dyn = __QEdyn2Realdyn(dyn_mat,masses)
+    eig,pol=np.linalg.eig(dyn)
 
     #change freqcuencies to (cm-1) and to real
     eig=np.sqrt(eig)*cons.Ry2cm
@@ -703,7 +704,7 @@ def pp_CDW_sym_analysis(OPs,SGs):
 def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,boundary=0.01,add_zero=False,
                        symprec=1e-5,write=False):
     """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters.
-    All the information of the created configurations will be saved into a "dic.txt" file.
+    All the information of the created configurations will be saved into a "surf.txt" file.
     There are two main modes:
         GRIDMODE : It creates an uniform grid in the Order parameter space.
         LINEMODE : It explores a predefined direction in the Order parameter space.
@@ -762,7 +763,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
         if not os.path.exists(dest_folder):
             os.makedirs(dest_folder)
 
-        file=open(dest_folder+'/dic.txt','w')
+        file=open(dest_folder+'/surf.txt','w')
         orig_stdout = sys.stdout
         sys.stdout = file
 
@@ -785,6 +786,8 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
         print('Atomic positions (alat)',atoms[0],'=')
         print(atoms[1])
         print()
+        print('Atomic masses (2m_e)',atoms[0],'=')
+        print(atoms_mass)
     print('---------------------------------------------------')
     #GET FREQS and DISPLACEMENTS
     q_alats,dis_freqs,displacements=__grep_displacement_vectors(q_cryst,freq,results_ph_path,silent=False)
@@ -863,8 +866,8 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
         sys.stdout = orig_stdout
         file.close()
 
-def __read_energy_surf_data_dic(file):
-    """ Reads the file in which the different OPs (order parameters), the corresponding SpaceGroups, original displacements, global factors and alat(a.u).
+def __read_energy_surf_data_txt(file):
+    """ Reads the file in which the different OPs (order parameters), the corresponding SpaceGroups, original displacements, global factors, alat(a.u), atomic masses and supercell.
 
     Essentially all the necesary information to build the configurations.
 
@@ -874,13 +877,14 @@ def __read_energy_surf_data_dic(file):
         (OP * displacements * phase_factor) * alat
         The global factor is absorved by OP
 
-    return lattice, atoms, positions, alat, boundary, OPs, SGs, displacements
+    return lattice, atoms, positions, masses, alat, boundary, supercell ,OPs, SGs, displacements
     """
     lines=open(file,'r') 
     DATA=False
     DISP=False
     LAT=False
     ATOMS=False
+    MASSES=False
     SGs=[]
     displacements=[]
     for line in lines:
@@ -898,7 +902,14 @@ def __read_energy_surf_data_dic(file):
             ATOMS=True
             atoms=line.split('[')[-1].split(']')[0].split(',')
             atoms=[x.split('\'')[1] for x in atoms]
-            
+        elif re.search('Atomic masses',line):
+            MASSES=True
+        elif re.search('supercell',line):
+            supercell = np.array([int(x) for x in line.split('[')[1].split(']')[0].split()])
+        #READ MASSES
+        elif MASSES==True:
+            masses=[float(x) for x in line.split('[')[-1].split(']')[0].split(',')]
+            MASSES=False
         #READ LATTICE
         elif LAT==True:
             if len(line)>3:
@@ -909,7 +920,7 @@ def __read_energy_surf_data_dic(file):
                     lattice=new
             else:
                 LAT=False
-                print(lattice)
+                del new
         #READ ATOMIC POSITIONS
         elif ATOMS==True:
             if len(line)>3:
@@ -920,6 +931,7 @@ def __read_energy_surf_data_dic(file):
                     positions=new_pos
             else:
                 ATOMS=False
+                del new_pos
         #READING DISPERSION DATA
         elif DISP==True:
             if len(line)>3:
@@ -934,9 +946,6 @@ def __read_energy_surf_data_dic(file):
                     new=np.vstack((new,d))
                 except NameError:
                     new=d
-#                num=complex(num)
-#                print(num)
-                #print(complex(l[0]+'j'))
             else:
                 DISP=False
                 displacements=displacements+[new]
@@ -957,4 +966,231 @@ def __read_energy_surf_data_dic(file):
         elif re.search('#DATA',line):
             DATA=True
     lines.close()
-    return lattice, atoms, positions, alat, boundary, OPs, SGs, displacements
+    return lattice, atoms, positions, masses, alat, boundary, supercell ,OPs, SGs, displacements
+
+def __qe_norm_factor2(QE_disp,masses):
+    """Gets the normalization factor for each QE eigenvalue.
+    With the QE dynamical matrix and QE normalized displacements the output of the sandwitch:
+    <vector|Dynamical|vector>=N^2 freq^2  (freq in Ry)
+    Where N^2 is given by this function using eig=QE_disp
+    It has units of mass (the ones of the masses you input)
+    """
+    atoms=len(masses)
+    N=0
+    for i in range(atoms):
+        N=N+masses[i]*(np.linalg.norm(QE_disp[i]))**2
+    return N
+
+def poli(x,coef):
+    """Generates the y value at the x point for a polinomy defined by certain coeficients
+    x = point to evaluate
+    coef = coeficients from the highest degree to the lowest (weird)
+    """
+    y=0
+    for deg in range(coef.shape[0]):
+        y=y+coef[deg]*x**(coef.shape[0]-1-deg)
+    return y
+
+
+def read_energy_surf_data(folder,relative=True):
+    """Reads the output of your energy landscape calculations. It expects a folder with the surf.txt file created by energy_surface_pwi.
+
+    folder = path to the folder containing the outputs and the surf.txt file.
+    relative = If relative is true then the relative energy respect the undistorted is plotted
+
+    The output has all the info from surf.txt and the energies:
+    return lattice (alat), atoms, positions(alat), masses(2m_e), alat(au), boundary,supercell, OPs, energies(meV), SGs, displacements
+    """
+
+    # Read the surf.txt file with the info about the configuration
+    lattice, atoms, positions, masses, alat, boundary,supercell, OPs, SGs, displacements = __read_energy_surf_data_txt(folder+'/surf.txt')
+    m=100
+    for i,OP in enumerate(OPs):
+        n = np.linalg.norm(OP)
+        if n < m:
+            m,j=n,i
+        e=ut.grep_total_energy(folder+'/'+str(i)+'.pwo',meV=True)
+        try:
+            energies=np.vstack((energies,e))
+        except NameError:
+            energies=e
+    energies=energies/np.prod(supercell)
+    if relative == True:
+        energies = energies - energies[j]
+    return lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements
+
+
+def plot_energy_landscape(data,title=None,relative=True,grid=True,axis=None,label=None,save_as=None):
+    """Plots the energy landscape data
+
+    data = Either the folder containing the energy landscape calculations or the already read data by read_energy_surf_data
+    title = 'Your nice and original title for the plot'
+    relative = If relative is true then the relative energy respect the undistorted is plotted
+    grid = (Bolean) It can display an automatic grid in the plot
+    axis = Matplotlib axis in which to plot, if no axis is present new figure is created
+    label = Label for your plot.
+    save_as = 'name.png' or whatever format
+    """
+
+    if type(data) == str:
+        data=read_energy_surf_data(data,relative=relative)
+    lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements = data
+    direction = OPs[0]/boundary[0]
+    
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+        
+    #create a maximum displacement (in Ang) axis defining the necesary functions
+    v=0
+    for i,d in enumerate(displacements):
+        v=v+d*direction[i]
+    largest=np.max([np.linalg.norm(x) for x in v])*alat*cons.au2ang
+    def d2ang(x):
+        return x*largest
+    def ang2d(x):
+        return x/largest
+        
+        
+    X=np.linspace(boundary[0],boundary[1],num=len(OPs))
+    ax.plot(X,energies,'.',label=label)
+    
+    ax.set_ylabel("Energy difference (meV/cell)")
+    ax.set_xlabel("Order parameter (d)")
+
+    if axis==None:
+        secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
+        secax.set_xlabel('Maximum displacement [Ang]')
+    if grid == True:
+        ax.grid()
+    if title!=None:                             #Title option
+        ax.set_title(title)
+    plt.tight_layout()
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
+
+
+def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic',relative=True,grid=True,axis=None,save_as=None):
+    """Fit a polinomial to your energy landscape
+
+    data = Either the folder containing the energy landscape calculations or the already read data by read_energy_surf_data
+    title = 'Your nice and original title for the plot'
+    trim_points = Amount of points to be trimmed from the energy landscape data at each of the sides (left,right)
+    poli_order = Order of the polinomy (automatically it will select the highest possible up to 20)
+    relative = If relative is true then the relative energy respect the undistorted is plotted
+    grid = (Bolean) It can display an automatic grid in the plot
+    axis = Matplotlib axis in which to plot, if no axis is present new figure is created
+    save_as = 'name.png' or whatever format
+    """
+
+    if type(data) == str:
+        data=read_energy_surf_data(data,relative=relative)
+    lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements = data
+    direction = OPs[0]/boundary[0]
+    
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+        
+    #create a maximum displacement (in Ang) axis defining the necesary functions
+    v=0
+    for i,d in enumerate(displacements):
+        v=v+d*direction[i]
+    largest=np.max([np.linalg.norm(x) for x in v])*alat*cons.au2ang
+    def d2ang(x):
+        return x*largest
+    def ang2d(x):
+        return x/largest
+    
+    X=np.linspace(boundary[0],boundary[1],num=len(OPs))
+    #Trim data (remove points that you don't want)
+    if trim_points!=None:
+        s=trim_points[0]
+        f=len(X)-trim_points[1]
+        X=X[s:f]
+        energies=energies[s:f]
+
+    #generate the polinomial (using the points between the fit_lim)
+    if poli_order=='automatic':
+        poli_order=len(X)-1
+        if poli_order>20:
+            poli_order=20
+    coef=np.polyfit(X,energies,poli_order)
+    Y=np.linspace(X[0],X[-1],101)
+    poli_fit = poli(Y,coef)
+    
+    #PLOTTING
+    ax.plot(X,energies,".",label='DFT points')    #scf data
+    ax.plot(Y,poli_fit,linewidth=1,label='Poly fit')   # polinomial fit data
+    ax.set_ylabel("Energy difference (meV/cell)")
+    ax.set_xlabel("Order parameter (d)")
+    
+    secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
+    secax.set_xlabel('Maximum displacement [Ang]')
+
+    if len(displacements)==1:
+        frequency=frozen_phonon_freq(data,trim_points=trim_points,poli_order=poli_order)
+        ax.text(0.15,0.93, 'Freq = '+str(np.around(frequency[0],decimals=2))+' $cm^{-1}$',
+             size=9, ha="center", va="center",transform=ax.transAxes,horizontalalignment='left',
+             bbox=dict(boxstyle="round",ec=(1., 0.5, 0.5),fc=(1., 0.8, 0.8)))
+    ax.legend()
+
+    if grid == True:
+        ax.grid()
+    if title!=None:                             #Title option
+        ax.set_title(title)
+    plt.tight_layout()
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
+
+
+def frozen_phonon_freq(data,trim_points=None,poli_order='automatic'):
+    """Return the frozen phonon frequency in (cm-1)
+
+    data = Either the folder containing the energy landscape calculations or the already read data by read_energy_surf_data
+    trim_points = Amount of points to be trimmed from the energy landscape data at each of the sides (left,right)
+    poli_order = Order of the polinomy (automatically it will select the highest possible up to 20)
+    """
+
+    if type(data) == str:
+        data=read_energy_surf_data(data,relative=True)
+    lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements = data
+    direction = OPs[0]/boundary[0]
+    if len(displacements) > 1:
+        print('More than one eigenvector... Thus not a well defined eigenvector')
+    norm2=__qe_norm_factor2(displacements[0],masses)*(2*cons.me/cons.u2Kg) #To au units
+
+    X=np.linspace(boundary[0],boundary[1],num=len(OPs))
+    #Trim data (remove points that you don't want)
+    if trim_points!=None:
+        s=trim_points[0]
+        f=len(X)-trim_points[1]
+        X=X[s:f]
+        energies=energies[s:f]
+    
+    if poli_order=='automatic':
+        poli_order=len(X)-1
+        if poli_order>20:
+            poli_order=20
+
+    Norm=np.sqrt(norm2)
+    X=X*Norm*alat
+    energies=energies/(cons.Ry2eV*1000) # Pass to Ry
+    coef=np.polyfit(X,energies,poli_order)
+    quadra = coef[coef.shape[0]-3]
+    if quadra<0:
+        sign=-1
+        quadra=-quadra
+    else:
+        sign=1
+    freq=np.sqrt((quadra*2*cons.Ry2jul)/(cons.u2Kg*cons.bohr2metre**2))
+    freq=sign*freq*cons.hz2cm/(2*np.pi)
+    return freq

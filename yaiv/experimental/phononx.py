@@ -98,7 +98,7 @@ def __pol_matmul(a,b):
 def __qe_norm_factor2(QE_disp,masses):
     """Gets the normalization factor for each QE eigenvalue.
     With the QE dynamical matrix and QE normalized displacements the output of the sandwitch:
-    vector.Dynamical.vector=N^2 freq^2  (freq in Ry)
+    <vector|Dynamical|vector>=N^2 freq^2  (freq in Ry)
     Where N^2 is given by this function using eig=QE_disp"""
     atoms=len(masses)
     N=0
@@ -389,7 +389,7 @@ def __generate_supercell(q_point,basis_vec,cryst_units=False):
                 supercell[j]=mcm
     return supercell,q_cryst
 
-def distort_phonon_old(q_cryst,freq,results_ph_path,dist=0,silent=False):
+def distort_phonon(q_cryst,freq,results_ph_path,dist=0,silent=False):
     """Distort the structure according to a given active phonon and get an ase.Atoms superstructure as output.
 
     In order to point that phonon you need:
@@ -453,102 +453,6 @@ def distort_phonon_old(q_cryst,freq,results_ph_path,dist=0,silent=False):
                 new_pos[:,1]=new_pos[:,1]+j
                 new_pos[:,2]=new_pos[:,2]+k
                 new_pos=new_pos+disp
-                try:
-                    positions=np.vstack([positions,new_pos])
-                except NameError:
-                    positions=new_pos
-    positions=[ut.cryst2cartesian(p,Pcell) for p in positions]
-    distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
-    if silent==False:
-        cell.get_spacegroup(distorted)
-    return distorted
-
-def distort_phonon(q_cryst,freq,results_ph_path,OP=None,dist=1,silent=False):
-    """Distort the structure according to given active phonons and get an ase.Atoms superstructure as output.
-
-    In order to point that phonon you need:
-    q_cryst = q points you are interested in crystaline units.
-    freqs = index of the frequenzies you are interested in.
-    results_ph_path = Folder where you ph.x output is stored.
-
-    #VALUES TO DEFINE YOUR ORDER PARAMETER:
-    OP = Order Parameter
-         Desired linear combination for the condensing modes.
-    dist = Amount of distortion in the desired direction.
-           Usefull for continuous plots in a single direction.
-
-    silent = No text output
-
-    #NOTES
-    The applied distortion is:
-    distortion = dist * SUM (direction * qe_polvector)
-    """
-
-    #READ STRUCTURE
-    if len(np.shape(q_cryst))==1:
-        q_cryst=[q_cryst]
-        freq=[freq]
-        OP=[OP]
-    if np.any(OP)==None:
-        OP=np.zeros(len(q_cryst))
-
-    #GET FREQS and DISPLACEMENTS
-    displacements=[]
-    for i,q in enumerate(q_cryst):
-        dyn=__find_dyn_file(q,results_ph_path)
-       #read the dyn file
-        if silent==False:
-            print('reading point from',dyn,'...')
-        q_alat,basis,atoms,alat,dynmat,atoms_mass=read_dyn_file_q(dyn,q)
-        q_freqs,q_displacements=__freq_disp_matdyn(dynmat,atoms_mass)
-        if silent==False:
-            print('q=',q_alat,'// Frequency =',q_freqs[freq[i]-1],'cm-1')
-            print('Displacement vector =')
-            print(np.around(q_displacements[freq[i]-1],decimals=6)*dist)
-            print()
-        #The list of displacements
-        displacements=displacements+[q_displacements[freq[i]-1]]
-    
-    #displacement vector for the unit cell
-    vec=[d*dist for d in displacements]
-
-    #READ ORIGINAL CRYTAL
-    atoms[1]=[ut.cartesian2cryst(p,basis) for p in atoms[1]] #change to cryst units
-    Pcell=basis*alat*cons.au2ang
-
-    #BUILD CONMENSURATE SUPERCELL
-    supercell,q_cryst=__generate_supercell(q_cryst,basis,cryst_units=True)
-    if silent==False:
-        print('Conmensurate supercell:',supercell)
-    #GENERATE UNDISTORTED SUPERCELL
-    #simbols and supercell lattice
-    symbols=np.prod(supercell)*atoms[0]
-    scell=np.ones([3,3])
-    for i in range(3):
-        scell[i]=Pcell[i]*supercell[i]
-
-    #DISTORT THE SUPERSTRUCTURE
-    indices=supercell
-    #iter withing the different subcells of the supercell (different phases)
-    for i in range(indices[0]):
-        for j in range(indices[1]):
-            for k in range(indices[2]):
-                #new set of positions for subcell
-                new_pos=np.array(atoms[1])
-                new_pos[:,0]=new_pos[:,0]+i
-                new_pos[:,1]=new_pos[:,1]+j
-                new_pos[:,2]=new_pos[:,2]+k
-                #add each of the distortions
-                for l,q in enumerate(q_cryst):
-                    #Phase factor
-                    dot=np.matmul(q,np.array([i,j,k]))
-                    phase=np.exp(2j*np.pi*dot)
-                    #Add phase to the displacement
-                    disp=np.real(OP[l]*vec[l]*phase)
-                #print('Displacement in',i,j,k,':')
-                #print(np.around(disp,decimals=5))
-                    disp=[ut.cartesian2cryst(d,basis) for d in disp]
-                    new_pos=new_pos+disp
                 try:
                     positions=np.vstack([positions,new_pos])
                 except NameError:
