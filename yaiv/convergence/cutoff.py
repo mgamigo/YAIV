@@ -756,7 +756,7 @@ def analysis(data,grid=True,save_as=None,shift=True,title=None):
     if title!=None:
         fig.suptitle(title,y=0.99,size=16)
 
+    plt.tight_layout()
     if save_as!=None:
         plt.savefig(save_as,dpi=300)
-    plt.tight_layout()
     plt.show()
