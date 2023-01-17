@@ -45,9 +45,9 @@ def read_data(folder):
                 grid_data=np.vstack((grid_data,cutoff_data))
         data=data+[Kgrid]+[grid_data]
     for i in range(0,len(data),2):
-        order=data[i+1][:,0].astype(np.float).argsort()
+        order=data[i+1][:,0].astype(float).argsort()
         data[i+1]=data[i+1][order]   #sort acording to first column (x axis)(cutoff)
-        data[i+1]=data[i+1].astype(np.float)
+        data[i+1]=data[i+1].astype(float)
     return data
 
 def __get_cmap(n, name='tab10'):

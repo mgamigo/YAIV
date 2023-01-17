@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yaiv"
-version = "0.2.0"
+version = "0.2.1"
 authors = [
   { name="Martin Gutierrez-Amigo", email="martin00gutierrez@outlook.com" },
 ]
