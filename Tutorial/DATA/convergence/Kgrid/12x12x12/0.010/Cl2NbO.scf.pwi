@@ -1,0 +1,39 @@
+&CONTROL
+  calculation='scf'
+  restart_mode='from_scratch',
+  prefix='Cl2NbO',
+  pseudo_dir = '/zfs_data/gutierre/Scratch/Cl2NbO/smearing/12x12x12/0.010/pseudo',
+  outdir='/zfs_data/gutierre/Scratch/Cl2NbO/smearing/12x12x12/0.010/tmp',
+  verbosity='high'
+  tstress = .true.
+  tprnfor = .true.
+ /
+&SYSTEM
+  ibrav=0,
+  nat=4,
+  ntyp=3,
+  ecutwfc=120,
+  ecutrho=1200,
+  occupations='smearing',
+  smearing='mp',
+  degauss=0.010,
+ /
+&ELECTRONS
+  conv_thr =  1d-10
+  mixing_beta = 0.7
+ /
+ATOMIC_SPECIES
+O    15.9994    O.pbe-nl-kjpaw_psl.1.0.0.UPF
+Cl   35.4515    Cl.pbe-nl-kjpaw_psl.1.0.0.UPF
+Nb   92.90637   Nb.pbe-spn-kjpaw_psl.1.0.0.UPF
+ATOMIC_POSITIONS {crystal}
+O     0.500000000   -0.000000000    0.500000000
+Cl    0.844699987    0.344699986    0.500000000
+Cl    0.155300013    0.655300014    0.500000000
+Nb   -0.000000000   -0.000000000   -0.000000000
+K_POINTS {automatic}
+  12 12 12  0 0 0
+CELL_PARAMETERS {angstrom}
+  -1.679250002    1.952399969    6.191349983
+   1.679250002   -1.952399969    6.191349983
+   1.679250002    1.952399969   -6.191349983

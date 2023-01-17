@@ -34,18 +34,14 @@ class file:
             self.path = grep_ticks_QE(self.file,self.filetype)
     def __str__(self):
         return str(self.filetype) + ':\n' + self.file
-    def grep_lattice(self):
+    def grep_lattice(self,alat=False):
         """Check grep_lattice function"""
-        self.lattice = grep_lattice(self.file,filetype=self.filetype)
+        self.lattice = grep_lattice(self.file,filetype=self.filetype,alat=alat)
         return self.lattice
-    def grep_lattice_alat(self):
-        """Check grep_lattice function"""
-        self.lattice = grep_lattice(self.file,alat=True,filetype=self.filetype)
-        return self.lattice
-    def reciprocal_lattice(self):
+    def reciprocal_lattice(self,alat=False):
         """Check K_basis function"""
         if hasattr(self, 'lattice'):
-            return K_basis(self.lattice)
+            return K_basis(self.lattice,alat=alat)
         else:
             print('No lattice data in order to compute reciprocal lattice')
     def grep_ph_grid_points(self,expanded=False,decimals=3):
@@ -57,6 +53,11 @@ class file:
             grid = grep_ph_grid_points(self.file,expanded=expanded,decimals=decimals)
             self.ph_grid_points = grid
             return grid
+    def grep_total_energy(self,meV=False):
+        """Returns the total energy in (Ry). Check grep_total_energy"""
+        out= grep_total_energy(self.file,meV=meV,filetype=self.filetype)
+        self.total_energy = out
+        return out
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
@@ -100,6 +101,11 @@ def grep_filetype(file):
 
 def grep_lattice(file,alat=False,filetype=None):
     """Greps the lattice vectors from a variety of outputs (it uses ase)
+
+    alat = Bolean controling if you want your lattice normalized (mod(a0) = 1, alat units)
+   
+    The filetype should be given by the function grep_filetype(file)
+
     OUTPUT= np.array([vec1,vec2,vec3])
     """
     if filetype == None:
@@ -376,11 +382,39 @@ def __expand_star(q_point):
             output=np.vstack([output,related1,related2])
     return output
 
+def grep_total_energy(file,meV=False,filetype=None):
+    """Greps the total energy (in Ry or meV) from a Quantum Espresso (.pwo) or VASP (OUTCAR)file.
+    returns either the energy or a False boolean if the energy was not found"""
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
+    lines=open(file,'r')
+    energy=False
+    if filetype[:2] == 'qe':
+        for line in reversed(list(lines)):
+            if re.search('!',line):
+                l=line.split()
+                energy=float(l[4])
+                break
+    elif filetype == 'outcar':
+        for line in reversed(list(lines)):
+            if re.search('sigma->',line):
+                l=line.split()
+                energy=float(l[-1])
+                break
+        energy=energy/const.Ry2eV
+    if meV==True:
+        energy=energy*const.Ry2eV*1000
+    return energy
+
 # Transformation tools----------------------------------------------------------------
 
-def K_basis(lattice):
+def K_basis(lattice,alat=False):
     """With basis_vec being in rows, it returns the reciprocal basis vectors in rows
     and units of 2pi"""
+    if alat == True:
+        lattice=lattice/np.linalg.norm(lattice[0])
     K_vec=np.linalg.inv(lattice).transpose() #reciprocal vectors in rows
     return K_vec
 
