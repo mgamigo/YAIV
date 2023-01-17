@@ -98,13 +98,31 @@ You can either install from pip as:
 
 All the functions are properly documented (remember that in JupyterLab all the documentation can be conviniently accesed with the **shift + tab** shortcut). All the tools are demostrated in the **[tutorials](Tutorial)**, here is a brief summary of the main modules of YAIV and their current tools:
 
-### Plot module
+### I. Plot module
 Contains most of the plotting functionalities, currently being:
 - **Electronic band structures** from Quantum Espresso, Vasp, Wannier90 and WannierTools.
     - Plotting results from different codes against each other.
 - **Phonon spectra** from Quantum Espresso.
     - Plotting different phonon spectra. It can highlight the DFPT phonons from which the whole spectrum is interpolated.
-    
+
+### II. Utils module
+
+The utils module has a variety of utilities mostly focussed on scraping data from output files of different codes. This tools combined can be usefull for various porpuses. All the functions are demostrated in this [tutorial](/Tutorial/Utils_module.ipynb).
+So far the code supports:
+- **Grepping** tools (either by calling the function or using the **file class**):
+	- Grepping the **number of electrons** from Quantum Espresso and VASP outputs.
+	- Grepping the **Fermi level**.
+	- Grep the **lattice parameters**.
+	- Grep the **path** from a Quantum Espresso bands.pwi or madtyn.in input.
+	- Grep the **path and HSP labels** from a KPATH in the [TQC website](https://www.topologicalquantumchemistry.fr/#/) format. (Enter in any compound and click in the "Download KPATH" link).
+	- Grep the **phonon grid** from a Quantum Espresso ph.x output. 
+- **Transforming** tools (mainly usefull changes of coordinates):
+	- **K_basis**: Obtaining the reciprocal lattice vectors.
+	- **cartesian2cryst**: From cartesian to crystal coordinates.
+	- **cryst2cartesian**: From crystal to cartesian coordinates.
+	- **cartesian2spherical**: From cartesian to spherical coordinates.
+	- **cryst2spherical**: From crystal to spherical coordinates.
+
 Here are some simple examples:
 ```py
 plot.bands(file='DATA/bands/QE/results_bands/CsV3Sb5.bands.pwo',  #raw Quantum Espresso output file with the band structure
@@ -126,25 +144,6 @@ plot.phonons(file='DATA/phonons/2x2x2/results_matdyn/CsV3Sb5.freq.gp', #raw data
 Combining YAIV tools with the usual **matplotlib sintax** one can generate complex plots as this one (check the [tutorial](Tutorial/Plot_module.ipynb)):
 
 <img src="../media/collage.png" width="800">
-
-### Utils module
-
-The utils module has a variety of utilities mostly focussed on scraping data from output files of different codes. This tools combined can be usefull for various porpuses. All the functions are demostrated in this [tutorial](/Tutorial/Utils_module.ipynb).
-So far the code supports:
-- **Grepping** tools (either by calling the function or using the **file class**):
-	- Grepping the **number of electrons** from Quantum Espresso and VASP outputs.
-	- Grepping the **Fermi level**.
-	- Grep the **lattice parameters**.
-	- Grep the **path** from a Quantum Espresso bands.pwi or madtyn.in input.
-	- Grep the **path and HSP labels** from a KPATH in the [TQC website](https://www.topologicalquantumchemistry.fr/#/) format. (Enter in any compound and click in the "Download KPATH" link).
-	- Grep the **phonon grid** from a Quantum Espresso ph.x output. 
-- **Transforming** tools (mainly usefull changes of coordinates):
-	- **K_basis**: Obtaining the reciprocal lattice vectors.
-	- **cartesian2cryst**: From cartesian to crystal coordinates.
-	- **cryst2cartesian**: From crystal to cartesian coordinates.
-	- **cartesian2spherical**: From cartesian to spherical coordinates.
-	- **cryst2spherical**: From crystal to spherical coordinates.
-
 
 
 _(For more examples, please refer to the [Tutorials](Tutorial))._
@@ -169,10 +168,10 @@ _(For more examples, please refer to the [Tutorials](Tutorial))._
     - [x] Grep tools to scrape data form OUTPUT files
     - [x] Transformation tools for easy changing of coordinates
     - [ ] ...
-- [ ] Convergence analysis tools
-    - [ ] Quantum Espresso self consistent calculations
-    - [ ] Quantum Espresso phonon spectra
-    - [ ] Wannierizations for Wannier90
+- [x] Convergence analysis tools
+    - [x] Quantum Espresso self consistent calculations
+    - [x] Quantum Espresso phonon spectra
+    - [x] Wannierizations for Wannier90
     - [ ] ...
 <!---
 - [ ] Crystall structure analysis tools
