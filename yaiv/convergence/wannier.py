@@ -283,7 +283,7 @@ def w90_spreads(data,grid=True,save_as=None,axis=None):
         plt.show()
 
 
-def w90(data,grid=True,save_as=None):
+def w90(data,title=None,grid=True,save_as=None):
     """ Plots the evolution of Wannierization routine.
    
     data = Either the .wout file or the output of read_w90out(file).
@@ -314,7 +314,10 @@ def w90(data,grid=True,save_as=None):
     w90_spreads(data,grid=grid,axis=ax3)
     w90_centers(data,grid=grid,axis=ax4)
 
-    fig.suptitle('Wannierization ('+str(wan_num)+' WF)', fontsize=16)
+    if title!=None:
+        fig.suptitle(title,y=0.99,size=16)
+    else:
+        fig.suptitle('Wannierization ('+str(wan_num)+' WF)', fontsize=16)
     plt.tight_layout()
     if save_as!=None:
         plt.savefig(save_as,dpi=300)
