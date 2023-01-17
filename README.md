@@ -139,7 +139,7 @@ Here are some simple examples:
 plot.bands(file='DATA/bands/QE/results_bands/CsV3Sb5.bands.pwo',  #raw Quantum Espresso output file with the band structure
            KPATH='DATA/bands/KPATH',   #File with the Kpath (in order to plot the ticks at the High symmetry points)
            aux_file='DATA/bands/QE/results_scf/CsV3Sb5.scf.pwo', #File needed to read the number of electrons and lattice parameters
-           title='Nice QE plot ( ͡❛ ͜ʖ ͡❛)')    # A title of your liking
+           title='Electronic bandstructures')    # A title of your liking
 ```
 <img src="../media/bands.png" width="600">
 
@@ -147,7 +147,7 @@ plot.bands(file='DATA/bands/QE/results_bands/CsV3Sb5.bands.pwo',  #raw Quantum E
 plot.phonons(file='DATA/phonons/2x2x2/results_matdyn/CsV3Sb5.freq.gp', #raw data file with the phonon spectrum
             KPATH='DATA/bands/KPATH',                                 #File with the Kpath (in order to plot the ticks at the High symmetry points)
             ph_out='DATA/phonons/2x2x2/results_ph/CsV3Sb5.ph.pwo',    #File with the phonon grid points and lattice vectors.
-            title=' ( ͡❛ ͜ʖ ͡❛) Handles discontinious paths! (2x2x2) grid highlighted!',   # A title of your liking
+            title='Phonon spectra with the (2x2x2) grid highlighted!',   # A title of your liking
             grid=True,color='navy',linewidth=1)                        #Non-mandatory customization
 ```
 <img src="../media/phonon.png" width="600">
