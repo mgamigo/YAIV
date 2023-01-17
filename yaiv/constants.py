@@ -1,6 +1,7 @@
 #PYTHON module for storing usefull constants:
 
 Ry2eV = 13.6056980659
+Ry2meV = Ry2eV*1000
 Ry2jul= 2.179872e-18
 eV2cm = 8065.544
 Ry2cm = Ry2eV*eV2cm

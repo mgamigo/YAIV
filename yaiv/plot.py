@@ -416,7 +416,7 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
             vectors=ut.grep_lattice(files[i])
             break
     if aux_file!=None and vectors.any()==None:
-        vectors=ut.grep_lattice(aux_file)
+        vectors=aux_file.lattice
     
     if axis == None:
         fig = plt.figure(figsize=figsize)

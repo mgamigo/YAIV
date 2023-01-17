@@ -5,4 +5,3 @@ dist/
 *egg-info/
 .ipynb_check*
 __pycache__/
-new_test_env.sh
