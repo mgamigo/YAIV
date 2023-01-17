@@ -1012,7 +1012,7 @@ def read_energy_surf_data(folder,relative=True):
             m,j=n,i
         e=ut.grep_total_energy(folder+'/'+str(i)+'.pwo',meV=True)
         try:
-            energies=np.vstack((energies,e))
+            energies=np.hstack((energies,e))
         except NameError:
             energies=e
     energies=energies/np.prod(supercell)
@@ -1123,7 +1123,7 @@ def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic'
         if poli_order>20:
             poli_order=20
     coef=np.polyfit(X,energies,poli_order)
-    Y=np.linspace(X[0],X[-1],101)
+    Y=np.linspace(X[0],X[-1],1001)
     poli_fit = poli(Y,coef)
     
     #PLOTTING
@@ -1137,7 +1137,7 @@ def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic'
 
     if len(displacements)==1:
         frequency=frozen_phonon_freq(data,trim_points=trim_points,poli_order=poli_order)
-        ax.text(0.15,0.93, 'Freq = '+str(np.around(frequency[0],decimals=2))+' $cm^{-1}$',
+        ax.text(0.15,0.93, 'Freq = '+str(np.around(frequency,decimals=2))+' $cm^{-1}$',
              size=9, ha="center", va="center",transform=ax.transAxes,horizontalalignment='left',
              bbox=dict(boxstyle="round",ec=(1., 0.5, 0.5),fc=(1., 0.8, 0.8)))
     ax.legend()
