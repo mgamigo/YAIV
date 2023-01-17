@@ -55,11 +55,8 @@ class file:
             return grid
     def grep_total_energy(self,meV=False):
         """Returns the total energy in (Ry). Check grep_total_energy"""
-        if self.filetype != 'qe_scf_out':
-            print('Grep total energy not available for',self.filetype)
-        else:
-            out= grep_total_energy(self.file,meV=meV)
-            self.total_energy = out
+        out= grep_total_energy(self.file,meV=meV,filetype=self.filetype)
+        self.total_energy = out
         return out
 
 def grep_filetype(file):
@@ -385,15 +382,28 @@ def __expand_star(q_point):
             output=np.vstack([output,related1,related2])
     return output
 
-def grep_total_energy(file,meV=False):
-    """Greps the total energy (in Ry or meV) of scf.pwo file
+def grep_total_energy(file,meV=False,filetype=None):
+    """Greps the total energy (in Ry or meV) from a Quantum Espresso (.pwo) or VASP (OUTCAR)file.
     returns either the energy or a False boolean if the energy was not found"""
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
     lines=open(file,'r')
     energy=False
-    for line in reversed(list(lines)):
-        if re.search('!',line):
-            l=line.split()
-            energy=float(l[4])
+    if filetype[:2] == 'qe':
+        for line in reversed(list(lines)):
+            if re.search('!',line):
+                l=line.split()
+                energy=float(l[4])
+                break
+    elif filetype == 'outcar':
+        for line in reversed(list(lines)):
+            if re.search('sigma->',line):
+                l=line.split()
+                energy=float(l[-1])
+                break
+        energy=energy/const.Ry2eV
     if meV==True:
         energy=energy*const.Ry2eV*1000
     return energy
