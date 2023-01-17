@@ -16,6 +16,8 @@
     <br />
     <a href="https://github.com/mgamigo/YAIV/blob/main/Tutorial/Plot_module.ipynb">Plotting</a>
     ·
+    <a href="https://github.com/mgamigo/YAIV/blob/main/Tutorial/Convergence_module.ipynb">Convergence</a>  
+    ·
     <a href="https://github.com/mgamigo/YAIV/blob/main/Tutorial/Utils_module.ipynb">Utilities</a>
   </p>
 </div>
@@ -33,12 +35,14 @@
       </ul>
     </li>
     <li>
-	<a href="#usage">Usage</a>
+	<a href="#current-tools">Current tools</a>
 	<ul>
-            <li><a href="#plot-module">Plotting tools</a></li>
-	    <li><a href="#utils-module">Other utilities</a></li>
+            <li><a href="#i-plot-module">Plotting tools</a></li>
+	    <li><a href="#ii-convergence-module">Convergence analysis</a></li>
+	    <li><a href="#iii-utils-module">Other utilities</a></li>
         </ul>
     </li>
+    <li><a href="#examples">Examples</a></li>
     <li><a href="#installation">Installation</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
   </ol>
@@ -94,7 +98,7 @@ You can either install from pip as:
 
 ---
 
-## Usage
+## Current tools
 
 All the functions are properly documented (remember that in JupyterLab all the documentation can be conviniently accesed with the **shift + tab** shortcut). All the tools are demostrated in the **[tutorials](Tutorial)**, here is a brief summary of the main modules of YAIV and their current tools:
 
@@ -105,8 +109,13 @@ Contains most of the plotting functionalities, currently being:
 - **Phonon spectra** from Quantum Espresso.
     - Plotting different phonon spectra. It can highlight the DFPT phonons from which the whole spectrum is interpolated.
 
-### II. Utils module
+### II. Convergence module
+A variety of tools for the purpose of inspecting the convergence of different calculations by plotting the results in a digestible way. Currently supports:
+- **Self-consistent calculations:** Given a folder with the quantum-espresso outputs it gives tools for the convergence analysis of various quantities respect to the cutoff, Kgrid and smearing.
+- **DFPT Phonons:** Like the self-consisten convergence analyzer (also respect to cutoff, Kgrid and smeargin). But for the phonon frequencies.
+- **Wannierizations:** Tools for the convergence analysis of the Wannier minimizations done with wannier90.
 
+### III. Utils module
 The utils module has a variety of utilities mostly focussed on scraping data from output files of different codes. This tools combined can be usefull for various porpuses. All the functions are demostrated in this [tutorial](/Tutorial/Utils_module.ipynb).
 So far the code supports:
 - **Grepping** tools (either by calling the function or using the **file class**):
@@ -115,14 +124,16 @@ So far the code supports:
 	- Grep the **lattice parameters**.
 	- Grep the **path** from a Quantum Espresso bands.pwi or madtyn.in input.
 	- Grep the **path and HSP labels** from a KPATH in the [TQC website](https://www.topologicalquantumchemistry.fr/#/) format. (Enter in any compound and click in the "Download KPATH" link).
-	- Grep the **phonon grid** from a Quantum Espresso ph.x output. 
+	- Grep the **phonon grid** from a Quantum Espresso ph.x output.
+	- Grep the **total energy** from a Quantum Espresso ph.x output.
 - **Transforming** tools (mainly usefull changes of coordinates):
 	- **K_basis**: Obtaining the reciprocal lattice vectors.
 	- **cartesian2cryst**: From cartesian to crystal coordinates.
 	- **cryst2cartesian**: From crystal to cartesian coordinates.
 	- **cartesian2spherical**: From cartesian to spherical coordinates.
 	- **cryst2spherical**: From crystal to spherical coordinates.
-
+---
+## Examples
 Here are some simple examples:
 ```py
 plot.bands(file='DATA/bands/QE/results_bands/CsV3Sb5.bands.pwo',  #raw Quantum Espresso output file with the band structure
