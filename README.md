@@ -152,6 +152,20 @@ plot.phonons(file='DATA/phonons/2x2x2/results_matdyn/CsV3Sb5.freq.gp', #raw data
 ```
 <img src="../media/phonon.png" width="600">
 
+
+```py
+conv.kgrid.analysis(data='DATA/convergence/Kgrid/',         #Folder with your DFT outputs
+		    title='K-grid convergence analysis')    #A title of your liking
+```
+<img src="../media/convergence.png" width="800">
+
+
+```py
+conv.wannier.w90(data='DATA/convergence/wannier90/NbGe2.wout',     #Wannier90 output file
+                 title='Wannier minimization (66 WF)')             #A title of your liking
+```
+<img src="../media/wannier.png" width="800">
+
 Combining YAIV tools with the usual **matplotlib sintax** one can generate complex plots as this one (check the [tutorial](Tutorial/Plot_module.ipynb)):
 
 <img src="../media/collage.png" width="800">
