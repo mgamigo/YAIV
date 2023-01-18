@@ -1000,7 +1000,7 @@ def read_energy_surf_data(folder,relative=True):
     relative = If relative is true then the relative energy respect the undistorted is plotted
 
     The output has all the info from surf.txt and the energies:
-    return lattice (alat), atoms, positions(alat), masses(2m_e), alat(au), boundary,supercell, OPs, energies(meV), SGs, displacements
+    return lattice (alat), atoms, positions(alat), masses(2m_e), alat(au), boundary,supercell, OPs, energies(meV)/cell, SGs, displacements
     """
 
     # Read the surf.txt file with the info about the configuration

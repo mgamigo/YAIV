@@ -17,6 +17,8 @@ pas2bar=1e-5
 Boltz=1.380649e-23
 u2Kg = 1.66054e-27
 me = 9.1093837e-31
+GHz2eV=4.13566553853598E-06
+GHz2meV=4.13566553853598E-03
 
 def smear2temp(smear):
     temp=(Ry2jul*smear)/Boltz
