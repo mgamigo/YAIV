@@ -56,9 +56,20 @@ def read_data(folder):
     Kgrids=conv.cutoff.__sort_Kgrids(Kgrids)
     data=[]
     for grid in Kgrids:
-        file=glob.glob(folder+'/'+grid+'/*dyn.elph.1')
-        new = read_eph_dyn(file[0])
+        files=glob.glob(folder+'/'+grid+'/**/*dyn.elph*',recursive=True)
+        for file in files:
+            n = list(read_eph_dyn(file))
+            try:
+                new[0]=np.hstack((new[0],n[0]))
+                new[1]=np.vstack((new[1],n[1]))
+                new[2]=np.vstack((new[2],n[2]))
+            except NameError:
+                new=n
+        new[1]=new[1][new[0].argsort()]
+        new[2]=new[2][new[0].argsort()]
+        new[0]=new[0][new[0].argsort()]
         data=data+[grid]+[new]
+        del new
     return data
 
 
