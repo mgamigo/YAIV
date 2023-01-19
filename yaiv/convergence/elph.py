@@ -10,6 +10,8 @@ import yaiv.constants as const
 
 def read_eph_dyn(file):
     """
+    Read a Quantum espresso dyn.elph file and collects smearings, lambdas and gammas. 
+    Each row at the lamdas or gammas matrix corresponds to an smearing.
     return smearings, lambdas, gammas
     """
     lines=open(file,'r')
