@@ -12,7 +12,7 @@ from ase_notebook import AseView, ViewConfig
 
 
 def ase2spglib(crystal_ase): #not really needed since spglib reads the ase atoms type
-    lattice=crystal_ase.get_cell()
+    lattice=np.array(crystal_ase.get_cell())
     positions=crystal_ase.get_scaled_positions()
     numbers=crystal_ase.get_atomic_numbers()
     spg_crystal=(lattice,positions,numbers)
@@ -309,10 +309,11 @@ def write_struc(crystal,file,primitive=True,conventional=False,silent=True):
     conventional = bolean (whether you want the conventional cell)
     silent = bolean (whether you want some sort of printed output)
     """
+    print(type(crystal))
     if type(crystal)==str:   #We are loading a file
         ASE=read(crystal)
         SPG=ase2spglib(ASE)
-    elif type(crystal)=='Atoms':  #We have an ase structure
+    elif type(crystal)==Atoms:  #We have an ase structure
         SPG=ase2spglib(crystal)
     elif type(crystal)==tuple:   #spglib structure
         SPG=crystal
