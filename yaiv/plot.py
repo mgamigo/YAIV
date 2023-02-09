@@ -187,7 +187,8 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
         data[:,0]=data[:,0]-data[0,0]
     return data
 
-def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(None),fermi=None,color=None,style=None,marker=None,legend=None,num_elec=None,save_raw_data=None,ax=None):
+def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(None),fermi=None,color=None,style=None,
+                     linewidth=None,marker=None,legend=None,num_elec=None,save_raw_data=None,ax=None):
     """Print the bands given by __process_electron_bands 
     BUT DOES NOT SHOW THE OUTPUT (not plt.show())
     file = Path to the file
@@ -201,6 +202,7 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     color = string with the color for the bands or 'VC' and num_electrons to use blue/red for valence/conduction
     num_elec= Number of electrons
     style = string with the linestyle (solid, dashed, dotted)
+    linewidth = width of the line
     save_raw_data = 'File to save the plotable data'
     ax = ax in which to plot
     """
@@ -217,12 +219,12 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
         data[:,0]=data[:,0]*(x_lim/data[:,0].max())
 
     if color=='VC':
-        ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=0.7,color='tab:blue',label=legend)
-        ax.plot(data[:,0],data[:,2:num_elec+1],linestyle=style,marker=marker,linewidth=0.7,color='tab:blue')
-        ax.plot(data[:,0],data[:,num_elec+1:],linestyle=style,marker=marker,linewidth=0.7,color='tab:red')
+        ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=linewidth,color='tab:blue',label=legend)
+        ax.plot(data[:,0],data[:,2:num_elec+1],linestyle=style,marker=marker,linewidth=linewidth,color='tab:blue')
+        ax.plot(data[:,0],data[:,num_elec+1:],linestyle=style,marker=marker,linewidth=linewidth,color='tab:red')
     else:
-        ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=0.7,color=color,label=legend)
-        ax.plot(data[:,0],data[:,2:],linestyle=style,marker=marker,linewidth=0.7,color=color)
+        ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=linewidth,color=color,label=legend)
+        ax.plot(data[:,0],data[:,2:],linestyle=style,marker=marker,linewidth=linewidth,color=color)
 
 
     delta_y=data[:,1:].max()-data[:,1:].min()
@@ -232,7 +234,8 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=np.array(None),labels=None,
-               fermi=None,window=None,num_elec=None,color=None,filetype=None,figsize=None,save_as=None,save_raw_data=None,axis=None):
+               fermi=None,window=None,num_elec=None,color=None,filetype=None,figsize=None,legend=None,style=None,
+               plot_ticks=True,linewidth=1,save_as=None,save_raw_data=None,axis=None):
     """Plots the:
         bands.pwo file of a band calculation in Quantum Espresso
         EIGENVALUES file of a VASP calculation
@@ -266,6 +269,10 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
             either window=0.5 or window=[-0.5,0.5] => Same result
     color = Either a color or "VC" to use Valence and Conduction bands with different color
     figsize = (int,int) => Size and shape of the figure
+    legend = Legend for the plot
+    style = desired line style (solid, dashed, dotted...)
+    plot_ticks = Boolean describing wether you want your ticks and labels
+    linewidth = desired line width
     save_as = 'wathever.format'
     save_raw_data = 'file.dat' The processed data ready to plot
     axis = ax in which to plot, if no axis is present new figure is created
@@ -308,7 +315,8 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
         ax = fig.add_subplot(111)
     else:
         ax=axis
-    limits=__plot_electrons(file.file,file.filetype,vectors,ticks,fermi,color=color,num_elec=num_elec,save_raw_data=save_raw_data,ax=ax)
+    limits=__plot_electrons(file.file,file.filetype,vectors,ticks,fermi,color=color,num_elec=num_elec,legend=legend,
+                            linewidth=linewidth,save_raw_data=save_raw_data,style=style,ax=ax)
 
     ax.set_ylabel('energy (eV)',labelpad=-1)
 
@@ -323,7 +331,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
             delta_y=limits[3]-limits[2]
             ax.set_ylim(limits[2]-delta_y*0.05,limits[3]+delta_y*0.1)
 
-    if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
+    if vectors.any()!=None and ticks.any()!=None and plot_ticks==True:    #ticks and labels
         ticks=__ticks_generator(vectors,ticks)
         if labels != None :
             ax.set_xticks(ticks,labels)
@@ -530,7 +538,7 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vectors=np.array(None),
-                ticks=np.array(None),labels=None,save_as=None,figsize=None,color=None,linewidth=0.7,axis=None):
+                ticks=np.array(None),labels=None,save_as=None,figsize=None,color=None,linewidth=1,axis=None):
     """Plots phonon spectra provided by Quantum Espresso output 
     (it supports discontinous paths and highlights the computed points)
     Minimal plots can be done with just:
@@ -611,7 +619,7 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
 def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn_in=None,grid=True,
                          vectors=np.array(None),ticks=np.array(None),labels=None,save_as=None,
                          colors=['tab:blue','tab:red','tab:green','tab:orange'],
-                         styles=['solid','dashed','dashdot','dotted'],linewidth=0.7,figsize=None,axis=None):
+                         styles=['solid','dashed','dashdot','dotted'],linewidth=1,figsize=None,axis=None):
     """Plots phonon spectra provided by Quantum Espresso output 
     (it supports discontinous paths and highlights the computed points)
     Minimal plots can be done with just:
