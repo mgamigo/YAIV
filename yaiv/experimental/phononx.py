@@ -1,4 +1,5 @@
 #PYTHON module for analyzing charge density waves and Bohr-Oppenheimer energy surfaces
+#The OLD VERSION
 
 import numpy as np
 import matplotlib.pyplot as plt
