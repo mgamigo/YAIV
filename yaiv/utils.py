@@ -58,6 +58,11 @@ class file:
         out= grep_total_energy(self.file,meV=meV,filetype=self.filetype)
         self.total_energy = out
         return out
+    def grep_stress_tensor(self,kbar=False):
+        """Returns the total stress tensor in (Ry/bohr**3) or (kbar) of scf.pwo file"""
+        out=grep_stress_tensor(self.file,kbar=kbar)
+        self.stress=out
+        return out
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
@@ -407,6 +412,30 @@ def grep_total_energy(file,meV=False,filetype=None):
     if meV==True:
         energy=energy*const.Ry2eV*1000
     return energy
+
+def grep_stress_tensor(file,kbar=False):
+    """Greps the total stress tensor in (Ry/bohr**3) or (kbar) of scf.pwo file
+    returns either the stress tensor or a False boolean if the pressure was not found"""
+    lines=open(file,'r')
+    pressure=False
+    stress=None
+    for line in lines:
+        if pressure==True:
+            l=line.split()
+            l=[float(item) for item in l]
+            vec=np.array(l[:3])
+            try:
+                stress=np.vstack([stress,vec])
+                if len(stress)==3:
+                    pressure=False
+            except NameError:
+                stress=vec
+        if re.search('total.*stress',line):
+            pressure=True
+            del stress
+    if kbar==True:
+        stress=stress*(const.Ry2jul/(const.bohr2metre**3))*const.pas2bar/1000
+    return stress
 
 # Transformation tools----------------------------------------------------------------
 
