@@ -457,9 +457,27 @@ def cartesian2spherical(xyz,degrees=False):
         ptsnew[1:]=ptsnew[1:]*180/np.pi
     return ptsnew
 
+def spherical2cartesian(coord,degrees=False):
+    """From spherical to cartesian coord
+    coord = mod, theta(z^x), phi(x^y)"""
+    if degrees==True:
+        coord[1:]=coord[1:]*2*np.pi/360
+    r,t,p=coord
+    x = r*np.sin(t)*np.cos(p)
+    y = r*np.sin(t)*np.sin(p)
+    z = r*np.cos(t)
+    return np.array([x,y,z])
+
 def cryst2spherical(cryst,cryst_basis,degrees=False):
     """From crystal coord to spherical (usefull for SKEAF)
     mod, theta(z^x), phi(x^y)"""
     xyz=cryst2cartesian(cryst,cryst_basis)
     spherical=cartesian2spherical(xyz,degrees)
     return spherical
+
+def spherical2cryst(coord,cryst_basis,degrees=False):
+    """From spherical coord to crystal (usefull for SKEAF)
+    coord = mod, theta(z^x), phi(x^y)"""
+    xyz=spherical2cartesian(coord,degrees=degrees)
+    cryst=cartesian2cryst(xyz,cryst_basis)
+    return cryst

@@ -46,11 +46,15 @@ def read_eph_dyn(file):
     lines.close()
     return smearings, lambdas, gammas
 
-
 def read_data(folder):
-    """from the folder where data is stored it reads the foo.dyn.elph.1 files
+    """
+    From the folder where data is stored it reads the foo.dyn.elph.1 files
     Data must be organized with parent folders with the K grid as:
     K1xK2xK3
+
+    OUTPUT:
+    A list where odd numbers are the Kdrid and even numbers are the output from read_eph_dyn:
+    [smearings,lambdas,gammas]
     """
     data=[]
     Kgrids=glob.glob(folder+"/*")
@@ -74,8 +78,11 @@ def read_data(folder):
         del new
     return data
 
-
 def reverse_data(data_in):
+    """From the data obtained with read_data it reverses so that the format is:
+    Odd numbers are the smearings and even numbers are other sublist as:
+    [K1xK2xK3,lambdas,gammas]
+    """
     data=np.copy(data_in)
     for i in range(1,len(data),2):
         data[i]=np.hstack((data[i][0].reshape(np.shape(data[i][1])[0],1),data[i][1],data[i][2]))
@@ -92,6 +99,18 @@ def reverse_data(data_in):
 
 def lambda_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=None):
     """
+    Plots the Lambda (electron-phonon coupling strength) as a function of the smearing.
+
+    data = Either the data, or folder where data is stored it reads the .elph.1 files and plots.
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    with subfiles as foo.dyn.elph.1 files
     """
     if type(data)==str:
         data=read_data(data)
@@ -129,9 +148,20 @@ def lambda_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=No
         plt.tight_layout()
         plt.show()
 
-
 def gamma_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=None):
     """
+    Plots the gamma (phonon linewidths) as a function of the smearing.
+
+    data = Either the data, or folder where data is stored it reads the .elph.1 files and plots.
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    with subfiles as foo.dyn.elph.1 files
     """
     if type(data)==str:
         data=read_data(data)
@@ -171,6 +201,18 @@ def gamma_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=Non
 
 def lambda_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title=None):
     """
+    Plots the Lambda (electron-phonon coupling strength) as a function of the Kgrid.
+
+    data = Either the data, or folder where data is stored it reads the .elph.1 files and plots.
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    with subfiles as foo.dyn.elph.1 files
     """
     if type(data)==str:
         data=read_data(data)
@@ -218,7 +260,20 @@ def lambda_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None
 
 def gamma_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title=None):
     """
+    Plots the gamma (phonon linewidths) as a function of the Kgrid.
+
+    data = Either the data, or folder where data is stored it reads the .elph.1 files and plots.
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    title = A title of your liking
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    with subfiles as foo.dyn.elph.1 files
     """
+
     if type(data)==str:
         data=read_data(data)
         Kgrids=data[0::2]
@@ -264,7 +319,19 @@ def gamma_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,
 
 def elph_convergence(data,freqs=None,grid=True,save_as=None,title=None):
     """
+    Plots the convergence of lambda (electron phonon strength) and gammas (linewidths)
+
+    data = Either the data, or folder where data is stored it reads the .elph.1 files and plots.
+    freqs = Select until which frequency you want to plot (integer).
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    title = A title of your liking
+
+    Data must be organized with parent folders with the K grid as:
+    K1xK2xK3
+    with subfiles as foo.dyn.elph.1 files
     """
+
     if type(data)==str:
         data=read_data(data)
     data_K=reverse_data(data)
