@@ -5,6 +5,7 @@ import re
 from ase import io
 
 import yaiv.constants as const
+import yaiv.plot as plot
 
 # GREPPING utilities----------------------------------------------------------------
 
@@ -63,7 +64,14 @@ class file:
         out=grep_stress_tensor(self.file,kbar=kbar)
         self.stress=out
         return out
-
+    def grep_kpoints_energies(self):
+        """ Greps the Kpoints, energies and weights...
+        For more info check grep_kpoints_energies function"""
+        out=grep_kpoints_energies(self.file,filetype=self.filetype,vectors=self.grep_lattice())
+        self.kpoints_energies=out[0]
+        self.kpoints_weights=out[1]
+        return out
+        
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
     QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in, qe_ph_out, matdyn_in
@@ -436,6 +444,107 @@ def grep_stress_tensor(file,kbar=False):
     if kbar==True:
         stress=stress*(const.Ry2jul/(const.bohr2metre**3))*const.pas2bar/1000
     return stress
+
+def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
+    """Process the kpoints, energies and weights for different file kinds.
+    returns energies, weights
+    
+    1- Energies and Kpoints are given as:
+    The first three numbers are the K-point coordinate in 2/pi*a units
+    The rest of the numbers are the energies for that K point.
+
+    2- The weights are given in a separate numpy array.
+
+    file = File with the bands
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
+               vaps (VASP EIGENVAL file)
+    vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
+              Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
+    """
+    if filetype == None:
+        filetype = grep_filetype(file)
+
+    weights = []
+    read_weights=True
+    W=0
+    if filetype[:2]=="qe":
+        file=open(file,'r')
+        lines=file.readlines()
+        for i,line in enumerate(lines):
+            #Grep number of bands
+            if re.search('number of Kohn-Sham',line):
+                num_bands=int(line.split('=')[1])
+            if re.search('number of k points',line):
+                num_points=int(line.split()[4])
+            if re.search('wk =',line) and read_weights==True:
+                w=float(line.split()[-1])
+                weights = weights + [w]
+                W=W+w
+                if np.around(W,6) == 1:
+                    read_weights=False
+                    weights = np.array(weights)
+            if re.search('End of .* calculation',line):
+                results_line=i+1
+                break
+        data=np.zeros([num_points,num_bands+3])
+        data_lines=lines[results_line:]
+        i,j=-1,1
+        coord0=np.zeros(3)
+        read_energies=False
+        for line in data_lines:
+            if re.search('Writing output',line):    #Reading is completed
+                break
+            elif re.search('bands \(ev\)',line):    #New k_point
+                if '-' in line:
+                    l=plot.__insert_space_before_minus(line)
+                    l=l.split()
+                else:
+                    l=line.split()
+                coord=np.array(l[2:5]).astype(np.float)  # Already in reciprocal cartesian coord (not like VASP)
+                i=i+1
+                j=3
+                data[i,0:3]=coord
+                read_energies=True
+            elif re.search('occupation numbers',line):          #Stop reading energies when occupations
+                read_energies=False
+            elif read_energies==True:                           #Load energies
+                l=line.split()
+                energies=np.array(l).astype(np.float)
+                data[i,j:j+len(energies)]=energies
+                j=j+len(energies)
+       
+    elif filetype=="vasp" or filetype=='eigenval':
+        file=open(file,'r')
+        lines=file.readlines()
+        num_points=int(lines[5].split()[1])
+        num_bands=int(lines[5].split()[2])
+        data_lines=lines[7:]
+
+        data=np.zeros([num_points,num_bands+3])
+        if vectors.all()!=None:                      #If there is no cell in the input
+            K_vec=np.linalg.inv(vectors).transpose() #reciprocal vectors in columns
+        else:
+            K_vec=np.identity(3)   #If there is no cell it gives the out in crystaline units
+        for i,num in enumerate(range(0,len(data_lines),num_bands+2)):    #load the x position
+            line=data_lines[num]
+            line=line.split()
+            point=np.array(line).astype(np.float)[0:3]
+            coord=np.matmul(point,K_vec)
+            data[i,:3]=coord
+            w=float(line[-1])
+            weights = weights + [w]
+        for band in range(1,num_bands+1):                             #load the bands
+            i=0
+            for num in range(band,len(data_lines),num_bands+2):
+                line=data_lines[num]
+                line=line.split()
+                data[i,band+2]=line[1]
+                i=i+1
+        weights = np.array(weights)
+    else:
+        print("Not implemented for", filetype)
+        data,weights = None, None
+    return data, weights
 
 # Transformation tools----------------------------------------------------------------
 
