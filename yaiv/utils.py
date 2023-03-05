@@ -71,12 +71,12 @@ class file:
         self.kpoints_energies=out[0]
         self.kpoints_weights=out[1]
         return out
-    def grep_DOS(self,fermi=None,smearing=0.02,window=None,steps=500,precision=3):
+    def grep_DOS(self,fermi='auto',smearing=0.02,window=None,steps=500,precision=3):
         """
         Grep the density of states from a scf or nscf file. 
         For more info check grep_DOS function
         """
-        if fermi == None:
+        if fermi == 'auto':
             fermi=grep_fermi(self.file)
             if fermi==None:
                 fermi=0

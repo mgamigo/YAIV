@@ -64,6 +64,61 @@ def __ticks_generator(vectors,ticks,grid=None):
     else:
         return ticks_pos
 
+def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,filetype=None,
+            title=None,figsize=None,reverse=False,save_as=None,axis=None):
+    """
+    Plots the Density Of States
+
+    file = File from which to extract the DOS
+    fermi = Fermi level to shift accordingly
+    smearing = Smearing of your normal distribution around each energy
+    window = energy window in which to compute the DOS
+    steps = Number of values for which to compute the DOS
+    precision = Truncation of your normal distrib (truncated from precision*smearing)
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
+               vaps (VASP OUTCAR file)
+               eigenval (VASP EIGENVAL file)
+    title = 'Your nice and original title for the plot'
+    figsize = (int,int) => Size and shape of the figure
+    reverse = Bolean switching the DOS and energies axis
+    save_as = 'wathever.format'
+    axis = ax in which to plot, if no axis is present new figure is created
+    """
+    if filetype == None:
+        file = ut.file(file)
+    else:
+        file = ut.file(file,filetype)
+    if fermi == 'auto':
+        fermi=ut.grep_fermi(file.file)
+        if fermi == None:
+            fermi=0
+    if axis == None:
+        fig=plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+    E,D=ut.grep_DOS(file.file,fermi,smearing,window,steps,precision,filetype)
+    if reverse==False:
+        ax.plot(E,D,'-')
+        ax.set_xlim(E[0],E[-1])
+        ax.set_xlabel('energy (eV)')
+        ax.set_ylabel('DOS (a.u)')
+        ax.set_yticks([])
+        ax.set_ylim(0,np.max(D)*1.1)
+    else:
+        ax.plot(D,E,'-')
+        ax.set_ylim(E[0],E[-1])
+        ax.set_ylabel('energy (eV)')
+        ax.set_xlabel('DOS (a.u)')
+        ax.set_xticks([])
+        ax.set_xlim(0,np.max(D)*1.05)
+    if title!=None:                             #Title option
+        ax.set_title(title)
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
+
 def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
     """Process the bands from various file types with each band separately separated by blank lines
     to a matrix where each column is a band and first column is x axis
