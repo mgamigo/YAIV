@@ -65,7 +65,7 @@ def __ticks_generator(vectors,ticks,grid=None):
         return ticks_pos
 
 def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,filetype=None,
-            title=None,figsize=None,reverse=False,save_as=None,axis=None):
+        title=None,figsize=None,reverse=False,color='black',save_as=None,axis=None):
     """
     Plots the Density Of States
 
@@ -99,14 +99,14 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
         ax=axis
     E,D=ut.grep_DOS(file.file,fermi,smearing,window,steps,precision,filetype)
     if reverse==False:
-        ax.plot(E,D,'-')
+        ax.plot(E,D,'-',color=color)
         ax.set_xlim(E[0],E[-1])
         ax.set_xlabel('energy (eV)')
         ax.set_ylabel('DOS (a.u)')
         ax.set_yticks([])
         ax.set_ylim(0,np.max(D)*1.1)
     else:
-        ax.plot(D,E,'-')
+        ax.plot(D,E,'-',color=color)
         ax.set_ylim(E[0],E[-1])
         ax.set_ylabel('energy (eV)')
         ax.set_xlabel('DOS (a.u)')
@@ -289,8 +289,8 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=np.array(None),labels=None,
-               fermi=None,window=None,num_elec=None,color=None,filetype=None,figsize=None,legend=None,style=None,
-               plot_ticks=True,linewidth=1,save_as=None,save_raw_data=None,axis=None):
+               fermi=None,window=None,plot_DOS=True,num_elec=None,color=None,filetype=None,figsize=None,legend=None,
+                style=None,plot_ticks=True,linewidth=1,save_as=None,save_raw_data=None,axis=None):
     """Plots the:
         bands.pwo file of a band calculation in Quantum Espresso
         EIGENVALUES file of a VASP calculation
@@ -322,6 +322,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
     fermi = Fermi energy in order to shift the band structure accordingly
     window = Window of energies to plot around Fermi, it can be a single number or 2
             either window=0.5 or window=[-0.5,0.5] => Same result
+    plot_DOS = Whether to plot the DOS as an additional axis.
     color = Either a color or "VC" to use Valence and Conduction bands with different color
     figsize = (int,int) => Size and shape of the figure
     legend = Legend for the plot
@@ -367,8 +368,13 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
 
     if axis == None:
         fig=plt.figure(figsize=figsize)
-        ax = fig.add_subplot(111)
+        if plot_DOS==False:
+            ax = fig.add_subplot(111)
+        else:
+            gs = fig.add_gridspec(1, 2, hspace=0, wspace=0,width_ratios=[8, 1])
+            ax,ax_DOS = gs.subplots(sharex='col', sharey='row')
     else:
+        plot_DOS = False
         ax=axis
     limits=__plot_electrons(file.file,file.filetype,vectors,ticks,fermi,color=color,num_elec=num_elec,legend=legend,
                             linewidth=linewidth,save_raw_data=save_raw_data,style=style,ax=ax)
@@ -379,9 +385,8 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
         ax.axhline(y=0,color='black',linewidth=0.4)
         if window!=None:                   #Limits y axis
             if type(window) is int or type(window) is float:
-                ax.set_ylim(-window,window)
-            elif type(window) is list:
-                ax.set_ylim(window[0],window[1])
+                window=[-window,window]
+            ax.set_ylim(window[0],window[1])
         else:
             delta_y=limits[3]-limits[2]
             ax.set_ylim(limits[2]-delta_y*0.05,limits[3]+delta_y*0.1)
@@ -396,7 +401,12 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
             ax.axvline(ticks[i],color='gray',linestyle='--',linewidth=0.4)
     else:
         ax.set_xticks([])
-
+    if plot_DOS==True:
+        DOS(aux_file.file,fermi=fermi,window=window,reverse=True,axis=ax_DOS)
+        ax_DOS.set_ylabel('')
+        ax_DOS.set_xlabel('')
+        ax_DOS.set_yticks([])
+        
     if title!=None:                             #Title option
         ax.set_title(title)
 
