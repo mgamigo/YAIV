@@ -71,7 +71,20 @@ class file:
         self.kpoints_energies=out[0]
         self.kpoints_weights=out[1]
         return out
-        
+    def grep_DOS(self,fermi=None,smearing=0.02,window=None,steps=500,precision=3):
+        """
+        Grep the density of states from a scf or nscf file. 
+        For more info check grep_DOS function
+        """
+        if fermi == None:
+            fermi=grep_fermi(self.file)
+            if fermi==None:
+                fermi=0
+        out=grep_DOS(self.file,fermi=fermi,smearing=smearing,window=window,
+                     steps=steps,precision=precision)
+        self.DOS=out
+        return out
+
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
     QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in, qe_ph_out, matdyn_in
@@ -183,7 +196,7 @@ def grep_fermi(file,filetype=None):
                     E2=float(line.split()[7])
                     print('The gap is',(E2-E1)*1000,'meV')
                     E_f=E1+(E2-E1)/2
-                else:
+    
                     E_f=float(line.split()[4])
     elif filetype=='outcar':
         OUTCAR=open(file,'r')
@@ -457,7 +470,8 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
 
     file = File with the bands
     filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
-               vaps (VASP EIGENVAL file)
+               vaps (VASP OUTCAR file)
+               eigenval (VASP EIGENVAL file)
     vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
               Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
     """
@@ -513,7 +527,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
                 data[i,j:j+len(energies)]=energies
                 j=j+len(energies)
        
-    elif filetype=="vasp" or filetype=='eigenval':
+    elif filetype=='eigenval':
         file=open(file,'r')
         lines=file.readlines()
         num_points=int(lines[5].split()[1])
@@ -541,10 +555,96 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
                 data[i,band+2]=line[1]
                 i=i+1
         weights = np.array(weights)
+    elif filetype=="outcar" or filetype=='vasp':
+        read_weights=False
+        read_energies=False
+        file=open(file,'r')
+        lines=file.readlines()
+        for i,line in enumerate(lines):
+            if re.search('k-points in reciprocal lattice',line):
+                read_weights=False
+            if read_weights==True:
+                l=line.split()
+                if l!=[]:
+                    k=np.array([float(x) for x in l[0:3]])
+                    try:
+                        K=np.vstack((K,k))
+                    except NameError:
+                        K=k
+                    w=float(l[-1])
+                    weights=weights+[w]
+            if re.search('2pi/SCALE',line):
+                read_weights=True
+            if read_energies==True:
+                l=line.split()
+                if l!=[]:
+                    e=float(line.split()[1])
+                    E=E+[e]
+                else:
+                    E=np.array(E)
+                    try:
+                        energies=np.vstack((energies,E))
+                    except NameError:
+                        energies=E
+                    read_energies=False
+            if re.search('band No.',line):
+                read_energies=True
+                E=[]
+        weights=np.array(weights)
+        data=np.hstack((K,energies))
     else:
         print("Not implemented for", filetype)
         data,weights = None, None
     return data, weights
+
+
+def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filetype=None):
+    """
+    Grep the density of states from a scf or nscf file. 
+
+    => returns energies, DOS
+    
+    file = File from which to extract the DOS
+    fermi = Fermi level to shift accordingly
+    smearing = Smearing of your normal distribution around each energy
+    window = energy window in which to compute the DOS
+    steps = Number of values for which to compute the DOS
+    precision = Truncation of your normal distrib (truncated from precision*smearing)
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
+               vaps (VASP OUTCAR file)
+               eigenval (VASP EIGENVAL file)
+    """
+    if filetype==None:
+        filetype = grep_filetype(file)
+    data,weights=grep_kpoints_energies(file,filetype=filetype)
+    data=data[:,3:]  #Remove the Kpoint info
+    n_bands=len(data[0])
+    for w in weights:
+        try:
+            W=np.vstack((W,np.ones(n_bands)*w))
+        except NameError:
+            W=np.ones(n_bands)*w
+    s=np.shape(W)[0]*np.shape(W)[1]
+    #SORT Energies and Weights
+    D=data.reshape((s))
+    W=W.reshape((s))
+    sort=np.argsort(D)
+    D=D[sort]-fermi
+    W=W[sort]
+    #Compute DOS
+    if window==None:
+        energies=np.linspace(D[0],D[-1],steps)
+    else:
+        energies=np.linspace(window[0],window[1],steps)
+    DOS=[]
+    for E in energies:
+        dos=0
+        m=np.argmax(D>=E-precision*smearing)
+        M=np.argmin(D<=E+precision*smearing)
+        for i,e in enumerate(D[m:M]):
+            dos=dos+normal_dist(e,E,smearing)*W[i+m]
+        DOS=DOS+[dos]
+    return energies,DOS
 
 # Transformation tools----------------------------------------------------------------
 
@@ -619,3 +719,11 @@ def spherical2cryst(coord,cryst_basis,degrees=False):
     xyz=spherical2cartesian(coord,degrees=degrees)
     cryst=cartesian2cryst(xyz,cryst_basis)
     return cryst
+
+
+# Usefull functions----------------------------------------------------------------
+
+def normal_dist(x , mean , sd):
+    """Just a regular normal (gaussian) distribution generator. It integrates to one."""
+    prob_density = 1/(sd*np.sqrt(2*np.pi)) * np.exp(-0.5*((x-mean)/sd)**2)
+    return prob_density
