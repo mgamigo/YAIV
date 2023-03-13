@@ -289,7 +289,7 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=np.array(None),labels=None,
-               fermi=None,window=None,plot_DOS=True,num_elec=None,color=None,filetype=None,figsize=None,legend=None,
+               fermi=None,window=None,plot_DOS=True,DOS_file='aux',num_elec=None,color=None,filetype=None,figsize=None,legend=None,
                 style=None,plot_ticks=True,linewidth=1,save_as=None,save_raw_data=None,axis=None):
     """Plots the:
         bands.pwo file of a band calculation in Quantum Espresso
@@ -323,6 +323,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
     window = Window of energies to plot around Fermi, it can be a single number or 2
             either window=0.5 or window=[-0.5,0.5] => Same result
     plot_DOS = Whether to plot the DOS as an additional axis.
+    DOS_file = The can be plotted either from the "aux" file, or from the "bands" file
     color = Either a color or "VC" to use Valence and Conduction bands with different color
     figsize = (int,int) => Size and shape of the figure
     legend = Legend for the plot
@@ -402,7 +403,13 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
     else:
         ax.set_xticks([])
     if plot_DOS==True:
-        DOS(aux_file.file,fermi=fermi,window=window,reverse=True,axis=ax_DOS)
+        if DOS_file=='aux':
+            fileD=aux_file.file
+        elif DOS_file=='bands':
+            fileD=file.file
+        else:
+            print('ERROR:',DOS_file,"option for DOS_file is not implemented.")
+        DOS(fileD,fermi=fermi,window=window,reverse=True,axis=ax_DOS)
         ax_DOS.set_ylabel('')
         ax_DOS.set_xlabel('')
         ax_DOS.set_yticks([])
