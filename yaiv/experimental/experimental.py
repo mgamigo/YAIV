@@ -6,6 +6,7 @@ from scipy.interpolate import griddata
 import os
 import re
 
+import yaiv.constants as const
 import yaiv.utils as ut
 
 def __get_brillouin_zone_3d(cell):
@@ -316,8 +317,106 @@ def read_relax(relax,kbar=False):
             del atoms
     
     if kbar==True:
-        stresses=[stress*(cons.Ry2jul/(cons.bohr2metre**3))*cons.pas2bar/1000 for stress in stresses]
+        stresses=[stress*(const.Ry2jul/(const.bohr2metre**3))*const.pas2bar/1000 for stress in stresses]
     #structures=np.array(structures)
     stresses=np.array(stresses)
     
     return structures, stresses
+
+
+def test_GAP(folder,steps=None,ranges=None,save_as=None):
+    """For testing GAP results, so far all is preaty self-explanatory
+    steps = 3d list with the number of steps for the histogram.
+    ranges = 6d list with the bounds for the histogram.
+    """
+    if steps==None:
+        steps=[100,100,100]
+    
+    GAP2GPa=(1/const.jul2eV)/(const.ang2metre**3)*1e-9
+    energies=np.loadtxt(folder+'/energy')*1000
+    forces=np.loadtxt(folder+'/forces')
+    stress=np.loadtxt(folder+'/stress')*GAP2GPa
+    
+    if ranges==None:
+        ranges=[np.min(energies[:,2]),np.max(energies[:,2]),
+                np.min([np.min(forces[:,2]),np.min(forces[:,5]),np.min(forces[:,8])]),
+                np.max([np.max(forces[:,2]),np.max(forces[:,5]),np.max(forces[:,8])]),
+                np.min([np.min(stress[:,2]),np.min(stress[:,5]),np.min(stress[:,8]),np.min(stress[:,11]),np.min(stress[:,14]),np.min(stress[:,17])]),
+                np.max([np.max(stress[:,2]),np.max(stress[:,5]),np.max(stress[:,8]),np.max(stress[:,11]),np.max(stress[:,14]),np.max(stress[:,17])])]
+    configs=len(energies[:,0])
+    atoms=int(len(forces[:,0])/configs)
+
+    fig,[[ax1,ax2,ax3],[ax4,ax5,ax6]]=plt.subplots(2,3,figsize=(10,6))
+    fig.suptitle('Trained in '+str(configs)+' configs with '+str(atoms)+' atoms each')
+    shift=(np.max(energies[:,0])+np.min(energies[:,0]))/2
+    ax1.plot((energies[:,0]-shift),(energies[:,1]-shift),'.')
+    ax1.set_xlabel('DFT')
+    ax1.set_ylabel('GAP')
+    ax1.set_title('Energies (meV/atom)')
+    ax1.grid()
+    ax2.plot(forces[:,0],forces[:,1],'.',color='tab:red',alpha=0.7,label='x')
+    ax2.plot(forces[:,0+3],forces[:,1+3],'.',color='tab:green',alpha=0.7,label='y')
+    ax2.plot(forces[:,0+6],forces[:,1+6],'.',color='tab:blue',alpha=0.7,label='z')
+    ax2.legend()
+    ax2.set_xlabel('DFT')
+    ax2.set_ylabel('GAP')
+    ax2.set_title('Forces(eV/ang)')
+    ax2.grid()
+    ax3.plot(stress[:,0],stress[:,1],'.',color='tab:red',label='xx')
+    ax3.plot(stress[:,0+3],stress[:,1+3],'.',color='tab:green',label='yy')
+    ax3.plot(stress[:,0+6],stress[:,1+6],'.',color='tab:blue',label='zz')
+    ax3.plot(stress[:,0+9],stress[:,1+9],'.',color='turquoise',label='yz')
+    ax3.plot(stress[:,0+12],stress[:,1+12],'.',color='purple',label='xz')
+    ax3.plot(stress[:,0+15],stress[:,1+15],'.',color='sienna',label='xy')
+    ax3.legend()
+    ax3.set_xlabel('DFT')
+    ax3.set_ylabel('GAP')
+    ax3.set_title('Stress (GPa)')
+    ax3.grid()
+    for ax in [ax1,ax2,ax3]:
+        lims = [
+            np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
+            np.max([ax.get_xlim(), ax.get_ylim()]),  # max of both axes
+        ]
+        ## now plot both limits against eachother
+        ax.plot(lims, lims, '--', alpha=0.75, zorder=0,color='gray')
+        ax.set_xlim(lims)
+        ax.set_ylim(lims)
+
+    x,y=np.histogram(energies[:,2],bins=steps[0],range=(ranges[0],ranges[1]),density=True)
+    ax4.stairs(x,y,fill=True,alpha=0.5)
+    ax4.set_xlabel('error (meV/atom)')
+    ax4.set_ylabel('probability')
+    ax4.set_yticks([])
+    ax4.axvline(0,linestyle='--',color='gray')
+
+    x,y=np.histogram(forces[:,2],bins=steps[1],range=(ranges[2],ranges[3]),density=True)
+    ax5.stairs(x,y,color='tab:red',fill=True,alpha=0.5)
+    x,y=np.histogram(forces[:,2+3],bins=steps[1],range=(ranges[2],ranges[3]),density=True)
+    ax5.stairs(x,y,color='tab:green',fill=True,alpha=0.5)
+    x,y=np.histogram(forces[:,2+6],bins=steps[1],range=(ranges[2],ranges[3]),density=True)
+    ax5.stairs(x,y,color='tab:blue',fill=True,alpha=0.5)
+    ax5.set_xlabel('error (eV/ang)')
+    ax5.set_yticks([])
+    ax5.axvline(0,linestyle='--',color='gray')
+    
+    x,y=np.histogram(stress[:,2],bins=steps[2],range=(ranges[4],ranges[5]),density=True)
+    ax6.stairs(x,y,color='tab:red',fill=True,alpha=0.5)
+    x,y=np.histogram(stress[:,2+3],bins=steps[2],range=(ranges[4],ranges[5]),density=True)
+    ax6.stairs(x,y,color='tab:green',fill=True,alpha=0.5)
+    x,y=np.histogram(stress[:,2+6],bins=steps[2],range=(ranges[4],ranges[5]),density=True)
+    ax6.stairs(x,y,color='tab:blue',fill=True,alpha=0.5)
+    x,y=np.histogram(stress[:,2+9],bins=steps[2],range=(ranges[4],ranges[5]),density=True)
+    ax6.stairs(x,y,color='turquoise',fill=True,alpha=0.5)
+    x,y=np.histogram(stress[:,2+12],bins=steps[2],range=(ranges[4],ranges[5]),density=True)
+    ax6.stairs(x,y,color='purple',fill=True,alpha=0.5)
+    x,y=np.histogram(stress[:,2+15],bins=steps[2],range=(ranges[4],ranges[5]),density=True)
+    ax6.stairs(x,y,color='sienna',fill=True,alpha=0.5)
+    ax6.set_yticks([])
+    ax6.set_xlabel('error (GPa)')
+    ax6.axvline(0,linestyle='--',color='gray')
+    
+    plt.tight_layout()
+    if save_as!=None:
+        plt.savefig(save_as,dpi=500)
+    plt.show()
