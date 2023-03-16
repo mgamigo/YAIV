@@ -347,7 +347,7 @@ def test_GAP(folder,steps=None,ranges=None,save_as=None):
     atoms=int(len(forces[:,0])/configs)
 
     fig,[[ax1,ax2,ax3],[ax4,ax5,ax6]]=plt.subplots(2,3,figsize=(10,6))
-    fig.suptitle('Trained in '+str(configs)+' configs with '+str(atoms)+' atoms each')
+    fig.suptitle('Tested in '+str(configs)+' configs with '+str(atoms)+' atoms each')
     shift=(np.max(energies[:,0])+np.min(energies[:,0]))/2
     ax1.plot((energies[:,0]-shift),(energies[:,1]-shift),'.')
     ax1.set_xlabel('DFT')
