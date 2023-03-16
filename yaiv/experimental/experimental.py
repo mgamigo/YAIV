@@ -257,3 +257,67 @@ def surfdos(file,title=None,only_surfdos=False,axis=None,save_interp=True,save_a
         if save_as!=None:
             plt.savefig(save_as,dpi=500)
         plt.show()
+
+def read_relax(relax,kbar=False):
+    relaxed=cell.read_spg(relax)
+    species=relaxed[2]
+    READ_stress=False
+    READ_lat=False
+    READ_atoms=False
+    stress=None
+    lattice=None
+    atoms=None
+    structures=[]
+    stresses=[]
+    
+    lines = open(relax)
+    for line in lines:
+        if READ_stress==True:
+            l=line.split()
+            l=[float(item) for item in l]
+            vec=np.array(l[:3])
+            try:
+                stress=np.vstack([stress,vec])
+                if len(stress)==3:
+                    READ_stress=False
+            except NameError:
+                stress=vec
+        if READ_lat==True:
+            l=line.split()
+            l=[float(item) for item in l]
+            vec=np.array(l[:3])
+            try:
+                lattice=np.vstack([lattice,vec])
+                if len(lattice)==3:
+                    READ_lat=False
+            except NameError:
+                lattice=vec
+        if READ_atoms==True:
+            l=line.split()
+            l=[float(item) for item in l[1:]]
+            vec=np.array(l)
+            try:
+                atoms=np.vstack([atoms,vec])
+                if len(atoms)==len(species):
+                    READ_atoms=False
+                    struc=(lattice,atoms,species)
+                    structures=structures+[struc]
+                    stresses=stresses+[stress]
+            except NameError:
+                atoms=vec
+        if re.search('total * stress',line):
+            READ_stress=True
+            del stress
+        if re.search('CELL_PARAMETERS',line):
+            READ_lat=True
+            del lattice
+        if re.search('ATOMIC_POSITIONS',line):
+            READ_atoms=True
+            del atoms
+    
+    if kbar==True:
+        stresses=[stress*(cons.Ry2jul/(cons.bohr2metre**3))*cons.pas2bar/1000 for stress in stresses]
+    #structures=np.array(structures)
+    stresses=np.array(stresses)
+    
+    return structures, stresses
