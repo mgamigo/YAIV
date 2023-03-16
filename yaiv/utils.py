@@ -494,7 +494,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
                 w=float(line.split()[-1])
                 weights = weights + [w]
                 W=W+w
-                if np.around(W,6) == 1:
+                if np.around(W,6) >= 1:
                     read_weights=False
                     weights = np.array(weights)
             if re.search('End of .* calculation',line):
