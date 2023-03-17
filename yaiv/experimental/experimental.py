@@ -204,7 +204,8 @@ def surfdos(file,title=None,only_surfdos=False,axis=None,save_interp=True,save_a
     save_as = string with the saving file and extensions
     figsize = (int,int) => Size and shape of the figure
     colormap = colormap (plasma, viridis, inferno, cividis...)
-    display_ticks = Bolean (Whether you the ticks to be displayed)
+    display_ticks = Bolean (Whether you the ticks to be displayed) 
+                            (read from the surfdos_bulk.gnu file)
 
     It might get faster if we remove interpolation from plt.imshow
     """
