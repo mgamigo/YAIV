@@ -15,6 +15,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "ipympl==0.9.1",
+        "matplotlib==3.5.3",
         "ase-notebook",
         "spglib",
         "pythreejs",
