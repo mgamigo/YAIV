@@ -412,7 +412,6 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
         DOS(fileD,fermi=fermi,window=window,reverse=True,axis=ax_DOS)
         ax_DOS.set_ylabel('')
         ax_DOS.set_xlabel('')
-        ax_DOS.set_yticks([])
         
     if title!=None:                             #Title option
         ax.set_title(title)
