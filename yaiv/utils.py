@@ -196,7 +196,7 @@ def grep_fermi(file,filetype=None):
                     E2=float(line.split()[7])
                     print('The gap is',(E2-E1)*1000,'meV')
                     E_f=E1+(E2-E1)/2
-    
+                else:
                     E_f=float(line.split()[4])
     elif filetype=='outcar':
         OUTCAR=open(file,'r')
