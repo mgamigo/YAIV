@@ -504,7 +504,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
         coord0=np.zeros(3)
         read_energies=False
         for line in data_lines:
-            if re.search('Writing output',line):    #Reading is completed
+            if re.search('Writing.*output',line):    #Reading is completed
                 break
             elif re.search('bands \(ev\)',line):    #New k_point
                 if '-' in line:
