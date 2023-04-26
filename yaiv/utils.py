@@ -28,7 +28,7 @@ class file:
         if self.filetype in ['qe_scf_out','outcar']:
             self.electrons = grep_electrons(file,filetype=self.filetype)
         if self.filetype in ['qe_scf_out','outcar']:
-            self.fermi = grep_fermi(file,filetype=self.filetype)
+            self.fermi = grep_fermi(file,filetype=self.filetype,silent=True)
         if self.filetype == 'kpath':
             self.path,self.labels = grep_ticks_labels_KPATH(file)
         if self.filetype in ['qe_bands_in','matdyn_in']:
@@ -77,7 +77,7 @@ class file:
         For more info check grep_DOS function
         """
         if fermi == 'auto':
-            fermi=grep_fermi(self.file)
+            fermi=grep_fermi(self.file,silent=True)
             if fermi==None:
                 fermi=0
         out=grep_DOS(self.file,fermi=fermi,smearing=smearing,window=window,
@@ -175,7 +175,7 @@ def grep_lattice(file,alat=False,filetype=None):
             print('No lattice data found')
     return lattice
 
-def grep_fermi(file,filetype=None):
+def grep_fermi(file,filetype=None,silent=False):
     """Greps the Fermi level from a variety of filetypes and returns it in eV
     The filetype should be detected automatically, but it supports:
     qe_scf_out (Quantum Espresso), OUTCAR (VASP)
@@ -194,7 +194,8 @@ def grep_fermi(file,filetype=None):
                 if re.search('unoccupied',line):
                     E1=float(line.split()[6])
                     E2=float(line.split()[7])
-                    print('The gap is',(E2-E1)*1000,'meV')
+                    if silent==False:
+                        print('The gap is',(E2-E1)*1000,'meV')
                     E_f=E1+(E2-E1)/2
                 else:
                     E_f=float(line.split()[4])
@@ -520,6 +521,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
             elif re.search('occupation numbers',line):          #Stop reading energies when occupations
                 read_energies=False
             elif read_energies==True:                           #Load energies
+                line=plot.__insert_space_before_minus(line)
                 l=line.split()
                 energies=np.array(l).astype(np.float)
                 data[i,j:j+len(energies)]=energies

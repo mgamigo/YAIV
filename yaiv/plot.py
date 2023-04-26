@@ -89,7 +89,7 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
     else:
         file = ut.file(file,filetype)
     if fermi == 'auto':
-        fermi=ut.grep_fermi(file.file)
+        fermi=ut.grep_fermi(file.file,silent=True)
         if fermi == None:
             fermi=0
     if axis == None:
@@ -183,6 +183,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 j=1
                 data[i,0]=dist
             else:                           #Load energies
+                line=__insert_space_before_minus(line)
                 l=line.split()
                 energies=np.array(l).astype(np.float_)
                 data[i,j:j+len(energies)]=energies
