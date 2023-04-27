@@ -590,7 +590,7 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
     file=Path to the file
     vectors=np.array([[a1,a2,a3],...,[c1,c2,c3]])
     ticks=np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
-    color = string with the color for the bands
+    color = string with the color for the bands or an array with the color for each band
     style = string with the linestyle (solid, dashed, dotted)
     legend = legend to add for the data set
     QE_path = matdyn file for splitted paths, it will correct the path to make it "continous"
@@ -612,7 +612,7 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
         for i in range(1,len(color)):
             ax.plot(data[:,0],data[:,i+1],linestyle=style,linewidth=linewidth,color=color[i])
     else:
-        print('no')
+        print('Color flag not correctly set up')
 
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
@@ -637,7 +637,7 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
     labels=["$\Gamma$","$X$","$M$","$\Gamma$"]
     save_as='wathever.format'
     figsize = (int,int) => Size and shape of the figure
-    color = color for your plot
+    color = linecolor for your plot (it also can be an array with color for each band)
     linewidth = linewidth of your plot
     axis = ax in which to plot, if no axis is present new figure is created
     """
