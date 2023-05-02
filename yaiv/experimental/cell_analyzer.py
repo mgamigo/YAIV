@@ -8,6 +8,14 @@ from ase.io import read, write
 from ase.visualize import view
 from ase import Atoms
 
+from crystal_toolkit.renderables import StructureGraph
+from pymatgen.analysis.local_env import MinimumDistanceNN
+from pymatgen.core import Structure
+from pymatgen.io.ase import AseAtomsAdaptor
+from crystal_toolkit.core.legend import Legend
+from crystal_toolkit.renderables.structuregraph import get_structure_graph_scene
+
+
 #from ase_notebook import AseView, ViewConfig 
 
 
@@ -44,6 +52,7 @@ def get_spacegroup(crystal,symprec=1e-5,silent=False):
         print('SpaceGroup =',SG)
     return SG
 
+#OLD DEPRECATED.... NEW VERSION OVERWRITING
 def visualize(crystal,gui=False,svg=False,repeat_uc=(1,1,1),miller_planes=None,center_in_uc=False,conventional=False,rotations='-130x,-130y,40z'):
     """
     crystal = Either a file, an ase atoms objetct or an spglib object
@@ -98,6 +107,44 @@ def visualize(crystal,gui=False,svg=False,repeat_uc=(1,1,1),miller_planes=None,c
     else:
         gui=ase_view.make_render(ASE,repeat_uc=repeat_uc,center_in_uc=center_in_uc)
     return gui
+
+
+def visualize(crystal,local_env=True,conventional=False):
+    """
+    crystal = Either a file, an ase atoms objetct or an spglib object
+    local_env = Boolean controling if want to show local enviroment
+    conventional = False (whether to draw the conventional cell)
+    """
+    if type(crystal)==str:   #We are loading a file
+        SPG=read_spg(crystal)
+        ASE=spglib2ase(SPG)
+    elif type(crystal)==Atoms:  #We have an ase structure
+        ASE=crystal
+        SPG=ase2spglib(ASE)
+    elif type(crystal)==tuple:   #spglib structure
+        SPG=crystal
+        ASE=spglib2ase(SPG)
+    else:
+        print('Cannot print! Don\'t understand format')
+
+    if conventional==True:
+        SPG=spg.standardize_cell(SPG)
+        ASE=spglib2ase(SPG)
+
+    atoms_number=len(SPG[1])
+    get_spacegroup(crystal)
+    print(atoms_number,"atoms")
+    structure=AseAtomsAdaptor.get_structure(ASE)
+    
+    StructureGraph.get_scene = lambda x: get_structure_graph_scene(
+    x,
+    bond_radius=0.1,
+    legend=Legend(structure, color_scheme="VESTA"))
+    if local_env==True:
+        graph = StructureGraph.with_local_env_strategy(structure, MinimumDistanceNN())
+    else:
+        graph = StructureGraph.with_empty_graph(structure)
+    return graph.get_scene()
 
 def read_spg(file):
     cryst=read(file)
