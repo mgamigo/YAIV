@@ -15,6 +15,8 @@ from pymatgen.io.ase import AseAtomsAdaptor
 from crystal_toolkit.core.legend import Legend
 from crystal_toolkit.renderables.structuregraph import get_structure_graph_scene
 
+from yaiv.matview.visualizers.crystal import CrystalVisualizer
+
 
 #from ase_notebook import AseView, ViewConfig 
 
@@ -109,9 +111,10 @@ def visualize(crystal,gui=False,svg=False,repeat_uc=(1,1,1),miller_planes=None,c
     return gui
 
 
-def visualize(crystal,local_env=True,neighbours=True,conventional=False):
+def visualize(crystal,matview=True,local_env=True,neighbours=True,conventional=False):
     """
     crystal = Either a file, an ase atoms objetct or an spglib object
+    matview = Boolean if you want the interface from matview
     local_env = Boolean controling if want to show local enviroment
     neighbours = Boolean controling wheter to show bonded sites outside the unit cell
     conventional = False (whether to draw the conventional cell)
@@ -137,17 +140,21 @@ def visualize(crystal,local_env=True,neighbours=True,conventional=False):
     print(atoms_number,"atoms")
     structure=AseAtomsAdaptor.get_structure(ASE)
     
-    StructureGraph.get_scene = lambda x: get_structure_graph_scene(
-    x,
-    bond_radius=0.1, 
-    legend=Legend(structure, color_scheme="VESTA"),
-    bonded_sites_outside_unit_cell=neighbours
-    )
-    if local_env==True:
-        graph = StructureGraph.with_local_env_strategy(structure, MinimumDistanceNN())
+    if matview==True:
+        view = CrystalVisualizer(structure)
+        return view.show()
     else:
-        graph = StructureGraph.with_empty_graph(structure)
-    return graph.get_scene()
+        StructureGraph.get_scene = lambda x: get_structure_graph_scene(
+        x,
+        bond_radius=0.1, 
+        legend=Legend(structure, color_scheme="VESTA"),
+        bonded_sites_outside_unit_cell=neighbours
+        )
+        if local_env==True:
+            graph = StructureGraph.with_local_env_strategy(structure, MinimumDistanceNN())
+        else:
+            graph = StructureGraph.with_empty_graph(structure)
+        return graph.get_scene()
 
 def read_spg(file):
     cryst=read(file)
