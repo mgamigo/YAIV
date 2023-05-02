@@ -109,10 +109,11 @@ def visualize(crystal,gui=False,svg=False,repeat_uc=(1,1,1),miller_planes=None,c
     return gui
 
 
-def visualize(crystal,local_env=True,conventional=False):
+def visualize(crystal,local_env=True,neighbours=True,conventional=False):
     """
     crystal = Either a file, an ase atoms objetct or an spglib object
     local_env = Boolean controling if want to show local enviroment
+    neighbours = Boolean controling wheter to show bonded sites outside the unit cell
     conventional = False (whether to draw the conventional cell)
     """
     if type(crystal)==str:   #We are loading a file
@@ -138,8 +139,10 @@ def visualize(crystal,local_env=True,conventional=False):
     
     StructureGraph.get_scene = lambda x: get_structure_graph_scene(
     x,
-    bond_radius=0.1,
-    legend=Legend(structure, color_scheme="VESTA"))
+    bond_radius=0.1, 
+    legend=Legend(structure, color_scheme="VESTA"),
+    bonded_sites_outside_unit_cell=neighbours
+    )
     if local_env==True:
         graph = StructureGraph.with_local_env_strategy(structure, MinimumDistanceNN())
     else:

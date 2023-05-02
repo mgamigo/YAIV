@@ -17,6 +17,7 @@ setuptools.setup(
         "ipympl",
         "ase",
         "spglib",
+        "crystal-toolkit",
         #OLD (with ase-noteook)
 #        "ipympl==0.9.1",
 #        "matplotlib==3.5.3",
