@@ -14,14 +14,15 @@ setuptools.setup(
     url="https://github.com/mgamigo/YAIV",
     packages=setuptools.find_packages(),
     install_requires=[
-        "ipympl==0.9.1",
-        "matplotlib==3.5.3",
-        "ase-notebook",
+        "ipympl",
+        "ase",
         "spglib",
-        "pythreejs",
-#        "numpy",
-#        "matplotlib",
-#        "ase"
+        #OLD (with ase-noteook)
+#        "ipympl==0.9.1",
+#        "matplotlib==3.5.3",
+#        "ase-notebook",
+#        "spglib",
+#        "pythreejs",
         ],
     classifiers=[
         "Programming Language :: Python :: 3",
