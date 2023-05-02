@@ -14,11 +14,11 @@ import numpy as np
 from pymatgen.analysis.local_env import NearNeighbors
 from pymatgen.core import Structure
 
-from yaiv.matview.base import BaseVisualizer
-from yaiv.matview.widgets.axes import AxesWidgetsMixin
-from yaiv.matview.widgets.element import ElementWidgetsMixin
-from yaiv.matview.widgets.bond import BondWidgetsMixin
-from yaiv.matview.widgets.view import ViewWidgetsMixin
+from yaiv.experimental.matview.base import BaseVisualizer
+from yaiv.experimental.matview.widgets.axes import AxesWidgetsMixin
+from yaiv.experimental.matview.widgets.element import ElementWidgetsMixin
+from yaiv.experimental.matview.widgets.bond import BondWidgetsMixin
+from yaiv.experimental.matview.widgets.view import ViewWidgetsMixin
 
 
 class CrystalVisualizer(

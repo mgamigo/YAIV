@@ -15,7 +15,7 @@ from pymatgen.io.ase import AseAtomsAdaptor
 from crystal_toolkit.core.legend import Legend
 from crystal_toolkit.renderables.structuregraph import get_structure_graph_scene
 
-from yaiv.matview.visualizers.crystal import CrystalVisualizer
+from yaiv.experimental.matview.visualizers.crystal import CrystalVisualizer
 
 
 #from ase_notebook import AseView, ViewConfig 
