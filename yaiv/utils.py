@@ -513,7 +513,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
                     l=l.split()
                 else:
                     l=line.split()
-                coord=np.array(l[2:5]).astype(np.float)  # Already in reciprocal cartesian coord (not like VASP)
+                coord=np.array(l[2:5]).astype(float)  # Already in reciprocal cartesian coord (not like VASP)
                 i=i+1
                 j=3
                 data[i,0:3]=coord
@@ -523,7 +523,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
             elif read_energies==True:                           #Load energies
                 line=plot.__insert_space_before_minus(line)
                 l=line.split()
-                energies=np.array(l).astype(np.float)
+                energies=np.array(l).astype(float)
                 data[i,j:j+len(energies)]=energies
                 j=j+len(energies)
        
@@ -542,7 +542,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
         for i,num in enumerate(range(0,len(data_lines),num_bands+2)):    #load the x position
             line=data_lines[num]
             line=line.split()
-            point=np.array(line).astype(np.float)[0:3]
+            point=np.array(line).astype(float)[0:3]
             coord=np.matmul(point,K_vec)
             data[i,:3]=coord
             w=float(line[-1])

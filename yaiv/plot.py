@@ -172,7 +172,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                     l=l.split()
                 else:
                     l=line.split()
-                point1=np.array(l[2:5]).astype(np.float_)
+                point1=np.array(l[2:5]).astype(float_)
                 coord1=point1              # Already in reciprocal cartesian coord (not like VASP)
                 delta=np.linalg.norm(coord1-coord0)
                 if delta>=0.25:                                  #fast fix for broken paths
@@ -185,7 +185,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
             else:                           #Load energies
                 line=__insert_space_before_minus(line)
                 l=line.split()
-                energies=np.array(l).astype(np.float_)
+                energies=np.array(l).astype(float_)
                 data[i,j:j+len(energies)]=energies
                 j=j+len(energies)
        
@@ -210,7 +210,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
             for num in range(0,len(data_lines),num_bands+2):    #load the x position
                 line=data_lines[num]
                 line=line.split()
-                point1=np.array(line).astype(np.float_)[0:2]
+                point1=np.array(line).astype(float_)[0:2]
                 coord1=ut.cryst2cartesian(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
                 if delta>=0.25:                                  #fast fix for broken paths
@@ -224,7 +224,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
             for num in range(0,len(data_lines),num_bands+2):    #load the x position
                 line=data_lines[num]
                 line=line.split()
-                point1=np.array(line).astype(np.float_)[0:3]
+                point1=np.array(line).astype(float_)[0:3]
                 coord1=ut.cryst2cartesian(point1,K_vec)
                 delta=np.linalg.norm(coord1-coord0)
                 if delta>=0.25:                                  #fast fix for broken paths

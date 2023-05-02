@@ -8,7 +8,7 @@ from ase.io import read, write
 from ase.visualize import view
 from ase import Atoms
 
-from ase_notebook import AseView, ViewConfig 
+#from ase_notebook import AseView, ViewConfig 
 
 
 def ase2spglib(crystal_ase): #not really needed since spglib reads the ase atoms type
