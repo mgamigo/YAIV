@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ipywidgets as widgets
 
-from matview.base import BaseMixin
+from yaiv.experimental.matview.base import BaseMixin
 
 
 class ViewWidgetsMixin(BaseMixin):

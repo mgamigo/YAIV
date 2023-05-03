@@ -8,7 +8,7 @@ from crystal_toolkit.renderables.structuregraph import StructureGraph
 import ipywidgets as widgets
 from pymatgen.analysis.local_env import CutOffDictNN, NearNeighbors
 
-from matview.base import BaseMixin
+from yaiv.experimental.matview.base import BaseMixin
 
 
 class BondWidgetsMixin(BaseMixin):

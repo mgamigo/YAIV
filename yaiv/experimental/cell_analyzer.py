@@ -111,7 +111,7 @@ def visualize(crystal,gui=False,svg=False,repeat_uc=(1,1,1),miller_planes=None,c
     return gui
 
 
-def visualize(crystal,matview=True,local_env=True,neighbours=True,conventional=False):
+def visualize(crystal,matview=False,local_env=True,neighbours=True,conventional=False):
     """
     crystal = Either a file, an ase atoms objetct or an spglib object
     matview = Boolean if you want the interface from matview
