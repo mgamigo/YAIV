@@ -99,7 +99,7 @@ def track_free_energy(data,grid=True,save_as=None,axis=None,shift=True,full_mini
     steps=np.arange(len(F))
     if shift==True:
         F=np.array(F)
-        F=F-np.min(F)
+        F=F-F[-1]
 
     if axis == None:
         fig=plt.figure()
