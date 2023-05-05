@@ -71,11 +71,13 @@ def __concatenate_minimization_data(files):
         S_error=S_error+data[5]
         KL=KL+data[6]
         POP=POP+[len(F)]
-        try:
-            if np.any(data[7]!=None):
+        if np.any(data[7]!=None):
+            try:
                 freqs=np.vstack([freqs,data[7]])
-        except NameError:
-            freqs=data[7]
+            except NameError:
+                freqs=data[7]
+    if 'freqs' not in locals():
+        freqs=np.array([None])
     return F,F_error,FC,FC_error,S,S_error,KL,freqs,POP
 
 def track_free_energy(data,grid=True,save_as=None,axis=None,shift=True,full_minim=False):
