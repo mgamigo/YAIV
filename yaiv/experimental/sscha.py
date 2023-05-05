@@ -43,6 +43,8 @@ def minimization_data(logfile):
                     freqs=np.vstack([freqs,f])
                 except NameError:
                     freqs=f
+    if 'freqs' not in locals():
+        freqs=None
     return F,F_error,FC,FC_error,S,S_error,KL,freqs
 
 def __natural_sort(l): 
@@ -338,7 +340,8 @@ def track_minimization(data,grid=True,save_as=None,shift=True,title=None,full_mi
     track_force_cte_gradient(data,axis=ax[0,1],grid=grid,full_minim=full_minim)
     track_struc_gradient(data,axis=ax[1,0],grid=grid,full_minim=full_minim)
     track_kong_liu(data,axis=ax[1,1],grid=grid,full_minim=full_minim)
-    track_frequencies(data,axis=ax_freq,grid=grid,full_minim=full_minim)
+    if np.any(freqs!=None):
+        track_frequencies(data,axis=ax_freq,grid=grid,full_minim=full_minim)
     
     if title!=None:
         fig.suptitle(title,y=0.99,size=16)
