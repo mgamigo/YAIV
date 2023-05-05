@@ -44,7 +44,7 @@ def minimization_data(logfile):
                 except NameError:
                     freqs=f
     if 'freqs' not in locals():
-        freqs=None
+        freqs=np.array([None])
     return F,F_error,FC,FC_error,S,S_error,KL,freqs
 
 def __natural_sort(l): 
@@ -72,7 +72,8 @@ def __concatenate_minimization_data(files):
         KL=KL+data[6]
         POP=POP+[len(F)]
         try:
-            freqs=np.vstack([freqs,data[7]])
+            if np.any(data[7]!=None):
+                freqs=np.vstack([freqs,data[7]])
         except NameError:
             freqs=data[7]
     return F,F_error,FC,FC_error,S,S_error,KL,freqs,POP
@@ -283,7 +284,7 @@ def track_frequencies(data,grid=True,save_as=None,axis=None,full_minim=False):
         else:
             F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=data
 
-    steps=np.arange(len(F))
+    steps=np.arange(len(freqs))
 
     if axis == None:
         fig=plt.figure()
