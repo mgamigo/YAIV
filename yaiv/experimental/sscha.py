@@ -348,28 +348,34 @@ def track_minimization(data,grid=True,save_as=None,shift=True,title=None,full_mi
         plt.savefig(save_as,dpi=300)
     plt.show()
 
-#NOT EDITED*********************************************************
-def hessian_evolution(min_configs,max_configs,step,population,nqirr,temp,PREFIX,save_as,include_v4=False):
-    dyn = CC.Phonons.Phonons(PREFIX+"sscha/dyn_end_population"+str(population)+"_", nqirr)
-    results = []
-    for configs in range(min_configs,max_configs+step,step):
-        print("computing hessian with",configs,"configurations...")
-        ensemble = sscha.Ensemble.Ensemble(dyn, T0 = temp, supercell= dyn.GetSupercell())
-        ensemble.load(PREFIX+"sscha/data_ensemble", population = population, N = configs)
-        dyn_hessian = ensemble.get_free_energy_hessian(include_v4 = include_v4)
-        w_hessian, pols_hessian = dyn_hessian.DiagonalizeSupercell()
-        freq=w_hessian*CC.Units.RY_TO_CM
-        freq=np.insert(freq,0,configs)
-        results.append(freq)
-    results=np.stack(results, axis=0)
-    np.savetxt(save_as,results)
 
-def hessian_print_evolution(file,save_as=None):
+def hessian_convergence(file,title=None,grid=True,save_as=None,axis=None):
+    """It plots the result of the hessian as a function of the number of configs
+    
+    file = file where the results of the hessians is stored.
+    title = A title of your liking
+    grid = Bolean that allows for a grid in the plot.
+    save_as = name.format in which to save your figure.
+    axis = Matplotlib axis in which to plot.
+    """
     results=np.loadtxt(file)
-    plt.figure()
-    plt.plot(results[:,0], results[:,1:], '.-', label='line 1', linewidth=1)
-    plt.ylabel("frequencies [cm-1]")
-    plt.xlabel("Number of configs")
-    if save_as!=None:
-        plt.savefig(save_as,dpi=300)
 
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    ax.plot(results[:,0], results[:,1:], '.-', label='line 1', linewidth=1)
+    ax.set_ylabel("frequencies [cm-1]")
+    ax.set_xlabel("Number of configs")
+
+    if grid == True:
+        ax.grid()
+    if save_as!=None:
+        plt.tight_layout()
+        plt.savefig(save_as,dpi=300)
+        plt.show()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
