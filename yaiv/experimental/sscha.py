@@ -375,7 +375,9 @@ def hessian_convergence(file,title=None,grid=True,save_as=None,axis=None):
     ax.plot(results[:,0], results[:,1:], '.-', label='line 1', linewidth=1)
     ax.set_ylabel("frequencies [cm-1]")
     ax.set_xlabel("Number of configs")
-
+    
+    if title!=None:
+        ax.set_title(title)
     if grid == True:
         ax.grid()
     if save_as!=None:
