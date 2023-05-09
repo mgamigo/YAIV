@@ -604,7 +604,7 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
         x_lim=ticks[ticks.shape[0]-1]                #resize x_data for wannier and other codes output
         data[:,0]=data[:,0]*(x_lim/data[:,0].max())
 
-    if type(color)==str:
+    if color==None or type(color)==str:
         ax.plot(data[:,0],data[:,1],linestyle=style,linewidth=linewidth,color=color,label=legend)
         ax.plot(data[:,0],data[:,2:],linestyle=style,linewidth=linewidth,color=color)
     elif len(color)==(len(data[0])-1):
