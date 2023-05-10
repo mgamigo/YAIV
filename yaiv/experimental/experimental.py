@@ -290,7 +290,7 @@ def surfdos_all(folder,title=None,only_surfdos=False,save_interp=True,save_as=No
 
     plt.tight_layout()
     if save_as!=None:
-        plt.savefig(save_as,dpi=500)
+        plt.savefig(save_as,dpi=300)
     plt.show()
 
 
