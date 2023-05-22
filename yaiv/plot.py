@@ -541,7 +541,7 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
     
     ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
     
-    ax.legend()
+    ax.legend(loc='upper right')
     if save_as!=None:                             #Saving option
         plt.savefig(save_as, dpi=500)
     if axis == None:
@@ -792,7 +792,7 @@ def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn
 
     if title!=None:                             #Title option
         ax.set_title(title)
-    ax.legend()
+    ax.legend(loc='upper right')
     plt.tight_layout()
     if save_as!=None:                             #Saving option
         plt.savefig(save_as, dpi=500)
