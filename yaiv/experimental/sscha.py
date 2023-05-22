@@ -22,6 +22,8 @@ def minimization_data(logfile):
             READ_MIN=False
         elif re.search('Frequencies',line):
             READ_FREQ=True
+        elif re.search('Step ka =',line):
+            READ_MIN=True
         if READ_MIN==True:
             if re.search('Free energy',line):
                 l=line.split()
@@ -313,7 +315,7 @@ def track_frequencies(data,grid=True,save_as=None,axis=None,full_minim=False):
         plt.show()
 
 
-def track_minimization(data,grid=True,save_as=None,shift=True,title=None,full_minim=False):
+def track_minimization(data,grid=True,save_as=None,shift=True,title=None,full_minim=True):
     """It plots all the posible comparisons for a full convergence analysis 
     
     data = Either the data as read by minimization_data or log file.
