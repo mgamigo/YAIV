@@ -126,7 +126,7 @@ def grep_filetype(file):
     return filetype
 
 def grep_lattice(file,alat=False,filetype=None):
-    """Greps the lattice vectors from a variety of outputs (it uses ase)
+    """Greps the lattice vectors (in Angstroms) from a variety of outputs (it uses ase)
 
     alat = Bolean controling if you want your lattice normalized (mod(a0) = 1, alat units)
    

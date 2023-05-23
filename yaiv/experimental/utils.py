@@ -21,7 +21,7 @@ def fermi_surface(file):
     subprocess.call(cmd,shell=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 
 
-def lattice_comparison(folder,title=None,control=None,percentile=True,save_as=None,output=False):
+def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,save_as=None,output=False):
     """
     Plots the lattice comparison between different relax procedures, it is usefull to find the best pseudo/interaction matching your system.
     CAUTION: Be aware that it works in the STANDARDICE CELL convention!!! It will convert the files to compare in such setting.
@@ -30,6 +30,7 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,save_as=No
     title = Title for your plot
     control = File containing your control structure (for example the experimental one)
     percentile = If control structure is provided, then a percentile error plot is done.
+    axis = ax in which to plot, if no axis is present new figure is created
     save_as = Path and file type for your plot to be saved
     output = if true then the procedure returns two lists containing the interactions and the lattice parameters for each kind.
     
@@ -68,30 +69,35 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,save_as=No
         c=cell.read_spg(file)
         lattices=lattices+[spg.standardize_cell(c)[0]]
     
-    plt.figure()
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
     #Plot if None experimental (then just plotting the results, not the comparison)
     if control==None or percentile==False:
         if control!=None:
             c_lattice=spg.standardize_cell(cell.read_spg(control))[0]
-            plt.plot(0,np.linalg.norm(c_lattice[2]),'o',color='tab:blue',label='c')
-            plt.plot(0,np.linalg.norm(c_lattice[1]),'o',color='tab:green',label='b')
-            plt.plot(0,np.linalg.norm(c_lattice[0]),'o',color='tab:red',label='a')
+            ax.plot(0,np.linalg.norm(c_lattice[2]),'o',color='tab:blue',label='c')
+            ax.plot(0,np.linalg.norm(c_lattice[1]),'o',color='tab:green',label='b')
+            ax.plot(0,np.linalg.norm(c_lattice[0]),'o',color='tab:red',label='a')
             n=0
         else:
-            plt.plot(0,np.linalg.norm(lattices[0][2]),'o',color='tab:blue',label='c')
-            plt.plot(0,np.linalg.norm(lattices[0][1]),'o',color='tab:green',label='b')
-            plt.plot(0,np.linalg.norm(lattices[0][0]),'o',color='tab:red',label='a')
+            ax.plot(0,np.linalg.norm(lattices[0][2]),'o',color='tab:blue',label='c')
+            ax.plot(0,np.linalg.norm(lattices[0][1]),'o',color='tab:green',label='b')
+            ax.plot(0,np.linalg.norm(lattices[0][0]),'o',color='tab:red',label='a')
             n=1
         for i,d in enumerate(lattices[n:]):
-            plt.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue')
-            plt.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green')
-            plt.plot(i+1,np.linalg.norm(d[0]),'o',color='tab:red')
+            ax.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue')
+            ax.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green')
+            ax.plot(i+1,np.linalg.norm(d[0]),'o',color='tab:red')
         
-        plt.ylabel('Angstrom')
+        ax.set_ylabel('Angstrom')
         if control==None:
-            plt.xticks(range(len(interactions)),labels=interactions,rotation=50)
+            ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
         else:
-            plt.xticks(range(len(interactions)+1),labels=['EXP']+interactions,rotation=50)
+            ax.set_xticks(range(len(interactions)+1),labels=['EXP']+interactions,rotation=50)
 
     #Plot with experimental structure as control (show percentile error)
     if control!=None and percentile==True:
@@ -99,25 +105,26 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,save_as=No
         c0=np.linalg.norm(c_lattice[0])
         c1=np.linalg.norm(c_lattice[1])
         c2=np.linalg.norm(c_lattice[2])
-        plt.axhline(y=0,color='tab:red',linestyle='-',linewidth=0.5)
-        plt.plot(0,(np.linalg.norm(lattices[0][2])-c2)*100/c2,'o',color='tab:blue',label='c')
-        plt.plot(0,(np.linalg.norm(lattices[0][1])-c1)*100/c1,'o',color='tab:green',label='b')
-        plt.plot(0,(np.linalg.norm(lattices[0][0])-c0)*100/c0,'o',color='tab:red',label='a')
+        ax.axhline(y=0,color='tab:red',linestyle='-',linewidth=0.5)
+        ax.plot(0,(np.linalg.norm(lattices[0][2])-c2)*100/c2,'o',color='tab:blue',label='c')
+        ax.plot(0,(np.linalg.norm(lattices[0][1])-c1)*100/c1,'o',color='tab:green',label='b')
+        ax.plot(0,(np.linalg.norm(lattices[0][0])-c0)*100/c0,'o',color='tab:red',label='a')
         for i,d in enumerate(lattices[1:]):
-            plt.plot(i+1,(np.linalg.norm(d[2])-c2)*100/c2,'o',color='tab:blue')
-            plt.plot(i+1,(np.linalg.norm(d[1])-c1)*100/c1,'o',color='tab:green')
-            plt.plot(i+1,(np.linalg.norm(d[0])-c0)*100/c0,'o',color='tab:red')
-        plt.ylabel('Percentile error (%)')
-        plt.xticks(range(len(interactions)),labels=interactions,rotation=50)
+            ax.plot(i+1,(np.linalg.norm(d[2])-c2)*100/c2,'o',color='tab:blue')
+            ax.plot(i+1,(np.linalg.norm(d[1])-c1)*100/c1,'o',color='tab:green')
+            ax.plot(i+1,(np.linalg.norm(d[0])-c0)*100/c0,'o',color='tab:red')
+        ax.set_ylabel('Percentile error (%)')
+        ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
         
     if title!=None:
-        plt.title(title)
-    plt.legend()
-    plt.grid()
-    plt.tight_layout()
-    if save_as!=None:
-        plt.save_as(save_as,dpi=300)
-    plt.show()
+        ax.set_title(title)
+    ax.legend()
+    ax.grid()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+        if save_as!=None:
+            plt.save_as(save_as,dpi=300)
     if output==True:
         return interactions,lattices
 

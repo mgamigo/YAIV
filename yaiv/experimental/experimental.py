@@ -54,17 +54,19 @@ def __get_brillouin_zone_3d(cell):
 
 def brillouin_zone_3d(cell,axis=None,basis=True,sides=True,line_width=1,reciprocal=True):
     """
-    Plot Brillouin zone in 3d ax, it uses as input the real space cell or a QE output file containing it
+    Plot Brillouin zone in a 3D ax, it uses as input the real space cell or a QE output file containing it
     ax = ax over with to plot (ax = fig.add_subplot...)
     basis = Whether to plot the basis
     sides = Whether to plot or not the sides
     line_width = Line width for the edges
     reciprocal = Whether or not transform to reciprocal coordinates
     """
+    labels=False
     if type(cell)==str:
-        cell=ut.grep_vectors(cell)
+        cell=ut.grep_lattice(cell)
+        labels=True
     if reciprocal==True:
-        K_vec=ut.K_basis(cell)
+        K_vec=ut.K_basis(cell)*2*np.pi
     else:
         K_vec=cell
 
@@ -90,6 +92,10 @@ def brillouin_zone_3d(cell,axis=None,basis=True,sides=True,line_width=1,reciproc
         ax.add_collection3d(Poly3DCollection(e, 
              facecolors='cyan', linewidths=0, edgecolors='black', alpha=.05))
 
+    if labels==True:
+        ax.set_xlabel('$K_x\ (\AA^{-1})$')
+        ax.set_ylabel('$K_y\ (\AA^{-1})$')
+        ax.set_zlabel('$K_z\ (\AA^{-1})$')
     if axis == None:
 #        axisEqual3D(ax)
         plt.show()
