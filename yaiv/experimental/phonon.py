@@ -553,13 +553,13 @@ def distort_phonon(q_cryst,results_ph_path,OP=None,freq=None,dist=0.01,silent=Fa
         cell.get_spacegroup(distorted)
     return distorted
 
-def __grid_generator(grid,add_zero=False):
+def __grid_generator(grid,from_zero=False):
     """
     Generate an uniform grid from [-1,1] in any dimensions and returns a list of the points conforming the grid.
 
     grid = [N1,N2,N3...] describing your grid (between [-1,1])
             If Ni=1 then Xi=1 for all points
-    add_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension
+    from_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension
                 will be between [0,1].
 
     returns list_of_points
@@ -568,7 +568,7 @@ def __grid_generator(grid,add_zero=False):
     DIM=len(grid)
     temp=[]
     for g in grid:
-        if add_zero==True and g%2==0:
+        if from_zero==True:
             s=0
         elif g==1:
             s=1
@@ -587,7 +587,7 @@ def __grid_generator(grid,add_zero=False):
             coords=c
     return coords
 
-def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,add_zero=False,dist=0.01,symprec=1e-5,silent=True,size=False,OUT=False):
+def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,from_zero=False,dist=0.01,symprec=1e-5,silent=True,size=False,OUT=False):
     """Performs a CDW symmetry analysis for a given number of unstable modes. Tries all the possible order parameter combinations
     within a privided grid and outputs the resulting Space Group.
 
@@ -598,7 +598,7 @@ def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,add_zero=False,
     grid = [N1,N2,N3...] describing your grid (between [-1,1])
             By default will be a [2,2,2...] grid
             If Ni=1 then Xi=1 for all points
-    add_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
+    from_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
     dist = Amount of distortion in the desired direction.
            The final distortion will be multiplied by this factor.
     symprec = Symmetry thushold as defined by spglib.
@@ -622,7 +622,7 @@ def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,add_zero=False,
         freq= [freq]
     if np.any(grid == None):
         grid=np.ones(DIM).astype(int)*2
-        add_zero=True
+        from_zero=True
     elif type(grid)==int:
         grid= [grid]
     elif type(grid)!=list:
@@ -660,7 +660,7 @@ def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,add_zero=False,
         scell[i]=Pcell[i]*supercell[i]
 
     #Get OrderParameters within the grid
-    OPs=__grid_generator(grid,add_zero=add_zero)
+    OPs=__grid_generator(grid,from_zero=from_zero)
 
     i_atoms=len(atoms[1])
     SGs=[]
@@ -681,7 +681,7 @@ def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,add_zero=False,
     if size==False:
         return OPs, SGs
     else:
-        return OPs, SGs, sizes
+        return OPs, SGs, np.array(sizes)
 
 
 def pp_CDW_sym_analysis(OPs,SGs):
@@ -701,7 +701,7 @@ def pp_CDW_sym_analysis(OPs,SGs):
         indices=indices+[ind]
     return diff_SGs,indices
 
-def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,boundary=0.01,add_zero=False,
+def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,boundary=0.01,from_zero=False,
                        symprec=1e-5,write=False):
     """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters.
     All the information of the created configurations will be saved into a "surf.txt" file.
@@ -728,7 +728,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
                The final distortion will be multiplied by this factor.
                In LINEMODE:
                The boundary factors by which you want to multiply your order parameter (OP).
-    add_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
+    from_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
     symprec = Symmetry thushold as defined by spglib.
     write = (Bolean) Whether to write the results in your filesystem. Defaulted to False in order to avoid overwritting a previous configuration.
     """
@@ -842,7 +842,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
 
     #Get OrderParameters within the grid
     if grid_mode == True:
-        OPs=__grid_generator(grid,add_zero=add_zero)
+        OPs=__grid_generator(grid,from_zero=from_zero)
     else:
         factors=np.linspace(boundary[0],boundary[1],grid)
         OPs=np.array([list(OP)]*grid,dtype=float)
