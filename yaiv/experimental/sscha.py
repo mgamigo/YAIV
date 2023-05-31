@@ -389,3 +389,67 @@ def hessian_convergence(file,title=None,grid=True,save_as=None,axis=None):
     if axis == None:
         plt.tight_layout()
         plt.show()
+
+def read_spectral_func(file):
+    """
+    Returns a list with the data for each point isolated
+    """
+    raw=np.loadtxt(file)
+    OUT=[]
+    points=np.unique(raw[:,0])
+    for p in points:
+        condition=raw[:,0]==p
+        OUT=OUT+[raw[condition]]
+    return OUT
+
+
+def plot_spectral_func(data,point=0,title=None,window=None,grid=True,color='black',figsize=None,legend=None,
+                style=None,plot_ticks=True,linewidth=1,save_as=None,axis=None):
+    """Plots the Spectral function as computed by SSCHA
+
+    data = The data file from SSCHA or the raw data as given by read_spectral_func.
+    point = Point which you want to plot.
+    title = 'Your nice and original title for the plot'
+    window = Window of frequencies to plot
+        either window=0.5 or window=[0,0.5] => Same result
+    grid = Bolean that allows for a grid in the plot.
+    color = Either a color or "VC" to use Valence and Conduction bands with different color
+    figsize = (int,int) => Size and shape of the figure
+    legend = Legend for the plot
+    style = desired line style (solid, dashed, dotted...)
+    plot_ticks = Boolean describing wether you want your ticks and labels
+    linewidth = desired line width
+    save_as = 'wathever.format'
+    axis = ax in which to plot, if no axis is present new figure is created
+    """
+    if type(data)==str:
+        data=read_spectral_func(data)[point]
+    if axis == None:
+        fig=plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+    
+    if len(data[0])>3:
+        if style==None:
+            style='--'
+        for i in range(len(data[0])-3):
+            ax.fill_between(data[:,1],data[:,i+3],alpha=0.7)
+    ax.plot(data[:,1],data[:,2],color=color,label=legend,linestyle=style,linewidth=linewidth)
+
+    if type(window)==list:
+        ax.set_xlim(window[0],window[1])
+    else:
+        ax.set_xlim(0,window)
+
+    if title!=None:                             #Title option
+        ax.set_title(title)
+    if grid == True:
+        ax.grid()
+
+    plt.tight_layout()
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
+
