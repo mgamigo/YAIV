@@ -441,6 +441,7 @@ def plot_spectral_func(data,point=0,title=None,window=None,grid=True,color='blac
         ax.set_xlim(window[0],window[1])
     else:
         ax.set_xlim(0,window)
+    ax.set_xlabel('frequency $(cm^{-1})$')
 
     if title!=None:                             #Title option
         ax.set_title(title)
