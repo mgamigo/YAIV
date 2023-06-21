@@ -275,9 +275,12 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
         data[:,0]=data[:,0]*(x_lim/data[:,0].max())
 
     if color=='VC':
-        ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=linewidth,color='tab:blue',label=legend)
-        ax.plot(data[:,0],data[:,2:num_elec+1],linestyle=style,marker=marker,linewidth=linewidth,color='tab:blue')
-        ax.plot(data[:,0],data[:,num_elec+1:],linestyle=style,marker=marker,linewidth=linewidth,color='tab:red')
+        color=['tab:blue','tab:red']
+
+    if type(color)==list:
+        ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=linewidth,color=color[0],label=legend)
+        ax.plot(data[:,0],data[:,2:num_elec+1],linestyle=style,marker=marker,linewidth=linewidth,color=color[0])
+        ax.plot(data[:,0],data[:,num_elec+1:],linestyle=style,marker=marker,linewidth=linewidth,color=color[1])
     else:
         ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=linewidth,color=color,label=legend)
         ax.plot(data[:,0],data[:,2:],linestyle=style,marker=marker,linewidth=linewidth,color=color)
