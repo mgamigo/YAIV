@@ -27,7 +27,6 @@ class file:
             self.lattice = grep_lattice(self.file,filetype=self.filetype)
         if self.filetype in ['qe_scf_out','outcar']:
             self.electrons = grep_electrons(file,filetype=self.filetype)
-        if self.filetype in ['qe_scf_out','outcar']:
             self.fermi = grep_fermi(file,filetype=self.filetype,silent=True)
         if self.filetype == 'kpath':
             self.path,self.labels = grep_ticks_labels_KPATH(file)
@@ -240,8 +239,6 @@ def grep_ticks_labels_KPATH(file):
     np.array([K-point1, # of points to next],
              [K-point2, # of points to next],
               ...]
-
-
     and a list of LABELS:
     [label1, label2, label3 ...]
     """
@@ -645,6 +642,41 @@ def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filety
             dos=dos+normal_dist(e,E,smearing)*W[i+m]
         DOS=DOS+[dos]
     return energies,DOS
+
+def count_number_of_bands(file,window=None,filetype=None,fermi=0):
+    """Counts the number of bands in an energy window for all file types supported by grep_kpoints_energies"""
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype = filetype.lower()
+    if filetype=='data':
+        data=np.loadtxt(fname=file)
+    else:
+        print('THIS NEEDS TO BE IMPLEMENTED')
+        data=grep_kpoints_energies(file,filetype=filetype)
+    data=data[:,:2]         #select the first two columns to process (for wannier tools)
+    rows=1
+    position=data[rows,0]
+    data=data[:,:2]         #select the first two columns to process (for wannier tools)
+
+    while position!=0:     #counter will tell me how many points are in the x axis, number of rows
+        rows=rows+1
+        position=data[rows,0]
+    columns=np.int(2*data.shape[0]/rows)
+    data=np.reshape(data,(rows,columns),order='F')
+    final_columns=np.int(columns/2-1)
+    data=np.delete(data,np.s_[0:final_columns],1)
+    if window==None:
+        bands=data.shape[1]-1
+        print("the total number of bands is",bands)
+    else:
+        bands=0
+        first_q=data[0,1:]-fermi
+        for item in first_q:
+            if item>=window[0] and item<=window[1]:
+                bands=bands+1
+        print("The number of bands between",str(window[0])+"eV and",str(window[1])+"eV is",bands)
+    return bands
 
 # Transformation tools----------------------------------------------------------------
 
