@@ -196,9 +196,9 @@ def count_number_of_bands(file,window=None,fermi=0):
     while position!=0:     #counter will tell me how many points are in the x axis, number of rows
         rows=rows+1
         position=data[rows,0]
-    columns=np.int(2*data.shape[0]/rows)
+    columns=int(2*data.shape[0]/rows)
     data=np.reshape(data,(rows,columns),order='F')
-    final_columns=np.int(columns/2-1)
+    final_columns=int(columns/2-1)
     data=np.delete(data,np.s_[0:final_columns],1)
     if window==None:
         bands=data.shape[1]-1
@@ -211,8 +211,6 @@ def count_number_of_bands(file,window=None,fermi=0):
                 bands=bands+1
         print("The number of bands between",str(window[0])+"eV and",str(window[1])+"eV is",bands)
     return bands
-
-
 
 # GREPPING utilities***********************************************************************
 

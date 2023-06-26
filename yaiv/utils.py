@@ -83,6 +83,15 @@ class file:
                      steps=steps,precision=precision)
         self.DOS=out
         return out
+    def grep_number_of_bands(self,window=None,fermi=None,filetype=None,silent=True):
+        """
+        Counts the number of bands in an energy window
+        For more info check grep_number_of_bands function
+        """
+        if fermi==None:
+            fermi=self.fermi
+        out=grep_number_of_bands(self.file,window,fermi,self.filetype,silent)
+        return out
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
@@ -643,39 +652,54 @@ def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filety
         DOS=DOS+[dos]
     return energies,DOS
 
-def count_number_of_bands(file,window=None,filetype=None,fermi=0):
-    """Counts the number of bands in an energy window for all file types supported by grep_kpoints_energies"""
+def grep_number_of_bands(file,window=None,fermi=None,filetype=None,silent=True):
+    """Counts the number of bands in an energy window for all file types supported by grep_kpoints_energies and .gnu files from QE. (It counts them in the first k-point)
+
+    file = File from in which you want to count the bands.
+    window = Window of energies where you want to count the number of bands
+    fermi = Fermi energy for applying such shift to energies
+    silent = No text output
+    filetype =Should be detected automatically, but it supports all file types supported by grep_kpoints_energies and .gnu files from QE
+    
+    return bands
+    """
     if filetype == None:
         filetype = grep_filetype(file)
     else:
-        filetype = filetype.lower()
+        filetype=filetype.lower()
     if filetype=='data':
         data=np.loadtxt(fname=file)
-    else:
-        print('THIS NEEDS TO BE IMPLEMENTED')
-        data=grep_kpoints_energies(file,filetype=filetype)
-    data=data[:,:2]         #select the first two columns to process (for wannier tools)
-    rows=1
-    position=data[rows,0]
-    data=data[:,:2]         #select the first two columns to process (for wannier tools)
-
-    while position!=0:     #counter will tell me how many points are in the x axis, number of rows
-        rows=rows+1
+        data=data[:,:2]         #select the first two columns to process (for wannier tools)
+        rows=1
         position=data[rows,0]
-    columns=np.int(2*data.shape[0]/rows)
-    data=np.reshape(data,(rows,columns),order='F')
-    final_columns=np.int(columns/2-1)
-    data=np.delete(data,np.s_[0:final_columns],1)
+        while position!=0:     #counter will tell me how many points are in the x axis, number of rows
+            rows=rows+1
+            position=data[rows,0]
+        columns=int(2*data.shape[0]/rows)
+        data=np.reshape(data,(rows,columns),order='F')
+        final_columns=int(columns/2-1)
+        data=np.delete(data,np.s_[0:final_columns],1)
+    else:
+        data=grep_kpoints_energies(file,filetype=filetype)[0][:,2:]
+
+    if fermi==None:
+        fermi=grep_fermi(file)
+        if fermi==None:
+            fermi=0
+
+    #The actual calculation
     if window==None:
         bands=data.shape[1]-1
-        print("the total number of bands is",bands)
+        if silent==False:
+            print("the total number of bands is",bands)
     else:
         bands=0
         first_q=data[0,1:]-fermi
         for item in first_q:
             if item>=window[0] and item<=window[1]:
                 bands=bands+1
-        print("The number of bands between",str(window[0])+"eV and",str(window[1])+"eV is",bands)
+        if silent==False:
+            print("The number of bands between",str(window[0])+"eV and",str(window[1])+"eV is",bands)
     return bands
 
 # Transformation tools----------------------------------------------------------------
