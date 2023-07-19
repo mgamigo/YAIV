@@ -83,7 +83,7 @@ def reverse_data(data_in):
     Odd numbers are the smearings and even numbers are other sublist as:
     [K1xK2xK3,lambdas,gammas]
     """
-    data=np.copy(data_in)
+    data=data_in.copy()
     for i in range(1,len(data),2):
         data[i]=np.hstack((data[i][0].reshape(np.shape(data[i][1])[0],1),data[i][1],data[i][2]))
     Kgrids=data[0::2]
@@ -97,7 +97,7 @@ def reverse_data(data_in):
     return data
 
 
-def lambda_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=None):
+def lambda_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title='E-ph coupling'):
     """
     Plots the Lambda (electron-phonon coupling strength) as a function of the smearing.
 
@@ -137,7 +137,7 @@ def lambda_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=No
     ax.legend(prop={'size': 7})
 
     if title!=None:
-        fig.suptitle(title)
+        ax.set_title(title)
     if grid == True:
         ax.grid()
     if save_as!=None:
@@ -148,7 +148,7 @@ def lambda_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=No
         plt.tight_layout()
         plt.show()
 
-def gamma_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=None):
+def gamma_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title='Linewidths'):
     """
     Plots the gamma (phonon linewidths) as a function of the smearing.
 
@@ -188,7 +188,7 @@ def gamma_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=Non
     ax.legend(prop={'size': 7})
 
     if title!=None:
-        fig.suptitle(title)
+        ax.set_title(title)
     if grid == True:
         ax.grid()
     if save_as!=None:
@@ -199,7 +199,7 @@ def gamma_vs_smearing(data,freqs=None,grid=True,save_as=None,axis=None,title=Non
         plt.tight_layout()
         plt.show()
 
-def lambda_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title=None):
+def lambda_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title='E-ph coupling'):
     """
     Plots the Lambda (electron-phonon coupling strength) as a function of the Kgrid.
 
@@ -246,7 +246,7 @@ def lambda_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None
     ax.legend(prop={'size': 7})
     
     if title!=None:
-        fig.suptitle(title)
+        ax.set_title(title)
     if grid == True:
         ax.grid()
     if save_as!=None:
@@ -258,7 +258,7 @@ def lambda_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None
         plt.show()
 
 
-def gamma_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title=None):
+def gamma_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,title='Linewidths'):
     """
     Plots the gamma (phonon linewidths) as a function of the Kgrid.
 
@@ -280,7 +280,7 @@ def gamma_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,
         data=reverse_data(data)
 
     if axis == None:
-        fig=plt.figure()
+        ax.set_title(title)
         ax = fig.add_subplot(111)
     else:
         ax=axis
@@ -306,7 +306,7 @@ def gamma_vs_Kgrid(data,freqs=None,grid=True,save_as=None,axis=None,Kgrids=None,
     ax.legend(prop={'size': 7})
     
     if title!=None:
-        fig.suptitle(title)
+        ax.set_title(title)
     if grid == True:
         ax.grid()
     if save_as!=None:

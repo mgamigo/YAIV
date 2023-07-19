@@ -92,6 +92,15 @@ class file:
             fermi=self.fermi
         out=grep_number_of_bands(self.file,window,fermi,self.filetype,silent)
         return out
+    def grep_frequencies(self,return_star=True,filetype=None):
+        """
+        Greps the frequencies (in cm-1)  and q-points (QE alat units) from a qe.ph.out file.
+        For more info check grep_frequencies function
+        """
+        out=grep_frequencies(self.file,return_star,self.filetype)
+        self.frequencies=out[1]
+        self.frequencies_points=out[0]
+        return out
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
@@ -701,6 +710,57 @@ def grep_number_of_bands(file,window=None,fermi=None,filetype=None,silent=True):
         if silent==False:
             print("The number of bands between",str(window[0])+"eV and",str(window[1])+"eV is",bands)
     return bands
+
+def grep_frequencies(file,return_star=True,filetype=None):
+    """
+    Greps the frequencies (in cm-1)  and q-points (QE alat units) from a qe.ph.out file
+    file = File to read from
+    return_star = Boolean controling wether to return only que q point, or the whole star (if possible).
+    The filetype should be detected automatically, but it supports:
+    qe_ph_out
+
+    return POINTS, FREQS
+    """
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype = filetype.lower()
+    READ,READING,STAR=False,False,False
+    POINTS=[]
+    if filetype=='qe_ph_out':
+        lines=open(file,'r')
+        freqs=[]
+        for line in lines:
+            if re.search('Diagonalizing',line):
+                READ=True
+            if STAR==True and READ==False:
+                point=np.array([float(x) for x in line.split()[1:]])
+                try:
+                    if len(point)==3:
+                        star=np.vstack((star,point))
+                except NameError:
+                    star=point
+            if re.search('List of q in the star',line) and return_star==True:
+                STAR=True
+            if READ==True and re.search('q = \(',line):
+                if STAR==False:
+                    star=np.array([float(x) for x in line.split()[3:6]])
+                STAR=False
+            if READ==True and re.search('freq',line):
+                READING=True
+                freqs=freqs+[float(line.split()[-2])]
+            if READ==True and READING==True and not re.search('freq',line):
+                READ,READING=False,False
+                POINTS=POINTS+[star]
+                try:
+                    FREQS=np.vstack((FREQS,freqs))
+                except NameError:
+                    FREQS=np.array(freqs)
+                del star
+                freqs=[]
+    else:
+        print('FILE NOT SOPPORTED')
+    return POINTS, FREQS
 
 # Transformation tools----------------------------------------------------------------
 
