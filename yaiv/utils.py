@@ -7,7 +7,7 @@ from ase import io
 import yaiv.constants as const
 import yaiv.plot as plot
 
-# GREPPING utilities----------------------------------------------------------------
+#& GREPPING utilities----------------------------------------------------------------
 
 class file:
     """A class for file scraping, depending on the filetype a different set of attributes will initialize.
@@ -101,6 +101,19 @@ class file:
         self.frequencies=out[1]
         self.frequencies_points=out[0]
         return out
+    def grep_electron_phonon_nesting(self,return_star=True,filetype=None):
+        """
+        Greps the nesting, frequencies (in cm-1),lamdas (e-ph coupling), gamma-linewidths (GHz) and q-points (QE alat units) from a qe.ph.out file
+        For more info check grep_electron_phonon_nesting function
+        """
+        out=grep_electron_phonon_nesting(self.file,return_star,self.filetype)
+        self.frequencies_points=out[0]
+        self.nestings=out[1]
+        self.frequencies=out[2]
+        self.lambdas=out[3]
+        self.gammas=out[4]
+        return out
+
 
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
@@ -762,7 +775,70 @@ def grep_frequencies(file,return_star=True,filetype=None):
         print('FILE NOT SOPPORTED')
     return POINTS, FREQS
 
-# Transformation tools----------------------------------------------------------------
+
+def grep_electron_phonon_nesting(file,return_star=True,filetype=None):
+    """
+    Greps the nesting, frequencies (in cm-1),lamdas (e-ph coupling), gamma-linewidths (GHz) and q-points (QE alat units) from a qe.ph.out file
+    file = File to read from
+    return_star = Boolean controling wether to return only que q point, or the whole star (if possible).
+    The filetype should be detected automatically, but it supports:
+    qe_ph_out
+
+    return POINTS, NESTING, FREQS, LAMBDAS, GAMMAS
+    """
+
+    if filetype == None:
+        filetype = ut.grep_filetype(file)
+    else:
+        filetype = filetype.lower()
+    READ,READING,STAR=False,False,False
+    POINTS,NESTING=[],[]
+    if filetype=='qe_ph_out':
+        lines=open(file,'r')
+        freqs,lambdas,gammas=[],[],[]
+        for line in lines:
+            if re.search('Diagonalizing',line):
+                READ=True
+            if STAR==True and READ==False:
+                point=np.array([float(x) for x in line.split()[1:]])
+                try:
+                    if len(point)==3:
+                        star=np.vstack((star,point))
+                except NameError:
+                    star=point
+            if re.search('List of q in the star',line) and return_star==True:
+                STAR=True
+            if READ==True and re.search('q = \(',line):
+                if STAR==False:
+                    star=np.array([float(x) for x in line.split()[3:6]])
+                STAR=False
+            if READ==True and re.search('freq',line):
+                freqs=freqs+[float(line.split()[-2])]
+            if READ==True and re.search('double delta at Ef',line):
+                nest=float(line.split()[-1])
+            if READ==True and re.search('lambda',line):
+                READING=True
+                lambdas=lambdas+[float(line.split()[2])]
+                gammas=gammas+[float(line.split()[-2])]
+            if READ==True and READING==True and not re.search('lambda',line):
+                READ,READING=False,False
+                POINTS=POINTS+[star]
+                NESTING=NESTING+[nest]
+                try:
+                    FREQS=np.vstack((FREQS,freqs))
+                    LAMBDAS=np.vstack((LAMBDAS,lambdas))
+                    GAMMAS=np.vstack((GAMMAS,gammas))
+                except NameError:
+                    FREQS=np.array(freqs)
+                    LAMBDAS=np.array(lambdas)
+                    GAMMAS=np.array(gammas)
+                del star
+                freqs,lambdas,gammas=[],[],[]
+    else:
+        print('FILE NOT SOPPORTED')
+    return POINTS, NESTING, FREQS, LAMBDAS, GAMMAS
+
+#& Transformation tools----------------------------------------------------------------
 
 def K_basis(lattice,alat=False):
     """With basis_vec being in rows, it returns the reciprocal basis vectors in rows
@@ -837,7 +913,7 @@ def spherical2cryst(coord,cryst_basis,degrees=False):
     return cryst
 
 
-# Usefull functions----------------------------------------------------------------
+#& Usefull functions----------------------------------------------------------------
 
 def normal_dist(x , mean , sd):
     """Just a regular normal (gaussian) distribution generator. It integrates to one."""
