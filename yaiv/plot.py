@@ -65,7 +65,7 @@ def __ticks_generator(vectors,ticks,grid=None):
         return ticks_pos
 
 def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,filetype=None,
-        title=None,figsize=None,reverse=False,color='black',save_as=None,axis=None):
+        title=None,figsize=None,reverse=False,legend=None,color='black',save_as=None,axis=None):
     """
     Plots the Density Of States
 
@@ -99,14 +99,14 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
         ax=axis
     E,D=ut.grep_DOS(file.file,fermi,smearing,window,steps,precision,filetype)
     if reverse==False:
-        ax.plot(E,D,'-',color=color)
+        ax.plot(E,D,'-',color=color,label=legend)
         ax.set_xlim(E[0],E[-1])
         ax.set_xlabel('energy (eV)')
         ax.set_ylabel('DOS (a.u)')
         ax.set_yticks([])
         ax.set_ylim(0,np.max(D)*1.1)
     else:
-        ax.plot(D,E,'-',color=color)
+        ax.plot(D,E,'-',color=color,label=legend)
         ax.set_ylim(E[0],E[-1])
         ax.set_ylabel('energy (eV)')
         ax.set_xlabel('DOS (a.u)')
