@@ -1021,13 +1021,15 @@ def read_energy_surf_data(folder,relative=True):
     return lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements
 
 
-def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,axis=None,label=None,save_as=None):
+def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,prim_axis='ang',sec_axis=True,axis=None,label=None,save_as=None):
     """Plots the energy landscape data
 
     data = Either the folder containing the energy landscape calculations or the already read data by read_energy_surf_data
     title = 'Your nice and original title for the plot'
     relative = If relative is true then the relative energy respect the undistorted is plotted
     color = string with the color
+    prim_axis = 'ang' or 'd', depending you want it in angstrom or d 'order parameter'
+    sec_axis = Whether to add a secondary axis
     grid = (Bolean) It can display an automatic grid in the plot
     axis = Matplotlib axis in which to plot, if no axis is present new figure is created
     label = Label for your plot.
@@ -1045,30 +1047,42 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,axi
     else:
         ax=axis
         
-    #create a maximum displacement (in Ang) axis defining the necesary functions
+    #Necessary functions to create a maximum displacement (in Ang) axis
     v=0
     for i,d in enumerate(displacements):
         v=v+d*direction[i]
-    largest=np.max([np.linalg.norm(x) for x in v])*alat*cons.au2ang
+    norms=[np.linalg.norm(x) for x in v]
+    largest=np.max(norms)
+    i=np.where(norms==largest)[0][0]
+    species=atoms[i]
+    largest=largest*alat*cons.au2ang
     def d2ang(x):
         return x*largest
     def ang2d(x):
         return x/largest
         
-        
     X=np.linspace(boundary[0],boundary[1],num=len(OPs))
+    if prim_axis=='ang':
+        X=X*largest
     ax.plot(X,energies,'.',label=label,color=color)
     
-    ax.set_ylabel("Energy difference (meV/cell)")
-    ax.set_xlabel("Order parameter (d)")
+    ax.set_ylabel("energy difference (meV/cell)")
+    if prim_axis=='ang':
+        ax.set_xlabel(species+' displacement ($\mathrm{\AA}$)')
+    else:
+        ax.set_xlabel("Order parameter (d)")
 
-    if axis==None:
-        secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
-        secax.set_xlabel('Maximum displacement [Ang]')
+    if sec_axis==True:
+        if prim_axis=='ang':
+            secax=ax.secondary_xaxis('top',functions=(ang2d,d2ang))
+            secax.set_xlabel("Order parameter (d)")
+        else:
+            secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
+            secax.set_xlabel(species+' displacement ($\mathrm{\AA}$)')
     if grid == True:
         ax.grid()
     if title!=None:                             #Title option
-        ax.set_title(title)
+       ax.set_title(title)
     plt.tight_layout()
     if save_as!=None:                             #Saving option
         plt.savefig(save_as, dpi=500)
@@ -1076,7 +1090,8 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,axi
         plt.show()
 
 
-def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic',relative=True,grid=True,axis=None,save_as=None):
+def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic',relative=True,
+                         prim_axis='ang',sec_axis=True,grid=True,axis=None,save_as=None):
     """Fit a polinomial to your energy landscape
 
     data = Either the folder containing the energy landscape calculations or the already read data by read_energy_surf_data
@@ -1084,6 +1099,8 @@ def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic'
     trim_points = Amount of points to be trimmed from the energy landscape data at each of the sides (left,right)
     poli_order = Order of the polinomy (automatically it will select the highest possible up to 20)
     relative = If relative is true then the relative energy respect the undistorted is plotted
+    prim_axis = 'ang' or 'd', depending you want it in angstrom or d 'order parameter'
+    sec_axis = Whether to add a secondary axis
     grid = (Bolean) It can display an automatic grid in the plot
     axis = Matplotlib axis in which to plot, if no axis is present new figure is created
     save_as = 'name.png' or whatever format
@@ -1104,13 +1121,19 @@ def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic'
     v=0
     for i,d in enumerate(displacements):
         v=v+d*direction[i]
-    largest=np.max([np.linalg.norm(x) for x in v])*alat*cons.au2ang
+    norms=[np.linalg.norm(x) for x in v]
+    largest=np.max(norms)
+    i=np.where(norms==largest)[0][0]
+    species=atoms[i]
+    largest=largest*alat*cons.au2ang
     def d2ang(x):
         return x*largest
     def ang2d(x):
         return x/largest
     
     X=np.linspace(boundary[0],boundary[1],num=len(OPs))
+    if prim_axis=='ang':
+        X=X*largest
     #Trim data (remove points that you don't want)
     if trim_points!=None:
         s=trim_points[0]
@@ -1131,10 +1154,18 @@ def energy_landscape_fit(data,title=None,trim_points=None,poli_order='automatic'
     ax.plot(X,energies,".",label='DFT points')    #scf data
     ax.plot(Y,poli_fit,linewidth=1,label='Poly fit')   # polinomial fit data
     ax.set_ylabel("Energy difference (meV/cell)")
-    ax.set_xlabel("Order parameter (d)")
-    
-    secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
-    secax.set_xlabel('Maximum displacement [Ang]')
+    if prim_axis=='ang':
+        ax.set_xlabel(species+' displacement ($\mathrm{\AA}$)')
+    else:
+        ax.set_xlabel("Order parameter (d)")
+
+    if sec_axis==True:
+        if prim_axis=='ang':
+            secax=ax.secondary_xaxis('top',functions=(ang2d,d2ang))
+            secax.set_xlabel("Order parameter (d)")
+        else:
+            secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
+            secax.set_xlabel(species+' displacement ($\mathrm{\AA}$)')
 
     if len(displacements)==1:
         frequency=frozen_phonon_freq(data,trim_points=trim_points,poli_order=poli_order)

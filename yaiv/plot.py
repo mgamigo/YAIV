@@ -659,7 +659,7 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
 
     limits=__plot_phonons(file,linewidth,vectors,ticks,color=color,QE_path=ticks,ax=ax)
 
-    ax.set_ylabel('frequency $(cm^{-1})$')
+    ax.set_ylabel('frequency $(\mathrm{cm^{-1}})$')
     ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
 
     ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
@@ -756,7 +756,7 @@ def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn
             limits[2]=min(data_limits[2],limits[2])
             limits[3]=max(data_limits[3],limits[3])
 
-    ax.set_ylabel('frequency $(cm^{-1})$')
+    ax.set_ylabel('frequency $(\mathrm{cm^{-1}})$')
     ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
 
     ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
