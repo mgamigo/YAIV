@@ -404,7 +404,7 @@ def read_spectral_func(file):
 
 
 def plot_spectral_func(data,point=0,title=None,window=None,grid=True,color='black',figsize=None,legend=None,
-                style=None,plot_ticks=True,linewidth=1,save_as=None,axis=None):
+                fill=False,alpha=0.7,style=None,plot_ticks=True,linewidth=1,shift=0,save_as=None,axis=None):
     """Plots the Spectral function as computed by SSCHA
 
     data = The data file from SSCHA or the raw data as given by read_spectral_func.
@@ -416,9 +416,12 @@ def plot_spectral_func(data,point=0,title=None,window=None,grid=True,color='blac
     color = Either a color or "VC" to use Valence and Conduction bands with different color
     figsize = (int,int) => Size and shape of the figure
     legend = Legend for the plot
+    fill = Whether to fill below the spectral funtion.
+    alpha = Opacity of the filling
     style = desired line style (solid, dashed, dotted...)
     plot_ticks = Boolean describing wether you want your ticks and labels
     linewidth = desired line width
+    shift = Amount you want to shift the spectral function (usefull to plot with other spectral functions)
     save_as = 'wathever.format'
     axis = ax in which to plot, if no axis is present new figure is created
     """
@@ -434,14 +437,16 @@ def plot_spectral_func(data,point=0,title=None,window=None,grid=True,color='blac
         if style==None:
             style='--'
         for i in range(len(data[0])-3):
-            ax.fill_between(data[:,1],data[:,i+3],alpha=0.7)
-    ax.plot(data[:,1],data[:,2],color=color,label=legend,linestyle=style,linewidth=linewidth)
+            ax.fill_between(data[:,1],data[:,i+3],alpha=alpha)
+    ax.plot(data[:,1],data[:,2]+shift,color=color,label=legend,linestyle=style,linewidth=linewidth)
+    if fill==True:
+        ax.fill_between(data[:,1],data[:,2]+shift,alpha=alpha,color=color)
 
     if type(window)==list:
         ax.set_xlim(window[0],window[1])
     else:
         ax.set_xlim(0,window)
-    ax.set_xlabel('frequency $(cm^{-1})$')
+    ax.set_xlabel('frequency $(\mathrm{cm^{-1}})$')
 
     if title!=None:                             #Title option
         ax.set_title(title)
