@@ -1021,12 +1021,13 @@ def read_energy_surf_data(folder,relative=True):
     return lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements
 
 
-def plot_energy_landscape(data,title=None,relative=True,grid=True,axis=None,label=None,save_as=None):
+def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,axis=None,label=None,save_as=None):
     """Plots the energy landscape data
 
     data = Either the folder containing the energy landscape calculations or the already read data by read_energy_surf_data
     title = 'Your nice and original title for the plot'
     relative = If relative is true then the relative energy respect the undistorted is plotted
+    color = string with the color
     grid = (Bolean) It can display an automatic grid in the plot
     axis = Matplotlib axis in which to plot, if no axis is present new figure is created
     label = Label for your plot.
@@ -1056,7 +1057,7 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,axis=None,labe
         
         
     X=np.linspace(boundary[0],boundary[1],num=len(OPs))
-    ax.plot(X,energies,'.',label=label)
+    ax.plot(X,energies,'.',label=label,color=color)
     
     ax.set_ylabel("Energy difference (meV/cell)")
     ax.set_xlabel("Order parameter (d)")
