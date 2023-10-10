@@ -915,7 +915,19 @@ def spherical2cryst(coord,cryst_basis,degrees=False):
 
 #& Usefull functions----------------------------------------------------------------
 
-def normal_dist(x , mean , sd):
-    """Just a regular normal (gaussian) distribution generator. It integrates to one."""
-    prob_density = 1/(sd*np.sqrt(2*np.pi)) * np.exp(-0.5*((x-mean)/sd)**2)
+def normal_dist(x , mean , sd,A=1):
+    """Just a regular normal (gaussian) distribution generator. It integrates to one.
+    A = An amplitud term, if A=1 it integrates to unity
+    """
+    prob_density = A/(sd*np.sqrt(2*np.pi)) * np.exp(-0.5*((x-mean)/sd)**2)
     return prob_density
+
+def lorentzian_dist(x , center , hwhm, A=1):
+    """Just a regular Lorentzian distribution generator.
+    center = Point in which the lorentzian is centered
+    hwhm = The half-widh half-maximum
+    A = An amplitud term, if A=1 it integrates to unity
+
+    """
+    OUT=A*(1/np.pi)*hwhm/((x-center)**2+hwhm**2)
+    return OUT
