@@ -16,7 +16,7 @@ def __is_float(string):
 def minimization_data(logfile):
     lines=open(logfile)
     READ_MIN,READ_FREQ = True,False
-    F,F_error,FC,FC_error,S,S_error,KL=[],[],[],[],[],[],[]
+    F,F_error,FC,FC_error,S,S_error,KL,Good=[],[],[],[],[],[],[],[]
     for line in lines:
         if re.search('Running.=.*False',line):
             READ_MIN=False
@@ -25,9 +25,12 @@ def minimization_data(logfile):
         elif re.search('Step ka =',line):
             READ_MIN=True
         if READ_MIN==True:
+            Good=Good+[False]
             if re.search('Free energy',line):
                 l=line.split()
                 F.append(float(l[3]));F_error.append(float(l[5]))
+            elif re.search('Good step',line):
+                Good[-1]=True
             elif re.search('FC gradient',line):
                 l=line.split()
                 FC.append(float(l[4]));FC_error.append(float(l[6]))
@@ -47,7 +50,7 @@ def minimization_data(logfile):
                     freqs=f
     if 'freqs' not in locals():
         freqs=np.array([None])
-    return F,F_error,FC,FC_error,S,S_error,KL,freqs
+    return F,F_error,FC,FC_error,S,S_error,KL,freqs,Good
 
 def __natural_sort(l): 
     convert = lambda text: int(text) if text.isdigit() else text.lower()
@@ -61,7 +64,7 @@ def __get_log_files(folder):
     return logfiles
 
 def __concatenate_minimization_data(files):
-    F,F_error,FC,FC_error,S,S_error,KL=[],[],[],[],[],[],[]
+    F,F_error,FC,FC_error,S,S_error,KL,Good=[],[],[],[],[],[],[],[]
     POP=[]
     for file in files:
         data=minimization_data(file)
@@ -72,6 +75,7 @@ def __concatenate_minimization_data(files):
         S=S+data[4]
         S_error=S_error+data[5]
         KL=KL+data[6]
+        Good=Good+data[8]
         POP=POP+[len(F)]
         if np.any(data[7]!=None):
             try:
@@ -80,9 +84,32 @@ def __concatenate_minimization_data(files):
                 freqs=data[7]
     if 'freqs' not in locals():
         freqs=np.array([None])
-    return F,F_error,FC,FC_error,S,S_error,KL,freqs,POP
+    return F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP
 
-def track_free_energy(data,grid=True,save_as=None,axis=None,shift=True,full_minim=False):
+def __read_minimization_data(data,full_minim,only_good=False):
+    """Internal function to read the hole minimization data in order to plot
+    data = Either the data as read by minimization_data or log file.
+    full_minim = Boolean with the option of plotting the full minimization (all populations).
+    only_good = Boolean with the option of plotting only the good steps.
+    """
+    if full_minim==False:
+        if type(data)==str:
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=minimization_data(data)
+        else:
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=data
+    else:
+        if type(data)==str:
+            logfiles=__get_log_files(data)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=__concatenate_minimization_data(logfiles)
+        else:
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=data
+
+    if full_minim==False:
+        return F,F_error,FC,FC_error,S,S_error,KL,freqs,Good
+    else:
+        return F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP
+
+def track_free_energy(data,grid=True,save_as=None,axis=None,shift=True,full_minim=False,only_good=True):
     """It tracks the Free energy during the minimization
     data = Either the data as read by minimization_data or log file.
     grid = Bolean that allows for a grid in the plot.
@@ -90,18 +117,12 @@ def track_free_energy(data,grid=True,save_as=None,axis=None,shift=True,full_mini
     axis = Matplotlib axis in which to plot.
     shift = Bolean regarding the option os shifting the total energies to zero.
     full_minim = Boolean with the option of plotting the full minimization (all populations).
+    only_good = Boolean with the option of plotting only the good steps.
     """
     if full_minim==False:
-        if type(data)==str:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=minimization_data(data)
-        else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=data
+        F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=__read_minimization_data(data,full_minim,only_good)
     else:
-        if type(data)==str:
-            logfiles=__get_log_files(data)
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=__concatenate_minimization_data(logfiles)
-        else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=data
+        F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=__read_minimization_data(data,full_minim,only_good)
 
     steps=np.arange(len(F))
     if shift==True:
@@ -142,15 +163,15 @@ def track_struc_gradient(data,grid=True,save_as=None,axis=None,full_minim=False)
     """
     if full_minim==False:
         if type(data)==str:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=minimization_data(data)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=minimization_data(data)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=data
     else:
         if type(data)==str:
             logfiles=__get_log_files(data)
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=__concatenate_minimization_data(logfiles)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=__concatenate_minimization_data(logfiles)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=data
 
     steps=np.arange(len(F))
 
@@ -188,15 +209,15 @@ def track_kong_liu(data,grid=True,save_as=None,axis=None,full_minim=False):
     """
     if full_minim==False:
         if type(data)==str:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=minimization_data(data)
+            F,F_error,FC,FC_error,S,S_error,KL,Good,freqs=minimization_data(data)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=data
+            F,F_error,FC,FC_error,S,S_error,KL,Good,freqs=data
     else:
         if type(data)==str:
             logfiles=__get_log_files(data)
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=__concatenate_minimization_data(logfiles)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=__concatenate_minimization_data(logfiles)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=data
 
     steps=np.arange(len(F))
 
@@ -233,15 +254,15 @@ def track_force_cte_gradient(data,grid=True,save_as=None,axis=None,full_minim=Fa
     """
     if full_minim==False:
         if type(data)==str:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=minimization_data(data)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=minimization_data(data)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=data
     else:
         if type(data)==str:
             logfiles=__get_log_files(data)
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=__concatenate_minimization_data(logfiles)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=__concatenate_minimization_data(logfiles)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=data
 
     steps=np.arange(len(F))
 
@@ -278,15 +299,15 @@ def track_frequencies(data,grid=True,save_as=None,axis=None,full_minim=False):
     """
     if full_minim==False:
         if type(data)==str:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=minimization_data(data)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=minimization_data(data)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good=data
     else:
         if type(data)==str:
             logfiles=__get_log_files(data)
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=__concatenate_minimization_data(logfiles)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=__concatenate_minimization_data(logfiles)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=data
 
     steps=np.arange(len(freqs))
 
@@ -326,15 +347,15 @@ def track_minimization(data,grid=True,save_as=None,shift=True,title=None,full_mi
     """
     if full_minim==False:
         if type(data)==str:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=minimization_data(data)
+            F,F_error,FC,FC_error,S,S_error,KL,Good,freqs=minimization_data(data)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs=data
+            F,F_error,FC,FC_error,S,S_error,KL,Good,freqs=data
     else:
         if type(data)==str:
             logfiles=__get_log_files(data)
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=__concatenate_minimization_data(logfiles)
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=__concatenate_minimization_data(logfiles)
         else:
-            F,F_error,FC,FC_error,S,S_error,KL,freqs,POP=data
+            F,F_error,FC,FC_error,S,S_error,KL,freqs,Good,POP=data
 
     fig,ax=plt.subplots(2,3,figsize=(13.5,8.5))
     gs = ax[0, 2].get_gridspec()

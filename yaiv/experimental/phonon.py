@@ -112,6 +112,10 @@ def __find_dyn_file(q_cryst,results_ph_path):
 
     output=None
     dyn_files=glob.glob(results_ph_path+'/*dyn*')
+    #remove matdyn just in case:
+    r = list(filter(lambda x: 'results_matdyn' in x, dyn_files))
+    dyn_files.remove(r[0])
+
     for file in dyn_files:
         lines=open(file,'r')
         for line in lines:
@@ -697,7 +701,7 @@ def pp_CDW_sym_analysis(OPs,SGs):
     SGs=np.array(SGs)
     indices=[]
     for SG in diff_SGs:
-        ind=np.where(SGs==SG)
+        ind=np.where(SGs==SG)[0]
         indices=indices+[ind]
     return diff_SGs,indices
 
