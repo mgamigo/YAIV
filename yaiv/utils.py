@@ -662,6 +662,8 @@ def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filety
     #Compute DOS
     if window==None:
         energies=np.linspace(D[0],D[-1],steps)
+    elif type(window) is int or type(window) is float:
+        energies=np.linspace(-window,window,steps)
     else:
         energies=np.linspace(window[0],window[1],steps)
     DOS=[]
