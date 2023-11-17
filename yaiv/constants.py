@@ -19,7 +19,9 @@ u2Kg = 1.66054e-27
 me = 9.1093837e-31
 GHz2eV=4.13566553853598E-06
 GHz2meV=4.13566553853598E-03
-
+hartree2eV=27.2114
+hartree2meV=27.2114*1000
+meV2hartree=1/hartree2meV
 def smear2temp(smear):
     temp=(Ry2jul*smear)/Boltz
     return temp
