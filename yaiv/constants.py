@@ -14,6 +14,7 @@ bohr2ang=au2ang
 bohr2metre=bohr2ang*ang2metre
 au2metre=bohr2metre
 pas2bar=1e-5
+Kbar2Gpa=1e-6/pas2bar
 Boltz=1.380649e-23
 u2Kg = 1.66054e-27
 me = 9.1093837e-31
