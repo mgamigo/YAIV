@@ -498,7 +498,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
     2- The weights are given in a separate numpy array.
 
     file = File with the bands
-    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo, relax.pwo)
                vaps (VASP OUTCAR file)
                eigenval (VASP EIGENVAL file)
     vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
@@ -509,6 +509,7 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
 
     weights = []
     read_weights=True
+    RELAX_calc,RELAXED=False,False
     if filetype[:2]=="qe":
         file=open(file,'r')
         lines=file.readlines()
@@ -525,8 +526,16 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
                     read_weights=False
                     weights = np.array(weights)
             if re.search('End of .* calculation',line):
-                results_line=i+1
-                break
+                if RELAX_calc == False:
+                    results_line=i+1
+                    break
+                if RELAX_calc==True and RELAXED==True:
+                    results_line=i+1
+                    break
+            if re.search('force convergence', line):
+                RELAX_calc=True
+            if re.search('Final scf calculation at the relaxed', line):
+                RELAXED=True
         data=np.zeros([num_points,num_bands+3])
         data_lines=lines[results_line:]
         i,j=-1,1
