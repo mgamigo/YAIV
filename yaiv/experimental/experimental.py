@@ -52,21 +52,21 @@ def __get_brillouin_zone_3d(cell):
     return vor.vertices[bz_vertices], bz_ridges, bz_facets
 
 
-def brillouin_zone_3d(cell,axis=None,basis=True,sides=True,line_width=1,reciprocal=True):
+def brillouin_zone_3d(cell,axis=None,basis=True,sides=True,line_width=1,reciprocal=False):
     """
     Plot Brillouin zone in a 3D ax, it uses as input the real space cell or a QE output file containing it
     ax = ax over with to plot (ax = fig.add_subplot...)
     basis = Whether to plot the basis
     sides = Whether to plot or not the sides
     line_width = Line width for the edges
-    reciprocal = Whether or not transform to reciprocal coordinates
+    reciprocal = Whether or not the lattice is in reciprocal space
     """
     labels=False
     if type(cell)==str:
         cell=ut.grep_lattice(cell)
         labels=True
-    if reciprocal==True:
-        K_vec=ut.K_basis(cell)*2*np.pi
+    if reciprocal==False:
+        K_vec=ut.K_basis(cell)
     else:
         K_vec=cell
 
@@ -112,7 +112,7 @@ def axisEqual3D(ax):
         getattr(ax, 'set_{}lim'.format(dim))(ctr - r, ctr + r)
 
 
-def miller_plane(miller,lattice,axis,label=None):
+def miller_plane(miller,lattice,axis,label=None,size=0.15,alpha=0.4):
     """
     Displayes the desired Miller Plane.
 
@@ -120,10 +120,12 @@ def miller_plane(miller,lattice,axis,label=None):
     lattice = Real space lattice.
     axis = 3D axis in which you want your Miller plane to be displayed
     label = Desired label for the Miller plane
+    size = size of the miller_plane
+    alpha = Transparency of the miller plane
     """
     ax=axis
-    lim1=-0.15
-    lim2=0.15
+    lim1=-size
+    lim2=size
     reciprocal=ut.K_basis(lattice)
     miller=ut.cryst2cartesian(miller,reciprocal)
     if miller[0]!=0:
@@ -141,7 +143,7 @@ def miller_plane(miller,lattice,axis,label=None):
         y = np.linspace(lim1,lim2, 10)
         x,y = np.meshgrid(x, y)
         z=-(miller[0]*x+miller[1]*y)/miller[2]
-    ax.plot_surface(x, y, z, alpha=0.4,color='pink')
+    ax.plot_surface(x, y, z, alpha=alpha,color='pink')
     if label!=None:
         ax.plot([0,0],[0,0],[0,0],label=label,color='pink')
 
@@ -523,3 +525,107 @@ def test_GAP(folder,steps=None,ranges=None,title=None,save_as=None):
     if save_as!=None:
         plt.savefig(save_as,dpi=500)
     plt.show()
+
+def grep_weyl_windings(file):
+    """
+    file : wanniercenter3D_Weyl.dat from a WannierTools FindWeylChirality calculation
+    return CHIRALITY, PHASES
+    """
+    lines=open(file)
+    for line in lines:
+        if re.search('Chirality',line):
+            CHIRALITY=np.array(line.split()[2:],dtype=float)
+    PHASES=np.loadtxt(file,usecols=np.arange(len(CHIRALITY)+1))
+    return CHIRALITY, PHASES
+
+def plot_weyl_winding(data,point=1):
+    """
+    data : Either
+            wanniercenter3D_Weyl.dat from a WannierTools FindWeylChirality calculation
+            output of grep_weyl_winding(file)
+    point : Point of which you want to plot the winding.
+    """
+    if type(data)==str:
+        C,P=grep_weyl_windings(data)
+    else:
+        C,P=data[0],data[1]
+    plt.figure()
+    plt.plot(P[:,0],P[:,point],'o')
+    plt.xlim(0,1),plt.ylim(0,1)
+    plt.title('Point '+str(point)+' - Chern number '+str(C[point-1]))
+    plt.tight_layout()
+    plt.show()
+
+def __grep_weyl_nodes(file,meV=True):
+    """
+    file : Nodes.dat from a WannierTools FindNodes calculation
+    meV : Whether to return the energy and gap in meV (default is Hartrees)
+    return Kcryst, Kcart, GAP, ENERGY
+    """
+    data=np.loadtxt(file)
+    Kcart,GAP,E,Kcryst=data[:,:3],data[:,3],data[:,4],data[:,5:]
+    if meV==True:
+        E=const.hartree2meV*E
+        GAP=const.hartree2eV*GAP
+    for x in [Kcart,GAP,E,Kcryst]:
+        x = np.array(x)
+    return Kcryst, Kcart, GAP, E
+
+def grep_weyl_nodes(file,meV=True):
+    """
+    file : Nodes.dat from a WannierTools FindNodes calculation (single or list of files)
+    meV : Whether to return the energy and gap in meV (default is Hartrees)
+    return Kcryst, Kcart, GAP, ENERGY
+    """
+    if type(file)== str:
+        file=[file]
+    for f in file:
+        new = __grep_weyl_nodes(f,meV)
+        try:
+            Kcryst = np.vstack((Kcryst,new[0]))
+            Kcart = np.vstack((Kcart,new[1]))
+            GAP = np.hstack((GAP,new[2]))
+            E = np.hstack((E,new[3]))
+        except NameError:
+            Kcryst,Kcart,GAP,E = new
+    return Kcryst, Kcart, GAP, E
+
+def __grep_weyl_chirality(file):
+    """
+    file/files : WT.OUT from a WannierTools FindWeylChirality calculation
+    return Kcryst, Kcart, chirality
+    """
+    READ_CHIRALITIES=False
+    lines=open(file)
+    for line in lines:
+        if re.search('Time cost for Weyl',line):
+            READ_CHIRALITIES=False
+        elif READ_CHIRALITIES==True:
+            l=np.array(line.split(),dtype=float)
+            try:
+                data=np.vstack((data,l))
+            except NameError:
+                data=l
+        elif re.search('Chirality',line) and re.search('#',line):
+            READ_CHIRALITIES=True
+    Kcryst,Kcart,chirality=data[:,:3],data[:,3:6],data[:,6]
+    for x in [Kcryst,Kcart,chirality]:
+        x = np.array(x)
+    return Kcryst, Kcart, chirality
+
+def grep_weyl_chirality(file):
+    """
+    file/files : WT.OUT from a WannierTools FindWeylChirality calculation (single or list of files)
+    return Kcryst, Kcart, chirality
+    """
+    if type(file)== str:
+        file=[file]
+    for f in file:
+        new = __grep_weyl_chirality(f)
+        try:
+            Kcryst = np.vstack((Kcryst,new[0]))
+            Kcart = np.vstack((Kcart,new[1]))
+            chirality = np.hstack((chirality,new[2]))
+        except NameError:
+            Kcryst,Kcart,chirality = new
+    return Kcryst, Kcart, chirality
