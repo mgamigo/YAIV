@@ -629,3 +629,111 @@ def grep_weyl_chirality(file):
         except NameError:
             Kcryst,Kcart,chirality = new
     return Kcryst, Kcart, chirality
+
+
+def filter_weyl_nodes(k,gap,energy,chirality,E_range=1000,GAP_range=0):
+    """
+    Given a list of Weyl points it filters to the ones in a certain energy range and GAP range
+    k = List of k points
+    gap = List of gaps
+    energy = List of energies
+    chirality = List of chiralities
+    return K, GAP, E, C           
+    """
+    if type(E_range)!=list:
+        E_range=[-E_range,E_range]
+    for i in range(len(chirality)):
+        if E_range[0] <= energy[i] <= E_range[1]:
+            if gap[i]<=GAP_range:
+                try:
+                    K=np.vstack((K,k[i]))
+                    E=np.hstack((E,energy[i]))
+                    GAP=np.hstack((GAP,gap[i]))
+                    C=np.hstack((C,chirality[i]))
+                except NameError:
+                    K,GAP,E,C=k[i],gap[i],energy[i],chirality[i]
+    return K, GAP, E, C        
+
+
+def symmetrize_weyl_nodes(k,gap,energy,chirality,lattice,symmetry,precision=2,truncate=None,silent=False):
+    """
+    Given a list of Weyl points it filters to the ones in a certain energy range and GAP range.
+    CAUTION: This only works for rotations (which keep the chirality invariant)
+    k = List of k points in cartesian units
+    gap = List of gaps
+    energy = List of energies
+    chirality = List of chiralities
+    lattice = Lattice in order to find which points lay inside the Brillouin zone
+    symmetry = Symmetry operation
+    precision = Number of decimals in order to check distance between two Weyl points and decide whether they are same point or not.
+    truncate = Remove all points with higher distance to GM than this value. (usefull to fix unwanted Weyl points outside BZ)
+    silent = Bolean controling whether you want printed output
+    return K, GAP, E, C
+    """
+    kpoints=k
+    initial=len(kpoints)
+    #Get vectores related by symmetry
+    p=precision #precision
+    Kin,Gin,Ein,Cin,S=k,gap,energy,chirality,symmetry #input
+    K,GAP,E,C=[],[],[],[]
+    for i,k in enumerate(kpoints):
+        K,GAP,E,C=K+[k],GAP+[Gin[i]],E+[Ein[i]],C+[Cin[i]]
+        new=np.matmul(S,k)
+        while np.around(np.linalg.norm(new-k),decimals=p) != 0:
+            K,GAP,E,C=K+[new],GAP+[Gin[i]],E+[Ein[i]],C+[Cin[i]]
+            new=np.matmul(S,new)
+    for x in [K,GAP,E,C]:
+        x=np.array(x)
+
+    #Get vectores related by lattice
+    rlat=ut.K_basis(lattice)
+    K=ut.cartesian2cryst(K,rlat,list_of_vec=True)
+    for i,k in enumerate(K):
+        if abs(np.around(k[0],decimals=p))==0.5 or abs(np.around(k[1],decimals=p))==0.5 or abs(np.around(k[2],decimals=p))==0.5:
+            new=ut.__expand_star(k)
+            try:
+                NEW_K=np.vstack((NEW_K,new))
+                NEW_E=np.hstack((NEW_E,[E[i]]*len(new)))
+                NEW_C=np.hstack((NEW_C,[C[i]]*len(new)))
+                NEW_GAP=np.hstack((NEW_GAP,[GAP[i]]*len(new)))
+            except NameError:
+                NEW_K=new
+                NEW_E=[E[i]]*len(new)
+                NEW_C=[C[i]]*len(new)
+                NEW_GAP=[GAP[i]]*len(new)
+    #remove outside BZ
+    tmp_list=[]
+    for i,k in enumerate(NEW_K):
+        if abs(np.around(k[0],decimals=p))>0.5 or abs(np.around(k[1],decimals=p))>0.5 or abs(np.around(k[2],decimals=p))>0.5:
+            tmp_list=tmp_list+[i]
+    NEW_K=np.delete(NEW_K,tmp_list,0)
+    NEW_GAP,NEW_E,NEW_C=np.delete(NEW_GAP,tmp_list),np.delete(NEW_E,tmp_list),np.delete(NEW_C,tmp_list)
+    
+    K,E,C,GAP=np.vstack((K,NEW_K)),np.hstack((E,NEW_E)),np.hstack((C,NEW_C)),np.hstack((GAP,NEW_GAP))
+    K=ut.cryst2cartesian(K,rlat,list_of_vec=True)
+
+    #remove duplicates
+    i=0
+    while i<len(K):
+        diff_K = np.array([np.around(np.linalg.norm(x-K[i]),decimals=p) for x in K])
+        diff_E = np.array([np.around(np.linalg.norm(x-E[i]),decimals=p) for x in E])
+        diff_C = np.array([np.around(np.linalg.norm(x-C[i]),decimals=p) for x in C])
+        diff_GAP = np.array([np.around(np.linalg.norm(x-GAP[i]),decimals=p) for x in GAP])
+        tmp_list=np.where(np.around(diff_K,decimals=p)==0.0)[0]
+        aux_list=np.where(diff_C==0.0)[0]
+        tmp_list=[item for item in tmp_list if item in aux_list]
+#        aux_list=np.where(diff_E<10)[0]  Problematic to check energies, because of the lack os symmetries...
+#        tmp_list=[item for item in tmp_list if item in aux_list]
+        K=np.delete(K,tmp_list[1:],0)
+        GAP,E,C=np.delete(GAP,tmp_list[1:]),np.delete(E,tmp_list[1:]),np.delete(C,tmp_list[1:])
+        i=i+1
+    if truncate!=None:
+        dist = np.array([np.linalg.norm(x) for x in K])
+        tmp_list=np.where(dist>truncate)[0]
+        K=np.delete(K,tmp_list,0)
+        GAP,E,C=np.delete(GAP,tmp_list),np.delete(E,tmp_list),np.delete(C,tmp_list)
+    final=len(K)
+    if silent==False:
+        print('Symemtrizing from',initial,'to',final,'Weyl points')
+    
+    return K,GAP,E,C
