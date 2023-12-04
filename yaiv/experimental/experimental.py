@@ -631,13 +631,14 @@ def grep_weyl_chirality(file):
     return Kcryst, Kcart, chirality
 
 
-def filter_weyl_nodes(k,gap,energy,chirality,E_range=1000,GAP_range=0):
+def filter_weyl_nodes(k,gap,energy,chirality,E_range=1000,GAP_range=0,weyl=True):
     """
     Given a list of Weyl points it filters to the ones in a certain energy range and GAP range
     k = List of k points
     gap = List of gaps
     energy = List of energies
     chirality = List of chiralities
+    weyl = Boolean which will filter points with chirality = 0
     return K, GAP, E, C           
     """
     if type(E_range)!=list:
@@ -645,17 +646,18 @@ def filter_weyl_nodes(k,gap,energy,chirality,E_range=1000,GAP_range=0):
     for i in range(len(chirality)):
         if E_range[0] <= energy[i] <= E_range[1]:
             if gap[i]<=GAP_range:
-                try:
-                    K=np.vstack((K,k[i]))
-                    E=np.hstack((E,energy[i]))
-                    GAP=np.hstack((GAP,gap[i]))
-                    C=np.hstack((C,chirality[i]))
-                except NameError:
-                    K,GAP,E,C=k[i],gap[i],energy[i],chirality[i]
+                if weyl==True and chirality[i]!=0:
+                    try:
+                        K=np.vstack((K,k[i]))
+                        E=np.hstack((E,energy[i]))
+                        GAP=np.hstack((GAP,gap[i]))
+                        C=np.hstack((C,chirality[i]))
+                    except NameError:
+                        K,GAP,E,C=k[i],gap[i],energy[i],chirality[i]
     return K, GAP, E, C        
 
 
-def symmetrize_weyl_nodes(k,gap,energy,chirality,lattice,symmetry,precision=2,truncate=None,silent=False):
+def symmetrize_weyl_nodes(k,gap,energy,chirality,lattice,symmetry,precision=3,truncate=None,silent=False):
     """
     Given a list of Weyl points it filters to the ones in a certain energy range and GAP range.
     CAUTION: This only works for rotations (which keep the chirality invariant)
@@ -702,14 +704,15 @@ def symmetrize_weyl_nodes(k,gap,energy,chirality,lattice,symmetry,precision=2,tr
                 NEW_C=[C[i]]*len(new)
                 NEW_GAP=[GAP[i]]*len(new)
     #remove outside BZ
-    tmp_list=[]
-    for i,k in enumerate(NEW_K):
-        if abs(np.around(k[0],decimals=p))>0.5 or abs(np.around(k[1],decimals=p))>0.5 or abs(np.around(k[2],decimals=p))>0.5:
-            tmp_list=tmp_list+[i]
-    NEW_K=np.delete(NEW_K,tmp_list,0)
-    NEW_GAP,NEW_E,NEW_C=np.delete(NEW_GAP,tmp_list),np.delete(NEW_E,tmp_list),np.delete(NEW_C,tmp_list)
-    
-    K,E,C,GAP=np.vstack((K,NEW_K)),np.hstack((E,NEW_E)),np.hstack((C,NEW_C)),np.hstack((GAP,NEW_GAP))
+    if 'NEW_K' in locals():
+        tmp_list=[]
+        for i,k in enumerate(NEW_K):
+            if abs(np.around(k[0],decimals=p))>0.5 or abs(np.around(k[1],decimals=p))>0.5 or abs(np.around(k[2],decimals=p))>0.5:
+                tmp_list=tmp_list+[i]
+        NEW_K=np.delete(NEW_K,tmp_list,0)
+        NEW_GAP,NEW_E,NEW_C=np.delete(NEW_GAP,tmp_list),np.delete(NEW_E,tmp_list),np.delete(NEW_C,tmp_list)
+        
+        K,E,C,GAP=np.vstack((K,NEW_K)),np.hstack((E,NEW_E)),np.hstack((C,NEW_C)),np.hstack((GAP,NEW_GAP))
     K=ut.cryst2cartesian(K,rlat,list_of_vec=True)
 
     #remove duplicates
