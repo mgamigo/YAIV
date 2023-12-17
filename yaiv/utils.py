@@ -799,7 +799,7 @@ def grep_electron_phonon_nesting(file,return_star=True,filetype=None):
     """
 
     if filetype == None:
-        filetype = ut.grep_filetype(file)
+        filetype = grep_filetype(file)
     else:
         filetype = filetype.lower()
     READ,READING,STAR=False,False,False
