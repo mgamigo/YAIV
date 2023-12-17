@@ -663,7 +663,7 @@ def filter_weyl_nodes(k,gap,energy,chirality,E_range=1000,GAP_range=0,weyl=True)
     for i in range(len(chirality)):
         if E_range[0] <= energy[i] <= E_range[1]:
             if gap[i]<=GAP_range:
-                if weyl==True and chirality[i]!=0:
+                if weyl==True and chirality[i]!=0 or (weyl==False):
                     try:
                         K=np.vstack((K,k[i]))
                         E=np.hstack((E,energy[i]))
