@@ -829,7 +829,8 @@ def grep_electron_phonon_nesting(file,return_star=True,filetype=None):
                 nest=float(line.split()[-1])
             if READ==True and re.search('lambda',line):
                 READING=True
-                lambdas=lambdas+[float(line.split()[2])]
+                lam=float(line.split('=')[1].split()[0])
+                lambdas=lambdas+[lam]
                 gammas=gammas+[float(line.split()[-2])]
             if READ==True and READING==True and not re.search('lambda',line):
                 READ,READING=False,False
