@@ -25,9 +25,9 @@ def read_eph_dyn(file):
             except NameError:
                 smearings=s                
         elif re.search('lambda',line):
-            line=line.split()
-            l=float(line[2])
-            g=float(line[-2])
+            line=line.split('=')
+            l=float(line[1].split()[0])
+            g=float(line[2].split()[0])
             try:
                 lam=np.hstack((lam,l))
                 gam=np.hstack((gam,g))
