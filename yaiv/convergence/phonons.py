@@ -30,9 +30,9 @@ def read_data(folder):
     for i in range(len(Kgrids)):
         grid_data=np.zeros(0)
         Kgrid=Kgrids[i]
-        files=glob.glob(folder+"/"+Kgrid+"/*/*dyn1")
+        files=glob.glob(folder+"/"+Kgrid+"/**/*dyn*",recursive=True)
         for j in range(len(files)):
-            cutoff=files[j].split("/")[-2]
+            cutoff=files[j].split(folder)[1].split('/')[2]
             cutoff_data=np.array([cutoff])
             file = open (files[j],"r")
             for line in file:
