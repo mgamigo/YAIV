@@ -175,7 +175,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 point1=np.array(l[2:5]).astype(float)
                 coord1=point1              # Already in reciprocal cartesian coord (not like VASP)
                 delta=np.linalg.norm(coord1-coord0)
-                if delta>=0.25:                                  #fast fix for broken paths
+                if delta>=0.10:                                  #fast fix for broken paths
                     delta=0
                 dist=dist+delta
                 coord0=coord1
