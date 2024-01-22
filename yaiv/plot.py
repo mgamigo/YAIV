@@ -164,7 +164,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
         j=1
         coord0=np.zeros(3)
         for line in data_lines:
-            if re.search('Writing.*output',line):    #Reading is completed
+            if re.search('Writing.*output',line) or re.search('init_run',line):    #Reading is completed
                 break
             elif re.search('bands \(ev\)',line):    #New k_point
                 if '-' in line:
