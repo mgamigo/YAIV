@@ -706,7 +706,7 @@ def pp_CDW_sym_analysis(OPs,SGs):
         indices=indices+[ind]
     return diff_SGs,indices
 
-def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,boundary=0.01,from_zero=False,
+def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid=None,freq=None,boundary=0.01,primitive=False,from_zero=False,
                        symprec=1e-5,write=False):
     """Creates the necessary QE inputs to create an energy landscape for any combination of order parameters.
     All the information of the created configurations will be saved into a "surf.txt" file.
@@ -733,6 +733,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
                The final distortion will be multiplied by this factor.
                In LINEMODE:
                The boundary factors by which you want to multiply your order parameter (OP).
+    primitive = (Boolean) Whether you want to resulting structures in primitive cell or in supercell form.
     from_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension will be between [0,1].
     symprec = Symmetry thushold as defined by spglib.
     write = (Bolean) Whether to write the results in your filesystem. Defaulted to False in order to avoid overwritting a previous configuration.
@@ -859,6 +860,9 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
         positions=__distort_structure(supercell,Pcell,atoms[1],basis,q_cryst,OP,vec)
         distorted=Atoms(symbols=symbols,positions=positions,cell=scell)
         SG=cell.get_spacegroup(distorted,symprec=symprec,silent=True)
+        if primitive==True and write==True:
+            distorted=cell.ase2spglib(distorted)
+            distorted=spg.find_primitive(distorted,symprec=symprec)
         if write==True:
             cell.store_structure_QE_pwi(distorted,dest_folder+'/'+str(i)+'.pwi',template)
         try:
