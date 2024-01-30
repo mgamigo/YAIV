@@ -862,9 +862,9 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
         if write==True:
             cell.store_structure_QE_pwi(distorted,dest_folder+'/'+str(i)+'.pwi',template)
         try:
-            OUT=np.vstack((OUT,np.array([i,OP,SG])))
+            OUT=np.vstack((OUT,np.array([i,OP,SG],dtype=object)))
         except NameError:
-            OUT=np.array([i,OP,SG])
+            OUT=np.array([i,OP,SG],dtype=object)
 
     #Save the output in the corresponding file (sys.stdout is redefined if write==True)
     np.savetxt(sys.stdout,OUT,fmt=['%-10d','%-50s','%s'])
