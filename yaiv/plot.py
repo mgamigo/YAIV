@@ -69,7 +69,7 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
     """
     Plots the Density Of States
 
-    file = File from which to extract the DOS
+    file = File from which to extract the DOS (scf, nscf, bands)
     fermi = Fermi level to shift accordingly
     smearing = Smearing of your normal distribution around each energy
     window = energy window in which to compute the DOS
