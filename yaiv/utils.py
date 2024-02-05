@@ -6,6 +6,7 @@ from ase import io
 
 import yaiv.constants as const
 import yaiv.plot as plot
+import yaiv.experimental.cell_analyzer as cell
 
 #& GREPPING utilities----------------------------------------------------------------
 
@@ -703,13 +704,15 @@ def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filety
         DOS=DOS+[dos]
     return energies,DOS
 
-def grep_projected_DOS(file,proj_file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filetype=None,proj_filetype=None):
+def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filetype=None,proj_filetype=None,species=None,atoms=None,l=None,j=None,mj=None):
     """
-    Grep the density of states from a scf or nscf file. 
+    Grep the projected density of states from a scf or nscf file, together with a proj.pwo or PROCAR file. 
+    If you do not ask for specific projections, it will decompose the DOS into different orbitals of different Wyckoff positions.
 
-    => returns energies, DOS
+    => returns energies, proj_DOS, labels
     
     file = File from which to extract the DOS
+    proj_file = File with the projected bands
     fermi = Fermi level to shift accordingly
     smearing = Smearing of your normal distribution around each energy
     window = energy window in which to compute the DOS
@@ -718,6 +721,15 @@ def grep_projected_DOS(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
     filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
                vaps (VASP OUTCAR file)
                eigenval (VASP EIGENVAL file)
+    proj_filetype = qe_proj_out (quantum espresso proj.pwo)
+                    procar (VASP PROCAR file)
+    species = list of atomic species ['Bi','Se'...]
+    atoms = list with atoms index [1,2...]
+    l = list of orbital atomic numbers:
+        qe: [0, 1, 2]
+        vasp: ['s','px','py','dxz']  (as written in POSCAR)
+    j = total angular mometum. (qe only)
+    mj = m_j state. (qe only)
     """
     if filetype==None:
         filetype = grep_filetype(file)
@@ -729,38 +741,62 @@ def grep_projected_DOS(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
     if np.shape(energies) != np.shape(ENERGIES):
         print('Files not compatible')
         quit()
-    PROJ_SUM,number=sum_projections(STATES,PROJS,filetype=proj_filetype) #SUM[K,E] energy level E in kpoint K
-    print(number)
     n_bands=len(ENERGIES[0])
     for w in weights:
         try:
-            W=np.vstack((W,np.ones(n_bands)*w))
+            WEIGHTS=np.vstack((WEIGHTS,np.ones(n_bands)*w))
         except NameError:
-            W=np.ones(n_bands)*w
-    WEIGHTS=W*PROJ_SUM #Kpoints weights * projection for each energy at each k point
-    #SORT Energies and Weights
-    s=np.shape(WEIGHTS)[0]*np.shape(WEIGHTS)[1]
-    D=ENERGIES.reshape((s))
-    W=WEIGHTS.reshape((s))
+            WEIGHTS=np.ones(n_bands)*w
+    size=np.shape(WEIGHTS)[0]*np.shape(WEIGHTS)[1]
+    #SORT Energies
+    D=ENERGIES.reshape((size))
     sort=np.argsort(D)
     D=D[sort]-fermi
-    W=W[sort]
-    #Compute DOS
-    if window==None:
-        energies=np.linspace(D[0],D[-1],steps)
-    elif type(window) is int or type(window) is float:
-        energies=np.linspace(-window,window,steps)
+
+    if species==None and atoms==None and l==None and j==None and mj==None:
+        print('Decomposing per Wyckoff positions')
+        projections=[]
+        species,indep_WP,positions,indices=cell.wyckoff_positions(file)
+        indices=np.array(indices)+1
+        for i,wp in enumerate(indep_WP):
+            L=[]
+            for S in STATES:
+                if S[0] in indices[i] and S[3] not in L:
+                    L=L+[S[3]]
+                    projections=projections+[[None,indices[i],S[3],None,None,species[i]+"_"+wp+"_l="+str(S[3])]]
+        projections=projections+[[None,None,None,None,None,'Total']]
     else:
-        energies=np.linspace(window[0],window[1],steps)
-    DOS=[]
-    for E in energies:
-        dos=0
-        m=np.argmax(D>=E-precision*smearing)
-        M=np.argmin(D<=E+precision*smearing)
-        for i,e in enumerate(D[m:M]):
-            dos=dos+normal_dist(e,E,smearing)*W[i+m]
-        DOS=DOS+[dos]
-    return energies,DOS
+        projections=[[species,atoms,l,j,mj,'Custom_sum']]
+
+    DOSs,LABELS=[],[]
+    for P in projections:
+        PROJ_SUM,number=sum_projections(STATES,PROJS,proj_filetype,species=P[0],atoms=P[1],l=P[2],j=P[3],mj=P[4]) #SUM[K,E] energy level E in kpoint K
+        print(number,'satates summed')
+        W=WEIGHTS*PROJ_SUM #Kpoints weights * projection for each energy at each k point
+        #SORT Weights
+        W=W.reshape((size))
+        W=W[sort]
+        #Compute DOS
+        if window==None:
+            energies=np.linspace(D[0],D[-1],steps)
+        elif type(window) is int or type(window) is float:
+            energies=np.linspace(-window,window,steps)
+        else:
+            energies=np.linspace(window[0],window[1],steps)
+        proj_DOS=[]
+        for E in energies:
+            dos=0
+            m=np.argmax(D>=E-precision*smearing)
+            M=np.argmin(D<=E+precision*smearing)
+            for i,e in enumerate(D[m:M]):
+                dos=dos+normal_dist(e,E,smearing)*W[i+m]
+            proj_DOS=proj_DOS+[dos]
+        DOSs=DOSs+[proj_DOS]
+        LABELS=LABELS+[P[5]]
+    if len(DOSs)==1:
+        DOSs=DOSs[0]
+        LABELS=LABELS[0]
+    return energies, DOSs, LABELS
 
 def grep_number_of_bands(file,window=None,fermi=None,filetype=None,silent=True):
     """Counts the number of bands in an energy window for all file types supported by grep_kpoints_energies and .gnu files from QE. (It counts them in the first k-point)
@@ -1050,7 +1086,7 @@ def grep_kpoints_energies_projections(filename,filetype=None):
     return STATES,KPOINTS,ENERGIES,PROJS
 
 
-def sum_projections(STATES,PROJECTIONS,filetype,species=None,l=None,j=None,mj=None):
+def sum_projections(STATES,PROJECTIONS,filetype,species=None,atoms=None,l=None,j=None,mj=None):
     """
     Sums projections obtained by grep_energies_kpoints_projections:
     
@@ -1064,6 +1100,7 @@ def sum_projections(STATES,PROJECTIONS,filetype,species=None,l=None,j=None,mj=No
     filetype = qe_proj_out (quantum espresso proj.pwo)
                procar (VASP PROCAR file)
     species = list of atomic species ['Bi','Se'...]
+    atoms = list with atoms index [1,2...]
     l = list of orbital atomic numbers:
         qe: [0, 1, 2]
         vasp: ['s','px','py','dxz']  (as written in POSCAR)
@@ -1079,29 +1116,33 @@ def sum_projections(STATES,PROJECTIONS,filetype,species=None,l=None,j=None,mj=No
     number = number of states that were summed
     """
     indices=[]
-    if type(species) != list:
+    if type(species) != list and type(species).__module__!= np.__name__:
         species=[species]
-    if type(l) != list:
+    if type(atoms) != list and type(atoms).__module__!= np.__name__:
+        atoms=[atoms]
+    if type(l) != list and type(l).__module__!= np.__name__:
         l=[l]
-    if type(j) != list:
+    if type(j) != list and type(j).__module__!= np.__name__:
         j=[j]
-    if type(mj) != list:
+    if type(mj) != list and type(mj).__module__!= np.__name__:
         mj=[mj]
     if filetype=='qe_proj_out':
         for i,s in enumerate(STATES):
             if s[1] in species or species[0]==None:
-                if s[3] in l or l[0]==None:
-                    if s[4] in j or j[0]==None:
-                        if s[5] in mj or mj[0]==None:
-                            indices=indices+[i]
+                if s[0] in atoms or atoms[0]==None:
+                    if s[3] in l or l[0]==None:
+                        if s[4] in j or j[0]==None:
+                            if s[5] in mj or mj[0]==None:
+                                indices=indices+[i]
     elif filetype=='procar':
         vasp2l={'s':0,'py':1,'pz':2,'px':3,'dxy':4,'dyz':5,'dz2':6,'dxz':7,'dx2-y2':8,'x2-y2':8}
         l=[vasp2l[x] for x in l]
         for i,s in enumerate(STATES):
             if s[1] in species or species[0]==None:
-                if s[2] in l or l[0]==None:
-                    if s[3]==0: #not sum for σ_j=(1,2,3)
-                        indices=indices+[i]
+                if s[0] in atoms or atoms[0]==None:
+                    if s[2] in l or l[0]==None:
+                        if s[3]==0: #not sum for σ_j=(1,2,3)
+                            indices=indices+[i]
     for i in indices:
         try:
             OUT=OUT+PROJECTIONS[:,:,i]
