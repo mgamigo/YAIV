@@ -70,6 +70,19 @@ class file:
         self.kpoints_energies=out[0]
         self.kpoints_weights=out[1]
         return out
+    def grep_kpoints_energies_projections(filename,filetype):
+        """
+        Grep the kpoints and energies and projections
+
+        returns STATES, KPOINTS, ENERGIES, PROJECTIONS
+        For more info check the grep_kpoints_energies_projections function
+        """
+        out=grep_kpoints_energies_projections(filename,filetype)
+        self.states=out[0]
+        self.kpoints=out[1]
+        self.energies=out[2]
+        self.projections=out[3]
+        return out
     def grep_DOS(self,fermi='auto',smearing=0.02,window=None,steps=500,precision=3):
         """
         Grep the density of states from a scf or nscf file. 
@@ -114,7 +127,6 @@ class file:
         self.gammas=out[4]
         return out
 
-
 def grep_filetype(file):
     """Returns the filetype, currently it supports:
     QuantumEspresso: qe_scf_in, qe_scf_out, qe_bands_in, qe_ph_out, matdyn_in
@@ -139,8 +151,11 @@ def grep_filetype(file):
         elif re.search('flfrc',line,re.IGNORECASE):
             filetype='matdyn_in'
             break
-        elif re.search('direct',line,re.IGNORECASE) or re.search('cartesian',line,re.IGNORECASE):
-            filetype='poscar'
+        elif re.search('projwave',line,re.IGNORECASE):
+            filetype='qe_proj_out'
+            break
+        elif re.search('PROCAR',line,re.IGNORECASE):
+            filetype='procar'
             break
         elif re.search('vasp',line,re.IGNORECASE):
             filetype='outcar'
@@ -150,6 +165,9 @@ def grep_filetype(file):
             break
         elif re.search('line.mode',line,re.IGNORECASE):
             filetype='kpath' 
+            break
+        elif re.search('direct',line,re.IGNORECASE) and not re.search('directory',line,re.IGNORECASE) or re.search('cartesian',line,re.IGNORECASE):
+            filetype='poscar'
             break
         else:
             filetype='data'
@@ -685,6 +703,65 @@ def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filety
         DOS=DOS+[dos]
     return energies,DOS
 
+def grep_projected_DOS(file,proj_file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filetype=None,proj_filetype=None):
+    """
+    Grep the density of states from a scf or nscf file. 
+
+    => returns energies, DOS
+    
+    file = File from which to extract the DOS
+    fermi = Fermi level to shift accordingly
+    smearing = Smearing of your normal distribution around each energy
+    window = energy window in which to compute the DOS
+    steps = Number of values for which to compute the DOS
+    precision = Truncation of your normal distrib (truncated from precision*smearing)
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
+               vaps (VASP OUTCAR file)
+               eigenval (VASP EIGENVAL file)
+    """
+    if filetype==None:
+        filetype = grep_filetype(file)
+    if proj_filetype==None:
+        proj_filetype = grep_filetype(proj_file)
+    data,weights=grep_kpoints_energies(file,filetype=filetype)
+    energies=data[:,3:]  #Remove the Kpoint info
+    STATES,KPOINTS,ENERGIES,PROJS=grep_kpoints_energies_projections(proj_file,proj_filetype)
+    if np.shape(energies) != np.shape(ENERGIES):
+        print('Files not compatible')
+        quit()
+    PROJ_SUM,number=sum_projections(STATES,PROJS,filetype=proj_filetype) #SUM[K,E] energy level E in kpoint K
+    print(number)
+    n_bands=len(ENERGIES[0])
+    for w in weights:
+        try:
+            W=np.vstack((W,np.ones(n_bands)*w))
+        except NameError:
+            W=np.ones(n_bands)*w
+    WEIGHTS=W*PROJ_SUM #Kpoints weights * projection for each energy at each k point
+    #SORT Energies and Weights
+    s=np.shape(WEIGHTS)[0]*np.shape(WEIGHTS)[1]
+    D=ENERGIES.reshape((s))
+    W=WEIGHTS.reshape((s))
+    sort=np.argsort(D)
+    D=D[sort]-fermi
+    W=W[sort]
+    #Compute DOS
+    if window==None:
+        energies=np.linspace(D[0],D[-1],steps)
+    elif type(window) is int or type(window) is float:
+        energies=np.linspace(-window,window,steps)
+    else:
+        energies=np.linspace(window[0],window[1],steps)
+    DOS=[]
+    for E in energies:
+        dos=0
+        m=np.argmax(D>=E-precision*smearing)
+        M=np.argmin(D<=E+precision*smearing)
+        for i,e in enumerate(D[m:M]):
+            dos=dos+normal_dist(e,E,smearing)*W[i+m]
+        DOS=DOS+[dos]
+    return energies,DOS
+
 def grep_number_of_bands(file,window=None,fermi=None,filetype=None,silent=True):
     """Counts the number of bands in an energy window for all file types supported by grep_kpoints_energies and .gnu files from QE. (It counts them in the first k-point)
 
@@ -851,12 +928,12 @@ def grep_electron_phonon_nesting(file,return_star=True,filetype=None):
         print('FILE NOT SOPPORTED')
     return POINTS, NESTING, FREQS, LAMBDAS, GAMMAS
 
-def grep_energies_kpoints_projections(filename,filetype):
+def grep_kpoints_energies_projections(filename,filetype=None):
     """Grep the kpoints and energies and projections, it outputs per rows:
 
-    filename = File with the bands
-    filetype = qe (quantum espresso proj.pwo)
-               vasp (VASP PROCAR file)
+    filename = File with the projected bands
+    filetype = qe_proj_out (quantum espresso proj.pwo)
+               procar (VASP PROCAR file)
 
     returns STATES, KPOINTS, ENERGIES, PROJECTIONS
 
@@ -874,9 +951,11 @@ def grep_energies_kpoints_projections(filename,filetype):
         PROJECTIONS[k,e,s] = Projection of energy level "e" of kpoint "k" over state number "s"
     """
     lines=open(filename,'r')
+    if filetype==None:
+        filetype = grep_filetype(filename)
     READ_PROJ=False
     READ_STATES=False
-    if filetype=='qe':
+    if filetype=='qe_proj_out':
         for i,line in enumerate(lines):
             # BASIC LIMITS OF THE DATA
             if re.search('natomwfc',line):
@@ -927,7 +1006,7 @@ def grep_energies_kpoints_projections(filename,filetype):
                     proj=float(split[0])
                     index=int(split[1])-1
                     PROJS[k,e,index]=proj
-    elif filetype=='vasp':
+    elif filetype=='procar':
         for i,line in enumerate(lines):
             # BASIC LIMITS OF THE DATA
             if re.search('k-points',line):
@@ -966,6 +1045,8 @@ def grep_energies_kpoints_projections(filename,filetype):
                 n=len(projs)
                 PROJS[k,e,p:p+n]=projs
                 p=p+n
+        else:
+            print('File format not suported, check grep_filetype output')
     return STATES,KPOINTS,ENERGIES,PROJS
 
 
@@ -980,8 +1061,8 @@ def sum_projections(STATES,PROJECTIONS,filetype,species=None,l=None,j=None,mj=No
             - with j being 0(total),1(x),2(y),3(z)
     PROJECTIONS = output from grep_energies_kpoints_projections.
         PROJECTIONS[k,e,s] = Projection of energy level "e" of kpoint "k" over state number "s"
-    filetype = qe (quantum espresso proj.pwo)
-               vasp (VASP PROCAR file)
+    filetype = qe_proj_out (quantum espresso proj.pwo)
+               procar (VASP PROCAR file)
     species = list of atomic species ['Bi','Se'...]
     l = list of orbital atomic numbers:
         qe: [0, 1, 2]
@@ -1006,14 +1087,14 @@ def sum_projections(STATES,PROJECTIONS,filetype,species=None,l=None,j=None,mj=No
         j=[j]
     if type(mj) != list:
         mj=[mj]
-    if filetype=='qe':
+    if filetype=='qe_proj_out':
         for i,s in enumerate(STATES):
             if s[1] in species or species[0]==None:
                 if s[3] in l or l[0]==None:
                     if s[4] in j or j[0]==None:
                         if s[5] in mj or mj[0]==None:
                             indices=indices+[i]
-    elif filetype=='vasp':
+    elif filetype=='procar':
         vasp2l={'s':0,'py':1,'pz':2,'px':3,'dxy':4,'dyz':5,'dz2':6,'dxz':7,'dx2-y2':8,'x2-y2':8}
         l=[vasp2l[x] for x in l]
         for i,s in enumerate(STATES):
