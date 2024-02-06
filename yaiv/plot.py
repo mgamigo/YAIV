@@ -119,6 +119,82 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
     if axis == None:
         plt.show()
 
+
+def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,filetype=None,proj_filetype=None,
+                  species=None,atoms=None,l=None,j=None,mj=None,title=None,figsize=None,reverse=False,legend=None,color='black',save_as=None,axis=None):
+    """
+    Plots the projected Density Of States
+
+    file = File from which to extract the DOS (scf, nscf, bands)
+    proj_file = File with the projected bands
+    fermi = Fermi level to shift accordingly
+    smearing = Smearing of your normal distribution around each energy
+    window = energy window in which to compute the DOS
+    steps = Number of values for which to compute the DOS
+    precision = Truncation of your normal distrib (truncated from precision*smearing)
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
+               vaps (VASP OUTCAR file)
+               eigenval (VASP EIGENVAL file)
+    proj_filetype = qe_proj_out (quantum espresso proj.pwo)
+                    procar (VASP PROCAR file)
+    species = list of atomic species ['Bi','Se'...]
+    atoms = list with atoms index [1,2...]
+    l = list of orbital atomic numbers:
+        qe: [0, 1, 2]
+        vasp: ['s','px','py','dxz']  (as written in POSCAR)
+    j = total angular mometum. (qe only)
+    mj = m_j state. (qe only)
+    title = 'Your nice and original title for the plot'
+    figsize = (int,int) => Size and shape of the figure
+    reverse = Bolean switching the DOS and energies axis
+    save_as = 'wathever.format'
+    axis = ax in which to plot, if no axis is present new figure is created
+    """
+    if filetype == None:
+        file = ut.file(file)
+    else:
+        file = ut.file(file,filetype)
+    if fermi == 'auto':
+        fermi=ut.grep_fermi(file.file,silent=True)
+        if fermi == None:
+            fermi=0
+    E,DOSs,LABELS = file.grep_DOS_projected(proj_file,fermi=fermi,smearing=smearing,window=window,steps=steps,
+                                            precision=precision,species=species,atoms=atoms,l=l,j=j,mj=mj)
+    if type(LABELS)!= list:
+        DOSs=[DOSs]
+        LABELS=[legend]
+    
+    if axis == None:
+        fig=plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+    if reverse==False:
+        ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color)
+        for i,L in enumerate(LABELS[1:]):
+            ax.plot(E,DOSs[i+1],'-',label=L)
+        ax.set_xlim(E[0],E[-1])
+        ax.set_yticks([])
+        ax.set_xlabel('energy (eV)')
+        ax.set_ylabel('DOS (a.u)')
+        ax.set_ylim(0,np.max(DOSs[0])*1.1)
+    else:
+        ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color)
+        for i,L in enumerate(LABELS[1:]):
+            ax.plot(DOSs[i+1],E,'-',label=L)
+        ax.set_ylim(E[0],E[-1])
+        ax.set_ylabel('energy (eV)')
+        ax.set_xlabel('DOS (a.u)')
+        ax.set_xticks([])
+        ax.set_xlim(0,np.max(DOSs[0])*1.05)
+    ax.legend()
+    if title!=None:                             #Title option
+        ax.set_title(title)
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
+
 def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
     """Process the bands from various file types with each band separately separated by blank lines
     to a matrix where each column is a band and first column is x axis

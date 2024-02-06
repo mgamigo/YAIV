@@ -97,6 +97,27 @@ class file:
                      steps=steps,precision=precision)
         self.DOS=out
         return out
+
+    def grep_DOS_projected(self,aux_file,fermi='auto',smearing=0.02,window=None,steps=500,precision=3,species=None,atoms=None,l=None,j=None,mj=None):
+        """
+        Grep the projected density of states from a scf or nscf file, together with a proj.pwo or PROCAR file. 
+        For more info check grep_DOS_projected
+        """
+        if self.filetype in ['procar','qe_proj_out']:
+            proj_file=self.file
+            file = aux_file
+        else:
+            proj_file=aux_file
+            file=self.file
+        filetype,proj_filetype=None,None
+        if fermi == 'auto':
+            fermi=grep_fermi(aux_file,silent=True)
+            if fermi==None:
+                fermi=0
+        out = grep_DOS_projected(file,proj_file,fermi,smearing,window,steps,precision,filetype,
+                                 proj_filetype,species,atoms,l,j,mj)
+        self.DOS_projected=out
+        return out
     def grep_number_of_bands(self,window=None,fermi=None,filetype=None,silent=True):
         """
         Counts the number of bands in an energy window
@@ -764,7 +785,7 @@ def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
                 if S[0] in indices[i] and S[3] not in L:
                     L=L+[S[3]]
                     projections=projections+[[None,indices[i],S[3],None,None,species[i]+"_"+wp+"_l="+str(S[3])]]
-        projections=projections+[[None,None,None,None,None,'Total']]
+        projections=[[None,None,None,None,None,'Total']]+projections
     else:
         projections=[[species,atoms,l,j,mj,'Custom_sum']]
 
