@@ -98,7 +98,7 @@ class file:
         self.DOS=out
         return out
 
-    def grep_DOS_projected(self,aux_file,fermi='auto',smearing=0.02,window=None,steps=500,precision=3,species=None,atoms=None,l=None,j=None,mj=None):
+    def grep_DOS_projected(self,aux_file,fermi='auto',smearing=0.02,window=None,steps=500,precision=3,species=None,atoms=None,l=None,j=None,mj=None,silent=False):
         """
         Grep the projected density of states from a scf or nscf file, together with a proj.pwo or PROCAR file. 
         For more info check grep_DOS_projected
@@ -115,7 +115,7 @@ class file:
             if fermi==None:
                 fermi=0
         out = grep_DOS_projected(file,proj_file,fermi,smearing,window,steps,precision,filetype,
-                                 proj_filetype,species,atoms,l,j,mj)
+                                 proj_filetype,species,atoms,l,j,mj,silent)
         self.DOS_projected=out
         return out
     def grep_number_of_bands(self,window=None,fermi=None,filetype=None,silent=True):
@@ -725,7 +725,8 @@ def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filety
         DOS=DOS+[dos]
     return energies,DOS
 
-def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filetype=None,proj_filetype=None,species=None,atoms=None,l=None,j=None,mj=None):
+def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filetype=None,proj_filetype=None,
+                       species=None,atoms=None,l=None,j=None,mj=None,silent=False):
     """
     Grep the projected density of states from a scf or nscf file, together with a proj.pwo or PROCAR file. 
     If you do not ask for specific projections, it will decompose the DOS into different orbitals of different Wyckoff positions.
@@ -751,6 +752,7 @@ def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
         vasp: ['s','px','py','dxz']  (as written in POSCAR)
     j = total angular mometum. (qe only)
     mj = m_j state. (qe only)
+    silent = Booleand controling whether you want text output
     """
     if filetype==None:
         filetype = grep_filetype(file)
@@ -775,7 +777,8 @@ def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
     D=D[sort]-fermi
 
     if species==None and atoms==None and l==None and j==None and mj==None:
-        print('Decomposing per Wyckoff positions')
+        if silent==False:
+            print('Decomposing per Wyckoff positions')
         projections=[]
         species,indep_WP,positions,indices=cell.wyckoff_positions(file)
         indices=np.array(indices)+1
@@ -792,7 +795,8 @@ def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
     DOSs,LABELS=[],[]
     for P in projections:
         PROJ_SUM,number=sum_projections(STATES,PROJS,proj_filetype,species=P[0],atoms=P[1],l=P[2],j=P[3],mj=P[4]) #SUM[K,E] energy level E in kpoint K
-        print(number,'satates summed')
+        if silent==False:
+            print(number,'satates summed')
         W=WEIGHTS*PROJ_SUM #Kpoints weights * projection for each energy at each k point
         #SORT Weights
         W=W.reshape((size))
