@@ -105,6 +105,8 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
         ax.set_ylabel('DOS (a.u)')
         ax.set_yticks([])
         ax.set_ylim(0,np.max(D)*1.1)
+        if fermi!=None:                       #Fermi energy
+            ax.axvline(y=0,color='black',linewidth=0.4)
     else:
         ax.plot(D,E,'-',color=color,label=legend)
         ax.set_ylim(E[0],E[-1])
@@ -112,6 +114,8 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
         ax.set_xlabel('DOS (a.u)')
         ax.set_xticks([])
         ax.set_xlim(0,np.max(D)*1.05)
+        if fermi!=None:                       #Fermi energy
+            ax.axhline(y=0,color='black',linewidth=0.4)
     if title!=None:                             #Title option
         ax.set_title(title)
     if save_as!=None:                             #Saving option
@@ -180,6 +184,8 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
         ax.set_xlabel('energy (eV)')
         ax.set_ylabel('DOS (a.u)')
         ax.set_ylim(0,np.max(DOSs[0])*1.1)
+        if fermi!=None:                       #Fermi energy
+            ax.axvline(y=0,color='black',linewidth=0.4)
     else:
         ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color)
         for i,L in enumerate(LABELS[1:]):
@@ -189,6 +195,8 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
         ax.set_xlabel('DOS (a.u)')
         ax.set_xticks([])
         ax.set_xlim(0,np.max(DOSs[0])*1.05)
+        if fermi!=None:                       #Fermi energy
+            ax.axhline(y=0,color='black',linewidth=0.4)
     ax.legend()
     if title!=None:                             #Title option
         ax.set_title(title)

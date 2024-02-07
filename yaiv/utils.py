@@ -775,19 +775,21 @@ def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
     D=ENERGIES.reshape((size))
     sort=np.argsort(D)
     D=D[sort]-fermi
+    dic={0:'s',1:'p',2:'d',3:'f'}
 
     if species==None and atoms==None and l==None and j==None and mj==None:
         if silent==False:
             print('Decomposing per Wyckoff positions')
         projections=[]
         species,indep_WP,positions,indices=cell.wyckoff_positions(file)
-        indices=np.array(indices)+1
+        indices = [[x+1 for x in y] for y in indices] #Add one to all indices (atoms starts in 1)
         for i,wp in enumerate(indep_WP):
             L=[]
             for S in STATES:
                 if S[0] in indices[i] and S[3] not in L:
                     L=L+[S[3]]
-                    projections=projections+[[None,indices[i],S[3],None,None,species[i]+"_"+wp+"_l="+str(S[3])]]
+                    label=species[i]+'('+wp+','+dic[S[3]]+')'
+                    projections=projections+[[None,indices[i],S[3],None,None,label]]
         projections=[[None,None,None,None,None,'Total']]+projections
     else:
         projections=[[species,atoms,l,j,mj,'Custom_sum']]
