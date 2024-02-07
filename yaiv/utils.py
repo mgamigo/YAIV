@@ -527,6 +527,56 @@ def grep_stress_tensor(file,kbar=False):
         stress=stress*(const.Ry2jul/(const.bohr2metre**3))*const.pas2bar/1000
     return stress
 
+def grep_number_of_bands(file,window=None,fermi=None,filetype=None,silent=True):
+    """Counts the number of bands in an energy window for all file types supported by grep_kpoints_energies and .gnu files from QE. (It counts them in the first k-point)
+
+    file = File from in which you want to count the bands.
+    window = Window of energies where you want to count the number of bands
+    fermi = Fermi energy for applying such shift to energies
+    silent = No text output
+    filetype =Should be detected automatically, but it supports all file types supported by grep_kpoints_energies and .gnu files from QE
+    
+    return bands
+    """
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
+    if filetype=='data':
+        data=np.loadtxt(fname=file)
+        data=data[:,:2]         #select the first two columns to process (for wannier tools)
+        rows=1
+        position=data[rows,0]
+        while position!=0:     #counter will tell me how many points are in the x axis, number of rows
+            rows=rows+1
+            position=data[rows,0]
+        columns=int(2*data.shape[0]/rows)
+        data=np.reshape(data,(rows,columns),order='F')
+        final_columns=int(columns/2-1)
+        data=np.delete(data,np.s_[0:final_columns],1)
+    else:
+        data=grep_kpoints_energies(file,filetype=filetype)[0][:,2:]
+
+    if fermi==None:
+        fermi=grep_fermi(file)
+        if fermi==None:
+            fermi=0
+
+    #The actual calculation
+    if window==None:
+        bands=data.shape[1]-1
+        if silent==False:
+            print("the total number of bands is",bands)
+    else:
+        bands=0
+        first_q=data[0,1:]-fermi
+        for item in first_q:
+            if item>=window[0] and item<=window[1]:
+                bands=bands+1
+        if silent==False:
+            print("The number of bands between",str(window[0])+"eV and",str(window[1])+"eV is",bands)
+    return bands
+
 def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
     """Process the kpoints, energies and weights for different file kinds.
     returns energies, weights
@@ -825,55 +875,6 @@ def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
         LABELS=LABELS[0]
     return energies, DOSs, LABELS
 
-def grep_number_of_bands(file,window=None,fermi=None,filetype=None,silent=True):
-    """Counts the number of bands in an energy window for all file types supported by grep_kpoints_energies and .gnu files from QE. (It counts them in the first k-point)
-
-    file = File from in which you want to count the bands.
-    window = Window of energies where you want to count the number of bands
-    fermi = Fermi energy for applying such shift to energies
-    silent = No text output
-    filetype =Should be detected automatically, but it supports all file types supported by grep_kpoints_energies and .gnu files from QE
-    
-    return bands
-    """
-    if filetype == None:
-        filetype = grep_filetype(file)
-    else:
-        filetype=filetype.lower()
-    if filetype=='data':
-        data=np.loadtxt(fname=file)
-        data=data[:,:2]         #select the first two columns to process (for wannier tools)
-        rows=1
-        position=data[rows,0]
-        while position!=0:     #counter will tell me how many points are in the x axis, number of rows
-            rows=rows+1
-            position=data[rows,0]
-        columns=int(2*data.shape[0]/rows)
-        data=np.reshape(data,(rows,columns),order='F')
-        final_columns=int(columns/2-1)
-        data=np.delete(data,np.s_[0:final_columns],1)
-    else:
-        data=grep_kpoints_energies(file,filetype=filetype)[0][:,2:]
-
-    if fermi==None:
-        fermi=grep_fermi(file)
-        if fermi==None:
-            fermi=0
-
-    #The actual calculation
-    if window==None:
-        bands=data.shape[1]-1
-        if silent==False:
-            print("the total number of bands is",bands)
-    else:
-        bands=0
-        first_q=data[0,1:]-fermi
-        for item in first_q:
-            if item>=window[0] and item<=window[1]:
-                bands=bands+1
-        if silent==False:
-            print("The number of bands between",str(window[0])+"eV and",str(window[1])+"eV is",bands)
-    return bands
 
 def grep_frequencies(file,return_star=True,filetype=None):
     """
@@ -1113,70 +1114,6 @@ def grep_kpoints_energies_projections(filename,filetype=None):
     return STATES,KPOINTS,ENERGIES,PROJS
 
 
-def sum_projections(STATES,PROJECTIONS,filetype,species=None,atoms=None,l=None,j=None,mj=None):
-    """
-    Sums projections obtained by grep_energies_kpoints_projections:
-    
-    STATES = output from grep_energies_kpoints_projections.
-        qe: [# ion, species, wfc, l, j, m_j ]
-        vasp: [# ion, species, orbital, σ_j] 
-            - with orbital being [s,py,pz,px,dxy,dyz,dz2,dxz,dx2-y2]
-            - with j being 0(total),1(x),2(y),3(z)
-    PROJECTIONS = output from grep_energies_kpoints_projections.
-        PROJECTIONS[k,e,s] = Projection of energy level "e" of kpoint "k" over state number "s"
-    filetype = qe_proj_out (quantum espresso proj.pwo)
-               procar (VASP PROCAR file)
-    species = list of atomic species ['Bi','Se'...]
-    atoms = list with atoms index [1,2...]
-    l = list of orbital atomic numbers:
-        qe: [0, 1, 2]
-        vasp: ['s','px','py','dxz']  (as written in POSCAR)
-    j = total angular mometum. (qe only)
-    m_j = m_j state. (qe only)
-
-    return SUM, number
-    
-    *******************************
-
-    SUM = total sum of the projections
-        SUM[k,e] = Sum for energy level "e" of kpoint "k".
-    number = number of states that were summed
-    """
-    indices=[]
-    if type(species) != list and type(species).__module__!= np.__name__:
-        species=[species]
-    if type(atoms) != list and type(atoms).__module__!= np.__name__:
-        atoms=[atoms]
-    if type(l) != list and type(l).__module__!= np.__name__:
-        l=[l]
-    if type(j) != list and type(j).__module__!= np.__name__:
-        j=[j]
-    if type(mj) != list and type(mj).__module__!= np.__name__:
-        mj=[mj]
-    if filetype=='qe_proj_out':
-        for i,s in enumerate(STATES):
-            if s[1] in species or species[0]==None:
-                if s[0] in atoms or atoms[0]==None:
-                    if s[3] in l or l[0]==None:
-                        if s[4] in j or j[0]==None:
-                            if s[5] in mj or mj[0]==None:
-                                indices=indices+[i]
-    elif filetype=='procar':
-        vasp2l={'s':0,'py':1,'pz':2,'px':3,'dxy':4,'dyz':5,'dz2':6,'dxz':7,'dx2-y2':8,'x2-y2':8}
-        l=[vasp2l[x] for x in l]
-        for i,s in enumerate(STATES):
-            if s[1] in species or species[0]==None:
-                if s[0] in atoms or atoms[0]==None:
-                    if s[2] in l or l[0]==None:
-                        if s[3]==0: #not sum for σ_j=(1,2,3)
-                            indices=indices+[i]
-    for i in indices:
-        try:
-            OUT=OUT+PROJECTIONS[:,:,i]
-        except NameError:
-            OUT=PROJECTIONS[:,:,i]
-    number=len(indices)
-    return OUT,number
 
 #& Transformation tools----------------------------------------------------------------
 
@@ -1287,3 +1224,128 @@ def lorentzian_dist(x , center , hwhm, A=1):
     """
     OUT=A*(1/np.pi)*hwhm/((x-center)**2+hwhm**2)
     return OUT
+
+#& Postprocessing functions----------------------------------------------------------------
+
+def integrate_DOS(data,fermi,filetype=None,shift=None,doping=None,force_positive=False):
+    """Integrates the density of states for different purposes
+    data = file from which to read the DOS or DOS itself as given by grep_DOS.
+    fermi = Energy up to which the integration is done.
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
+               outcar (VASP OUTCAR file)
+               eigenval (VASP EIGENVAL file)
+               data file (as generated when running the plot.pdos QE routine)
+    force_positive = The DOS may be negative with certain smearings, do you want to force it to be positive?
+
+    This method serves a couple of porpuses and depending on the input gives different output. The integration is done with the trapezoidal method.
+    JUST INTEGRATION
+        returns the integrated DOS (aka number of electrons)
+    Looking to shift the fermi level?
+        shift = Float with the desired shift in the Fermi level
+        returns the necessary doping per cell (negative being electron doping)
+    Looking to achieve certain doping?
+        doping = Doping per cell (in electron units) (negative being electron doping)
+        returns = Stimated Fermi level for that doping
+    """
+#    if type(data)==str:
+    data=np.loadtxt(data)
+    #Force possitive DOS
+    if force_positive==True:
+        for i,num in enumerate(data[:,1]):
+            if num<0:
+                data[i,1]=0
+                
+    #Compute number of electrons up to charge neutrality        
+    for i,num in enumerate(data[:,0]):
+        if num>fermi:
+            limit=i
+            break
+    num_elec=np.trapz(data[:limit,1],data[:limit,0])
+    
+    #If you are looking for doping in order to achieve certain shift in the Fermi level
+    if shift!=None:
+        for i,num in enumerate(data[:,0]):
+            if num>fermi+shift:
+                limit=i
+                break
+        doping=num_elec-np.trapz(data[:limit,1],data[:limit,0])
+        return doping
+    #If you want to predict the chemical potential shift from certain doping
+    if doping!=None:
+        tota_elec=num_elec-doping
+        low=0
+        for limit,dum in enumerate(data[:,0]):
+            elec=np.trapz(data[:limit,1],data[:limit,0])
+            high=data[limit,0]
+            if elec>=tota_elec:
+                break
+            else:
+                low=high
+        return low+(high-low)/2
+    return num_elec
+
+
+def sum_projections(STATES,PROJECTIONS,filetype,species=None,atoms=None,l=None,j=None,mj=None):
+    """
+    Sums projections obtained by grep_energies_kpoints_projections:
+    
+    STATES = output from grep_energies_kpoints_projections.
+        qe: [# ion, species, wfc, l, j, m_j ]
+        vasp: [# ion, species, orbital, σ_j] 
+            - with orbital being [s,py,pz,px,dxy,dyz,dz2,dxz,dx2-y2]
+            - with j being 0(total),1(x),2(y),3(z)
+    PROJECTIONS = output from grep_energies_kpoints_projections.
+        PROJECTIONS[k,e,s] = Projection of energy level "e" of kpoint "k" over state number "s"
+    filetype = qe_proj_out (quantum espresso proj.pwo)
+               procar (VASP PROCAR file)
+    species = list of atomic species ['Bi','Se'...]
+    atoms = list with atoms index [1,2...]
+    l = list of orbital atomic numbers:
+        qe: [0, 1, 2]
+        vasp: ['s','px','py','dxz']  (as written in POSCAR)
+    j = total angular mometum. (qe only)
+    m_j = m_j state. (qe only)
+
+    return SUM, number
+    
+    *******************************
+
+    SUM = total sum of the projections
+        SUM[k,e] = Sum for energy level "e" of kpoint "k".
+    number = number of states that were summed
+    """
+    indices=[]
+    if type(species) != list and type(species).__module__!= np.__name__:
+        species=[species]
+    if type(atoms) != list and type(atoms).__module__!= np.__name__:
+        atoms=[atoms]
+    if type(l) != list and type(l).__module__!= np.__name__:
+        l=[l]
+    if type(j) != list and type(j).__module__!= np.__name__:
+        j=[j]
+    if type(mj) != list and type(mj).__module__!= np.__name__:
+        mj=[mj]
+    if filetype=='qe_proj_out':
+        for i,s in enumerate(STATES):
+            if s[1] in species or species[0]==None:
+                if s[0] in atoms or atoms[0]==None:
+                    if s[3] in l or l[0]==None:
+                        if s[4] in j or j[0]==None:
+                            if s[5] in mj or mj[0]==None:
+                                indices=indices+[i]
+    elif filetype=='procar':
+        vasp2l={'s':0,'py':1,'pz':2,'px':3,'dxy':4,'dyz':5,'dz2':6,'dxz':7,'dx2-y2':8,'x2-y2':8}
+        l=[vasp2l[x] for x in l]
+        for i,s in enumerate(STATES):
+            if s[1] in species or species[0]==None:
+                if s[0] in atoms or atoms[0]==None:
+                    if s[2] in l or l[0]==None:
+                        if s[3]==0: #not sum for σ_j=(1,2,3)
+                            indices=indices+[i]
+    for i in indices:
+        try:
+            OUT=OUT+PROJECTIONS[:,:,i]
+        except NameError:
+            OUT=PROJECTIONS[:,:,i]
+    number=len(indices)
+    return OUT,number
