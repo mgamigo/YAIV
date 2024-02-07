@@ -1252,6 +1252,22 @@ def spherical2cryst(coord,cryst_basis,degrees=False):
     cryst=cartesian2cryst(xyz,cryst_basis)
     return cryst
 
+def rotation(phi,u,radians=False):
+    """
+    Rotation matrix for an angle phi in a direction u
+    """
+    if radians==False:
+        phi=(phi/360)*2*np.pi
+    u=u/np.linalg.norm(u)
+    x,y,z=u
+    sin=np.sin(phi)
+    cos=np.cos(phi)
+    R=np.array(
+    [[cos+(x**2)*(1-cos),x*y*(1-cos)-z*sin,x*z*(1-cos)+y*sin],
+     [y*x*(1-cos)+z*sin,cos+(y**2)*(1-cos),y*z*(1-cos)-x*sin],
+     [z*x*(1-cos)-y*sin,z*y*(1-cos)+x*sin,cos+(z**2)*(1-cos)]]
+    )
+    return R
 
 #& Usefull functions----------------------------------------------------------------
 

@@ -1014,17 +1014,25 @@ def read_energy_surf_data(folder,relative=True):
 
     # Read the surf.txt file with the info about the configuration
     lattice, atoms, positions, masses, alat, boundary,supercell, OPs, SGs, displacements = __read_energy_surf_data_txt(folder+'/surf.txt')
-    m=100
+    m,CELL=100,None
     for i,OP in enumerate(OPs):
         n = np.linalg.norm(OP)
         if n < m:
             m,j=n,i
-        e=ut.grep_total_energy(folder+'/'+str(i)+'.pwo',meV=True)
+        file=folder+'/'+str(i)+'.pwo'
+        N=len(cell.read_spg(file)[1])
+        e=ut.grep_total_energy(file,meV=True)/N
         try:
             energies=np.hstack((energies,e))
         except NameError:
             energies=e
-    energies=energies/np.prod(supercell)
+        if n==0:
+            CELL=N
+    if CELL==None:
+        print('Order parameter = 0 not detected => Energies in meV per atom')
+    else:
+        print('Order parameter = 0 detected => Energies in meV/cell, with cell having',CELL,'atoms')
+        energies=energies*CELL
     if relative == True:
         energies = energies - energies[j]
     return lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements

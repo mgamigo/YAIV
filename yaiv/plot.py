@@ -106,7 +106,7 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
         ax.set_yticks([])
         ax.set_ylim(0,np.max(D)*1.1)
         if fermi!=None:                       #Fermi energy
-            ax.axvline(y=0,color='black',linewidth=0.4)
+            ax.axvline(x=0,color='black',linewidth=0.4)
     else:
         ax.plot(D,E,'-',color=color,label=legend)
         ax.set_ylim(E[0],E[-1])
@@ -126,7 +126,7 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
 
 def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,filetype=None,proj_filetype=None,
                   species=None,atoms=None,l=None,j=None,mj=None,title=None,figsize=None,reverse=False,legend=None,color='black',
-                  save_as=None,axis=None,silent=False):
+                  save_as=None,axis=None,silent=False,fill=True,linewidth=1.0):
     """
     Plots the projected Density Of States
 
@@ -152,9 +152,13 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     title = 'Your nice and original title for the plot'
     figsize = (int,int) => Size and shape of the figure
     reverse = Bolean switching the DOS and energies axis
+    legend = label for the plot
+    color = matplotlib color for the line
     save_as = 'wathever.format'
     axis = ax in which to plot, if no axis is present new figure is created
     silent = Boolean controling whether you want text output
+    fill = Boolean controling whether you want to fill the DOS
+    linewidht = linewidth of the lines
     """
     if filetype == None:
         file = ut.file(file)
@@ -176,20 +180,36 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     else:
         ax=axis
     if reverse==False:
-        ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color)
+        if len(LABELS)==1 and fill==True:
+            ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color,linewidth=linewidth)
+            ax.fill_between(E,DOSs[0],color=color,alpha=0.5)
+        else:
+            ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color,linewidth=linewidth)
         for i,L in enumerate(LABELS[1:]):
-            ax.plot(E,DOSs[i+1],'-',label=L)
+            if fill==True:
+                ax.plot(E,DOSs[i+1],'-',linewidth=linewidth)
+                ax.fill_between(E,DOSs[i+1],'-',label=L,alpha=0.5)
+            else:
+                ax.plot(E,DOSs[i+1],'-',label=L)
         ax.set_xlim(E[0],E[-1])
         ax.set_yticks([])
         ax.set_xlabel('energy (eV)')
         ax.set_ylabel('DOS (a.u)')
         ax.set_ylim(0,np.max(DOSs[0])*1.1)
         if fermi!=None:                       #Fermi energy
-            ax.axvline(y=0,color='black',linewidth=0.4)
+            ax.axvline(x=0,color='black',linewidth=0.4)
     else:
-        ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color)
+        if len(LABELS)==1 and fill==True:
+            ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color,linewidth=linewidth)
+            ax.fill_betweenx(DOSs[0],E,color=color,alpha=0.5)
+        else:
+            ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color,linewidth=linewidth)
         for i,L in enumerate(LABELS[1:]):
-            ax.plot(DOSs[i+1],E,'-',label=L)
+            if fill==True:
+                ax.plot(DOSs[i+1],E,'-',linewidth=linewidth)
+                ax.fill_betweenx(E,DOSs[i+1],label=L,alpha=0.5)
+            else:
+                ax.plot(DOSs[i+1],E,'-',label=L,linewidth=linewidth)
         ax.set_ylim(E[0],E[-1])
         ax.set_ylabel('energy (eV)')
         ax.set_xlabel('DOS (a.u)')
@@ -197,7 +217,7 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
         ax.set_xlim(0,np.max(DOSs[0])*1.05)
         if fermi!=None:                       #Fermi energy
             ax.axhline(y=0,color='black',linewidth=0.4)
-    ax.legend()
+    ax.legend(loc='upper right',fontsize='small')
     if title!=None:                             #Title option
         ax.set_title(title)
     if save_as!=None:                             #Saving option
@@ -378,9 +398,9 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     #plt.show()
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
-def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=np.array(None),labels=None,
-               fermi=None,window=None,plot_DOS=True,DOS_file='aux',num_elec=None,color=None,filetype=None,figsize=None,legend=None,
-                style=None,plot_ticks=True,linewidth=1,save_as=None,save_raw_data=None,axis=None):
+def bands(file,KPATH=None,aux_file=None,title=None,proj_file=None,vectors=np.array(None),ticks=np.array(None),labels=None,
+               fermi=None,window=None,plot_DOS=True,DOS_file='aux',num_elec=None,color=None,filetype=None,figsize=(8,4),legend=None,
+                style=None,plot_ticks=True,linewidth=1,ratio=0.2,save_as=None,save_raw_data=None,axis=None):
     """Plots the:
         bands.pwo file of a band calculation in Quantum Espresso
         EIGENVALUES file of a VASP calculation
@@ -402,7 +422,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
                    In the case of VASP this is the OUTCAR
 
     However everything may be introduced manually:
-
+    proj_file = procar (VASP) or proj.pwo (QE) from which you want to extract the DOS
     vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
               Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
     ticks = np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
@@ -420,6 +440,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
     style = desired line style (solid, dashed, dotted...)
     plot_ticks = Boolean describing wether you want your ticks and labels
     linewidth = desired line width
+    ratio = Ratio between DOS and bands plot
     save_as = 'wathever.format'
     save_raw_data = 'file.dat' The processed data ready to plot
     axis = ax in which to plot, if no axis is present new figure is created
@@ -462,7 +483,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
         if plot_DOS==False:
             ax = fig.add_subplot(111)
         else:
-            gs = fig.add_gridspec(1, 2, hspace=0, wspace=0,width_ratios=[8, 1])
+            gs = fig.add_gridspec(1, 2, hspace=0, wspace=0,width_ratios=[1-ratio, ratio])
             ax,ax_DOS = gs.subplots(sharex='col', sharey='row')
     else:
         plot_DOS = False
@@ -499,9 +520,12 @@ def bands(file,KPATH=None,aux_file=None,title=None,vectors=np.array(None),ticks=
             fileD=file.file
         else:
             print('ERROR:',DOS_file,"option for DOS_file is not implemented.")
-        DOS(fileD,fermi=fermi,window=window,reverse=True,axis=ax_DOS)
+        if proj_file==None:
+            DOS(fileD,fermi=fermi,window=window,reverse=True,axis=ax_DOS)
+        else:
+            DOS_projected(fileD,proj_file,fermi=fermi,window=window,reverse=True,axis=ax_DOS,silent=True)
         ax_DOS.set_ylabel('')
-        ax_DOS.set_xlabel('')
+        ax_DOS.set_xlabel('DOS')
         
     if title!=None:                             #Title option
         ax.set_title(title)
@@ -887,3 +911,112 @@ def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn
         plt.savefig(save_as, dpi=500)
     if axis == None:
         plt.show()
+
+
+# PLOTTING MISCELLANY----------------------------------------------------------------
+ 
+def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,save_as=None,output=False):
+    """
+    Plots the lattice comparison between different relax procedures, it is usefull to find the best pseudo/interaction matching your system.
+    CAUTION: Be aware that it works in the STANDARDICE CELL convention!!! It will convert the files to compare in such setting.
+    
+    folder = Parent folder from where your relaxation kinds span. (the expected structure is explained below)
+    title = Title for your plot
+    control = File containing your control structure (for example the experimental one)
+    percentile = If control structure is provided, then a percentile error plot is done.
+    axis = ax in which to plot, if no axis is present new figure is created
+    save_as = Path and file type for your plot to be saved
+    output = if true then the procedure returns two lists containing the interactions and the lattice parameters for each kind.
+    
+    ---
+    The folowing folder structure is expected:
+    Parent folder => Interaction1 => relax1 => output.pwo
+                                  => relax2 => output.pwo
+                  => Interaction2 => relax1 => output.pwo
+                                  => relax2 => output.pwo
+                                  => relax3 => output.pwo
+                  ...
+    The code will automatically select the last relaxation iteration's output.
+    """
+    #Grep the kinds of interactions from the respective folders
+    interactions=[]
+    folders=glob.glob(folder+'*')
+    for file in folders:
+        inter=file.split('/')[-1]
+        interactions=interactions+[inter]   
+    
+    #For each interaction take the last relax output (assuming iterative relaxes named as relax<#num>)
+    relax=[]
+    for inter in interactions:
+        relaxes=glob.glob(folder+'/'+inter+'/*/*pwo')
+        relax_iter=0
+        for r in relaxes:
+            new_iter=int(r.split('/')[-2].split('relax')[1])
+            if new_iter>relax_iter:
+                last_relax=r
+        relax=relax+[last_relax]
+    
+    #Read the data (in standardize cell)
+    lattices=[]
+    for file in relax:
+        c=cell.read_spg(file)
+        lattices=lattices+[spg.standardize_cell(c)[0]]
+    
+    if axis == None:
+        fig=plt.figure()
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    #Plot if None experimental (then just plotting the results, not the comparison)
+    if control==None or percentile==False:
+        if control!=None:
+            c_lattice=spg.standardize_cell(cell.read_spg(control))[0]
+            ax.plot(0,np.linalg.norm(c_lattice[2]),'o',color='tab:blue',label='c')
+            ax.plot(0,np.linalg.norm(c_lattice[1]),'o',color='tab:green',label='b')
+            ax.plot(0,np.linalg.norm(c_lattice[0]),'o',color='tab:red',label='a')
+            n=0
+        else:
+            ax.plot(0,np.linalg.norm(lattices[0][2]),'o',color='tab:blue',label='c')
+            ax.plot(0,np.linalg.norm(lattices[0][1]),'o',color='tab:green',label='b')
+            ax.plot(0,np.linalg.norm(lattices[0][0]),'o',color='tab:red',label='a')
+            n=1
+        for i,d in enumerate(lattices[n:]):
+            ax.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue')
+            ax.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green')
+            ax.plot(i+1,np.linalg.norm(d[0]),'o',color='tab:red')
+        
+        ax.set_ylabel('Angstrom')
+        if control==None:
+            ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
+        else:
+            ax.set_xticks(range(len(interactions)+1),labels=['EXP']+interactions,rotation=50)
+
+    #Plot with experimental structure as control (show percentile error)
+    if control!=None and percentile==True:
+        c_lattice=spg.standardize_cell(cell.read_spg(control))[0]
+        c0=np.linalg.norm(c_lattice[0])
+        c1=np.linalg.norm(c_lattice[1])
+        c2=np.linalg.norm(c_lattice[2])
+        ax.axhline(y=0,color='tab:red',linestyle='-',linewidth=0.5)
+        ax.plot(0,(np.linalg.norm(lattices[0][2])-c2)*100/c2,'o',color='tab:blue',label='c')
+        ax.plot(0,(np.linalg.norm(lattices[0][1])-c1)*100/c1,'o',color='tab:green',label='b')
+        ax.plot(0,(np.linalg.norm(lattices[0][0])-c0)*100/c0,'o',color='tab:red',label='a')
+        for i,d in enumerate(lattices[1:]):
+            ax.plot(i+1,(np.linalg.norm(d[2])-c2)*100/c2,'o',color='tab:blue')
+            ax.plot(i+1,(np.linalg.norm(d[1])-c1)*100/c1,'o',color='tab:green')
+            ax.plot(i+1,(np.linalg.norm(d[0])-c0)*100/c0,'o',color='tab:red')
+        ax.set_ylabel('Percentile error (%)')
+        ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
+        
+    if title!=None:
+        ax.set_title(title)
+    ax.legend()
+    ax.grid()
+    if axis == None:
+        plt.tight_layout()
+        plt.show()
+        if save_as!=None:
+            plt.save_as(save_as,dpi=300)
+    if output==True:
+        return interactions,lattices
