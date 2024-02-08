@@ -1206,6 +1206,28 @@ def rotation(phi,u,radians=False):
     )
     return R
 
+def transform_path(KPATH,lattice1,lattice2,decimals=5,save_as=None):
+    """Transforms the KPATH in crystal units to another set of coordinates in order to match paths for structures with different lattices.
+    KPATH = File from which to read the Kpath of as given by utils.file(file).path (QE format):
+            [kx ky kz num_points
+             ... ... .. ... ...]
+    lattice1 = original lattice.
+    lattice2 = lattice after change of coordinates.
+    decimals = Amount of decimals you want.
+    save_as = path in which you may want to save the new path.
+    """
+    #reciprocal vectors in columns
+    rec1=ut.K_basis(lattice1)
+    rec2=ut.K_basis(lattice2)
+    path=ut.file(KPATH).path
+    kpoints=path[:,:3]
+    cart=ut.cryst2cartesian(kpoints,rec1,list_of_vec=True)
+    cryst=ut.cartesian2cryst(cart,rec2,list_of_vec=True)
+    new_path=np.c_[np.around(cryst,decimals),path[:,3]]
+    if save_as!=None:
+        np.savetxt(save_as,new_path,fmt='%-8.5f %-8.5f% -8.5f% -8.0f ')
+    return new_path
+
 #& Usefull functions----------------------------------------------------------------
 
 def normal_dist(x , mean , sd,A=1):
