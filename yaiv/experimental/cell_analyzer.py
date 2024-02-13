@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import spglib as spg
 import re
 import os
+from copy import deepcopy
 
 from ase.io import read, write
 from ase.visualize import view
@@ -401,3 +402,33 @@ def write_struc(crystal,file,primitive=True,conventional=False,silent=True):
         print(CELL)
         positions[:,1:]=np.around(np.array(positions[:,1:],dtype=float),decimals=8)
         print(positions)
+
+
+def enantio_test(c1,c2,precision=0.001):
+    """
+    Fast test to check if the structures are enantiomers, it just inverts the structure and checks whether it can be superimposed over the other...
+    c1 = Cryst struct 1 (either ase or spglib)
+    c2 = Cryst struct 2 (either ase or spglib)
+    precision = maximum distance between alowed between atoms(in crystal units).
+    """
+    if type(c1)!=tuple:
+        c1=cell.ase2spglib(c1)
+    if type(c2)!=tuple:
+        c2=cell.ase2spglib(c2)
+    c1=spg.find_primitive(c1)
+    c2=spg.find_primitive(c2)
+    c1_enant=deepcopy(c1)
+    for i,vec in enumerate(c1_enant[1]):
+        c1_enant[1][i]=-c1_enant[1][i]+np.array([1,1,1])
+    #TEST
+    count=0
+    for elem in c1_enant[1]:
+        for i in c2[1]:
+            #print(np.linalg.norm(elem-i))
+            if np.linalg.norm(elem-i)<precision:
+                #print(elem)
+                count=count+1
+    if count==len(c1[1]):
+        print('They are enantiomers!!!')
+    else:
+        print('They are not!')
