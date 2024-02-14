@@ -1026,12 +1026,11 @@ def read_energy_surf_data(folder,relative=True):
             energies=np.hstack((energies,e))
         except NameError:
             energies=e
-        if n==0:
-            CELL=N
+    CELL=len(spg.find_primitive(cell.read_spg(folder+'/'+str(j)+'.pwo'))[1])
     if CELL==None:
-        print('Order parameter = 0 not detected => Energies in meV per atom')
+        print('Order parameter = not detected => Energies in meV per atom')
     else:
-        print('Order parameter = 0 detected => Energies in meV/cell, with cell having',CELL,'atoms')
+        print('Order parameter = detected => Energies in meV/cell, with cell having',CELL,'atoms')
         energies=energies*CELL
     if relative == True:
         energies = energies - energies[j]
@@ -1045,7 +1044,7 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,pri
     title = 'Your nice and original title for the plot'
     relative = If relative is true then the relative energy respect the undistorted is plotted
     color = string with the color
-    prim_axis = 'ang' or 'd', depending you want it in angstrom or d 'order parameter'
+    prim_axis = 'ang' or 'd' or 'q', depending you want it in angstrom or d 'order parameter' or real q order parameter (with units)
     sec_axis = Whether to add a secondary axis
     grid = (Bolean) It can display an automatic grid in the plot
     axis = Matplotlib axis in which to plot, if no axis is present new figure is created
@@ -1057,6 +1056,9 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,pri
         data=read_energy_surf_data(data,relative=relative)
     lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements = data
     direction = OPs[0]/boundary[0]
+    if prim_axis=='q':
+        norm2=__qe_norm_factor2(displacements[0],masses)*(2*cons.me/cons.u2Kg)*(alat**2) #To Ang * amu^2 units
+        N=np.sqrt(norm2)
     
     if axis == None:
         fig=plt.figure()
@@ -1077,15 +1079,26 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,pri
         return x*largest
     def ang2d(x):
         return x/largest
+    def q2ang(x):
+        return x*largest/N
+    def ang2q(x):
+        return x*N/largest
         
     X=np.linspace(boundary[0],boundary[1],num=len(OPs))
     if prim_axis=='ang':
         X=X*largest
+    elif prim_axis=='q':
+        X=X*N
+    else:
+        X_plot=X
+
     ax.plot(X,energies,'.',label=label,color=color)
     
     ax.set_ylabel("energy difference (meV/cell)")
     if prim_axis=='ang':
         ax.set_xlabel(species+' displacement ($\mathrm{\AA}$)')
+    elif prim_axis=='q':
+        ax.set_xlabel("$q\ \mathrm{(\AA\sqrt{amu})}$")
     else:
         ax.set_xlabel("Order parameter (d)")
 
@@ -1093,6 +1106,9 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,pri
         if prim_axis=='ang':
             secax=ax.secondary_xaxis('top',functions=(ang2d,d2ang))
             secax.set_xlabel("Order parameter (d)")
+        elif prim_axis=='q':
+            secax=ax.secondary_xaxis('top',functions=(q2ang,ang2q))
+            secax.set_xlabel(species+' displacement ($\mathrm{\AA}$)')
         else:
             secax=ax.secondary_xaxis('top',functions=(d2ang,ang2d))
             secax.set_xlabel(species+' displacement ($\mathrm{\AA}$)')
@@ -1216,7 +1232,7 @@ def frozen_phonon_freq(data,trim_points=None,poli_order='automatic'):
     direction = OPs[0]/boundary[0]
     if len(displacements) > 1:
         print('More than one eigenvector... Thus not a well defined eigenvector')
-    norm2=__qe_norm_factor2(displacements[0],masses)*(2*cons.me/cons.u2Kg) #To au units
+    norm2=__qe_norm_factor2(displacements[0],masses)*(2*cons.me/cons.u2Kg) #To alat^2 * amu2 units
 
     X=np.linspace(boundary[0],boundary[1],num=len(OPs))
     #Trim data (remove points that you don't want)
