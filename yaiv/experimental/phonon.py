@@ -1037,7 +1037,7 @@ def read_energy_surf_data(folder,relative=True):
     return lattice, atoms, positions, masses, alat, boundary,supercell, OPs, energies, SGs, displacements
 
 
-def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,prim_axis='ang',sec_axis=True,axis=None,label=None,save_as=None):
+def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,prim_axis='ang',sec_axis=True,axis=None,label=None,markersize=None,save_as=None):
     """Plots the energy landscape data
 
     data = Either the folder containing the energy landscape calculations or the already read data by read_energy_surf_data
@@ -1049,6 +1049,7 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,pri
     grid = (Bolean) It can display an automatic grid in the plot
     axis = Matplotlib axis in which to plot, if no axis is present new figure is created
     label = Label for your plot.
+    markersize = Desired markersize
     save_as = 'name.png' or whatever format
     """
 
@@ -1092,7 +1093,7 @@ def plot_energy_landscape(data,title=None,relative=True,grid=True,color=None,pri
     else:
         X_plot=X
 
-    ax.plot(X,energies,'.',label=label,color=color)
+    ax.plot(X,energies,'.',label=label,color=color,markersize=markersize)
     
     ax.set_ylabel("energy difference (meV/cell)")
     if prim_axis=='ang':
