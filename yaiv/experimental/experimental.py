@@ -253,7 +253,7 @@ def surfdos(file,title=None,only_surfdos=False,axis=None,save_interp=True,colorm
         ax.axhline(y=0,color='gray',linestyle='-',linewidth=0.5)
         for tick in ticks:
             ax.axvline(tick,color='black',linestyle='-',linewidth=0.3)
-    ax.set_ylabel('Energy (eV)')
+    ax.set_ylabel('energy (eV)')
 
     if title!=None:
         ax.set_title(title)
