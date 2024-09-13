@@ -228,7 +228,7 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     if axis == None:
         plt.show()
 
-def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
+def __process_electron_bands(filename,filetype=None,vectors=np.array(None),IgnoreWeight=True):
     """Process the bands from various file types with each band separately separated by blank lines
     to a matrix where each column is a band and first column is x axis
     
@@ -238,6 +238,7 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                data (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)
     vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
               Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
+    IgnoreWeight = Boolean controlling whether points with non-zero weight would be ignored
     """
     filetype=filetype.lower()
 
@@ -334,7 +335,11 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 line=data_lines[num]
                 line=line.split()
                 point1=np.array(line).astype(float)[0:3]
-                coord1=ut.cryst2cartesian(point1,K_vec)
+                weight=float(line[3])
+                if weight == 0 or IgnoreWeight==True:           #Remove weighted points (usefull for HSE and mBJ calculations)
+                    coord1=ut.cryst2cartesian(point1,K_vec)
+                else:
+                    coord1=np.zeros(3)
                 delta=np.linalg.norm(coord1-coord0)
                 if delta>=0.25:                                  #fast fix for broken paths
                     delta=0
@@ -349,11 +354,14 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None)):
                 line=line.split()
                 data[i,band]=line[1]
                 i=i+1
+        if IgnoreWeight==False:                                 #Trim non-necessary points
+            index=np.argwhere(data[:,0]==0)[-1][0]
+            data=data[index:,:]
         data[:,0]=data[:,0]-data[0,0]
     return data
 
 def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(None),fermi=None,color=None,style=None,
-                     linewidth=None,marker=None,legend=None,num_elec=None,save_raw_data=None,ax=None):
+                     linewidth=None,marker=None,legend=None,num_elec=None,IgnoreWeight=True,save_raw_data=None,ax=None):
     """Print the bands given by __process_electron_bands 
     BUT DOES NOT SHOW THE OUTPUT (not plt.show())
     file = Path to the file
@@ -367,11 +375,12 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     color = string with the color for the bands or 'VC' and num_electrons to use blue/red for valence/conduction
     num_elec= Number of electrons
     style = string with the linestyle (solid, dashed, dotted)
+    IgnoreWeight = Boolean controlling whether points with non-zero weight would be ignored
     linewidth = width of the line
     save_raw_data = 'File to save the plotable data'
     ax = ax in which to plot
     """
-    data=__process_electron_bands(file,filetype,vectors)
+    data=__process_electron_bands(file,filetype,vectors,IgnoreWeight)
     if save_raw_data != None:
         np.savetxt(save_raw_data,data)
 
@@ -403,7 +412,7 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
 
 def bands(file,KPATH=None,aux_file=None,title=None,proj_file=None,vectors=np.array(None),ticks=np.array(None),labels=None,
                fermi=None,window=None,plot_DOS=True,DOS_file='aux',num_elec=None,color=None,filetype=None,figsize=(8,4),legend=None,
-                style=None,plot_ticks=True,linewidth=1,ratio=0.2,save_as=None,save_raw_data=None,axis=None):
+                style=None,plot_ticks=True,linewidth=1,ratio=0.2,IgnoreWeight=True,save_as=None,save_raw_data=None,axis=None):
     """Plots the:
         bands.pwo file of a band calculation in Quantum Espresso
         EIGENVALUES file of a VASP calculation
@@ -444,6 +453,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,proj_file=None,vectors=np.arr
     plot_ticks = Boolean describing wether you want your ticks and labels
     linewidth = desired line width
     ratio = Ratio between DOS and bands plot
+    IgnoreWeight = Boolean controlling whether points with non-zero weight would be ignored
     save_as = 'wathever.format'
     save_raw_data = 'file.dat' The processed data ready to plot
     axis = ax in which to plot, if no axis is present new figure is created
@@ -492,7 +502,7 @@ def bands(file,KPATH=None,aux_file=None,title=None,proj_file=None,vectors=np.arr
         plot_DOS = False
         ax=axis
     limits=__plot_electrons(file.file,file.filetype,vectors,ticks,fermi,color=color,num_elec=num_elec,legend=legend,
-                            linewidth=linewidth,save_raw_data=save_raw_data,style=style,ax=ax)
+                            linewidth=linewidth,save_raw_data=save_raw_data,style=style,ax=ax,IgnoreWeight=IgnoreWeight)
 
     ax.set_ylabel('energy (eV)',labelpad=-1)
 
@@ -546,6 +556,7 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
                   styles=['-','--','-.',':'],
                   markers=['','','',''],
                   colors=['tab:blue','tab:red','tab:green','tab:orange'],
+                  IgnoreWeight=True,
                   axis=None):
     """Plots the:
         bands.pwo file of a band calculation in Quantum Espresso
@@ -581,6 +592,7 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
     styles = list with style lines (solid, dashed, dotted...)
     figsize = (int,int) => Size and shape of the figure
     save_as = 'wathever.format'
+    IgnoreWeight = Boolean controlling whether points with non-zero weight would be ignored
     axis = ax in which to plot, if no axis is present new figure is created
     """
     styles=styles*4
@@ -621,7 +633,7 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
         ax = axis
     for num in range(len(files)):
         data_limits=__plot_electrons(files[num],filetypes[num],vectors,ticks,fermi=fermi[num],color=colors[num]
-                                       ,style=styles[num],marker=markers[num],legend=legends[num],ax=ax)
+                                       ,style=styles[num],marker=markers[num],legend=legends[num],IgnoreWeight=IgnoreWeight,ax=ax)
         if num==0:
             limits=data_limits
         else:
