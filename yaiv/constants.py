@@ -4,6 +4,7 @@ Ry2eV = 13.6056980659
 Ry2meV = Ry2eV*1000
 Ry2jul= 2.179872e-18
 eV2cm = 8065.544
+cm2meV=1000/eV2cm
 Ry2cm = Ry2eV*eV2cm
 jul2eV = Ry2eV/Ry2jul
 jul2meV = Ry2meV/Ry2jul

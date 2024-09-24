@@ -7,6 +7,7 @@ import glob
 import spglib as spg
 
 import yaiv.utils as ut
+import yaiv.constants as cons
 import yaiv.experimental.cell_analyzer as cell
 
 # PLOTTING BANDS----------------------------------------------------------------
@@ -711,13 +712,14 @@ def __process_phonon_bands(gnu_file,QE_path):
     return data
 
 def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
-                        color=None,style=None,legend=None,QE_path=None,ax=None):
+                        units='cm-1',color=None,style=None,legend=None,QE_path=None,ax=None):
     """Print the phonons.freq.gp file of matdyn output (Quantum Espresso)
     BUT DOES NOT SHOW THE OUTPUT (not plt.show())
     plot_phonons(file,real_vecs,ticks)
     file=Path to the file
     vectors=np.array([[a1,a2,a3],...,[c1,c2,c3]])
     ticks=np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
+    units= Eiher 'cm-1' or 'meV'
     color = string with the color for the bands or an array with the color for each band
     style = string with the linestyle (solid, dashed, dotted)
     legend = legend to add for the data set
@@ -726,6 +728,8 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
     ax = ax in which to plot
     """
     data=__process_phonon_bands(file,QE_path)
+    if units=='meV':
+        data[:,1:]=data[:,1:]*cons.cm2meV
 
     if vectors.any()!=None and ticks.any()!=None:    #ticks and labels
         ticks=__ticks_generator(vectors,ticks)
@@ -745,7 +749,7 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vectors=np.array(None),
-                ticks=np.array(None),labels=None,save_as=None,figsize=None,color=None,linewidth=1,axis=None):
+                ticks=np.array(None),labels=None,units='cm-1',save_as=None,figsize=None,color=None,linewidth=1,axis=None):
     """Plots phonon spectra provided by Quantum Espresso output 
     (it supports discontinous paths and highlights the computed points)
     Minimal plots can be done with just:
@@ -763,6 +767,7 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
               Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
     ticks=np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
     labels=["$\Gamma$","$X$","$M$","$\Gamma$"]
+    units= Eiher 'cm-1' or 'meV'
     save_as='wathever.format'
     figsize = (int,int) => Size and shape of the figure
     color = linecolor for your plot (it also can be an array with color for each band)
@@ -782,9 +787,11 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
     else:
         ax=axis
 
-    limits=__plot_phonons(file,linewidth,vectors,ticks,color=color,QE_path=ticks,ax=ax)
-
-    ax.set_ylabel('frequency $(\mathrm{cm^{-1}})$')
+    limits=__plot_phonons(file,linewidth,vectors,ticks,units=units,color=color,QE_path=ticks,ax=ax)
+    if units=='cm-1':
+        ax.set_ylabel('frequency $(\mathrm{cm^{-1}})$')
+    if units=='meV':
+        ax.set_ylabel('frequency $(\mathrm{meV})$')
     ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
 
     ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
