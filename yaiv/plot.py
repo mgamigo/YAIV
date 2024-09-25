@@ -831,7 +831,7 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
         plt.show()
 
 def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn_in=None,grid=True,
-                         vectors=np.array(None),ticks=np.array(None),labels=None,save_as=None,
+                         vectors=np.array(None),ticks=np.array(None),labels=None,units='cm-1',save_as=None,
                          colors=['tab:blue','tab:red','tab:green','tab:orange'],
                          styles=['solid','dashed','dashdot','dotted'],linewidth=1,figsize=None,axis=None):
     """Plots phonon spectra provided by Quantum Espresso output 
@@ -852,6 +852,7 @@ def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn
               Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
     ticks=np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
     labels=["$\Gamma$","$X$","$M$","$\Gamma$"]
+    units= Eiher 'cm-1' or 'meV'
     save_as='wathever.format'
     figsize = (int,int) => Size and shape of the figure
     linewidth = linewidth of your plot
@@ -878,7 +879,7 @@ def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn
         ax=axis
 
     for num in range(len(files)):
-        data_limits=__plot_phonons(files[num],linewidth,vectors,ticks,color=colors[num]
+        data_limits=__plot_phonons(files[num],linewidth,vectors,ticks,units=units,color=colors[num]
                                        ,style=styles[num],legend=legends[num],QE_path=ticks,ax=ax)
         if num==0:
             limits=data_limits
@@ -888,7 +889,10 @@ def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn
             limits[2]=min(data_limits[2],limits[2])
             limits[3]=max(data_limits[3],limits[3])
 
-    ax.set_ylabel('frequency $(\mathrm{cm^{-1}})$')
+    if units=='cm-1':
+        ax.set_ylabel('frequency $(\mathrm{cm^{-1}})$')
+    if units=='meV':
+        ax.set_ylabel('frequency $(\mathrm{meV})$')
     ax.axhline(y=0,color='gray',linestyle='--',linewidth=0.4)
 
     ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
