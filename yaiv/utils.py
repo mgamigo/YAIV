@@ -1095,7 +1095,8 @@ def grep_kpoints_energies_projections(filename,filetype=None):
                 READ_PROJ=True
             # DATA SCRAPING
             elif re.search('k-point ',line):
-                k_point=[float(x) for x in line.split()[3:6]]
+                line=plot.__insert_space_before_minus(line)
+                k_point=[float(x) for x in line.split(':')[1].split()[0:3]]
                 k=k+1
                 e=-1
                 KPOINTS[k]=k_point
