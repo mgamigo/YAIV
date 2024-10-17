@@ -315,7 +315,7 @@ def store_structure_QE_pwi(structure,filename,template=None):
         temp.close()
         output.close()
 
-def wyckoff_positions(crystal):
+def wyckoff_positions(crystal,symprec=1e-5):
     """Reads a QE/VASP, ASE or spglib structures and returns the independent Wyckoff positions
 
     indep_symb = A list with the symbols of the independent WP elements
@@ -335,9 +335,9 @@ def wyckoff_positions(crystal):
     else:
         print('Cannot print! Don\'t understand format')
     ASE=spglib2ase(cryst)
-    sym_dataset=spg.get_symmetry_dataset(cryst)
-    equiv=sym_dataset["equivalent_atoms"]
-    WP=sym_dataset["wyckoffs"]
+    sym_dataset=spg.get_symmetry_dataset(cryst,symprec=symprec)
+    equiv=sym_dataset.equivalent_atoms
+    WP=sym_dataset.wyckoffs
     symb=ASE.get_chemical_symbols()
 
     positions=[]

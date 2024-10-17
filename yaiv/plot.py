@@ -130,7 +130,7 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
 
 def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,filetype=None,proj_filetype=None,
                   species=None,atoms=None,l=None,j=None,mj=None,title=None,figsize=None,reverse=False,legend=None,color='black',
-                  save_as=None,axis=None,silent=False,fill=True,linewidth=1.0):
+                  save_as=None,axis=None,silent=False,fill=True,linewidth=1.0,symprec=1e-5):
     """
     Plots the projected Density Of States
 
@@ -163,6 +163,7 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     silent = Boolean controling whether you want text output
     fill = Boolean controling whether you want to fill the DOS
     linewidht = linewidth of the lines
+    symprec = symprec for spglib detection of wyckoff positions
     """
     if filetype == None:
         file = ut.file(file)
@@ -173,7 +174,7 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
         if fermi == None:
             fermi=0
     E,DOSs,LABELS = file.grep_DOS_projected(proj_file,fermi=fermi,smearing=smearing,window=window,steps=steps,
-                                            precision=precision,species=species,atoms=atoms,l=l,j=j,mj=mj,silent=silent)
+                                            precision=precision,species=species,atoms=atoms,l=l,j=j,mj=mj,symprec=symprec,silent=silent)
     if type(LABELS)!= list:
         DOSs=[DOSs]
         LABELS=[legend]
