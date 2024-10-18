@@ -753,7 +753,10 @@ def bands_fat(file,proj_file,KPATH=None,aux_file=None,species=None,atoms=None,l=
         aux_file=ut.file(aux_file)
     if type(proj_file)!=str:
         STATES, KPOINTS, ENERGIES, PROJECTIONS = proj_file
-        
+    else:
+        proj_file=ut.file(proj_file)
+        STATES, KPOINTS, ENERGIES, PROJECTIONS = proj_file.grep_kpoints_energies_projections(proj_file.filetype,IgnoreWeight)
+
     #Select parameters
     if KPATH!=None:
         ticks,labels=KPATH.path,KPATH.labels
@@ -783,7 +786,7 @@ def bands_fat(file,proj_file,KPATH=None,aux_file=None,species=None,atoms=None,l=
 
     data=__process_electron_bands(file.file,file.filetype,vectors,IgnoreWeight)
     limits=__plot_electrons(file.file,file.filetype,vectors,ticks,fermi,color=back_color,linewidth=linewidth,
-                                 style=style,ax=ax,IgnoreWeight=IgnoreWeight,plot=(not only_fat))
+                                 style=style,ax=ax,IgnoreWeight=IgnoreWeight,plot=not only_fat)
 
     K_len=data[:,0]*limits[1]/data[:,0].max()
     ENERGIES=ENERGIES-fermi
@@ -794,9 +797,9 @@ def bands_fat(file,proj_file,KPATH=None,aux_file=None,species=None,atoms=None,l=
     proj=proj.transpose()
     for i,E in enumerate(ENERGIES.transpose()):
         if colormap==True:
-            scatter=ax.scatter(K_len,E+shift,s=proj[i]*size,c=proj[i],cmap=color,alpha=proj[i],vmin=vmin,vmax=vmax)
+            scatter=ax.scatter(K_len,E+shift,s=proj[i]*size,c=proj[i],cmap=color,alpha=proj[i],vmin=vmin,vmax=vmax,edgecolors='none')
         else:
-            ax.scatter(K_len,E+shift,s=proj[i]*size,c=color,alpha=proj[i])
+            ax.scatter(K_len,E+shift,s=proj[i]*size,c=color,alpha=proj[i],edgecolors='none')
     if legend!=None:
         if colormap==True:
             ax.scatter(-1,0,c=0.7,cmap=color,s=20,label=legend,vmin=0,vmax=1)                #Dummy point (outside the plot) for the legend

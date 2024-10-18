@@ -71,7 +71,7 @@ class file:
         self.kpoints_energies=out[0]
         self.kpoints_weights=out[1]
         return out
-    def grep_kpoints_energies_projections(filename,filetype):
+    def grep_kpoints_energies_projections(filename,filetype,IgnoreWeight=True):
         """
         Grep the kpoints and energies and projections
 
@@ -999,12 +999,13 @@ def grep_electron_phonon_nesting(file,return_star=True,filetype=None):
         print('FILE NOT SOPPORTED')
     return POINTS, NESTING, FREQS, LAMBDAS, GAMMAS
 
-def grep_kpoints_energies_projections(filename,filetype=None):
+def grep_kpoints_energies_projections(filename,filetype=None,IgnoreWeight=True):
     """Grep the kpoints and energies and projections, it outputs per rows:
 
     filename = File with the projected bands
     filetype = qe_proj_out (quantum espresso proj.pwo)
                procar (VASP PROCAR file)
+    IgnoreWeight = Boolean controlling whether points with non-zero weight would be ignored
 
     returns STATES, KPOINTS, ENERGIES, PROJECTIONS
 
@@ -1087,6 +1088,7 @@ def grep_kpoints_energies_projections(filename,filetype=None):
                 num_ions=int(l[11])
                 num_states=num_ions*9*4 #ions * (s,pz,px,pz...) * (total,σx,σy,σz)
                 KPOINTS=np.zeros([num_points,3]) # KPOINTS
+                WEIGHTS=np.zeros(num_points) # KPOINTS
                 ENERGIES=np.zeros([num_points,num_bands]) # ENERGIES
                 PROJS=np.zeros([num_points,num_bands,num_states]) # PROJECTIONS
                 STATES=[] # STATES
@@ -1104,9 +1106,11 @@ def grep_kpoints_energies_projections(filename,filetype=None):
             elif re.search('k-point ',line):
                 line=plot.__insert_space_before_minus(line)
                 k_point=[float(x) for x in line.split(':')[1].split()[0:3]]
+                weight=float(line.split('=')[1])
                 k=k+1
                 e=-1
                 KPOINTS[k]=k_point
+                WEIGHTS[k]=weight
             elif re.search('energy',line):
                 energy=float(line.split()[4])
                 e=e+1
@@ -1119,9 +1123,12 @@ def grep_kpoints_energies_projections(filename,filetype=None):
                 p=p+n
     else:
         print('File format not suported, check grep_filetype output')
+    if IgnoreWeight==False:                             #Remove points with non-zero weight
+        remove=np.where(WEIGHTS!=0)
+        KPOINTS=np.delete(KPOINTS,remove,axis=0)
+        ENERGIES=np.delete(ENERGIES,remove,axis=0)
+        PROJS=np.delete(PROJS,remove,axis=0)
     return STATES,KPOINTS,ENERGIES,PROJS
-
-
 
 #& Transformation tools----------------------------------------------------------------
 
