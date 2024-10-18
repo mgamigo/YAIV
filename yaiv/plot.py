@@ -363,7 +363,8 @@ def __process_electron_bands(filename,filetype=None,vectors=np.array(None),Ignor
     return data
 
 def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(None),fermi=None,color=None,style=None,
-                     linewidth=None,marker=None,legend=None,num_elec=None,IgnoreWeight=True,save_raw_data=None,ax=None):
+                     linewidth=None,marker=None,legend=None,num_elec=None,IgnoreWeight=True,save_raw_data=None,ax=None,
+                     plot=True):
     """Print the bands given by __process_electron_bands 
     BUT DOES NOT SHOW THE OUTPUT (not plt.show())
     file = Path to the file
@@ -381,6 +382,7 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     linewidth = width of the line
     save_raw_data = 'File to save the plotable data'
     ax = ax in which to plot
+    plot = Boolean controlling whether you want to plot or not
     """
     data=__process_electron_bands(file,filetype,vectors,IgnoreWeight)
     if save_raw_data != None:
@@ -397,19 +399,14 @@ def __plot_electrons(file,filetype=None,vectors=np.array(None),ticks=np.array(No
     if color=='VC':
         color=['tab:blue','tab:red']
 
-    if type(color)==list:
+    if type(color)==list and plot==True:
         ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=linewidth,color=color[0],label=legend)
         ax.plot(data[:,0],data[:,2:num_elec+1],linestyle=style,marker=marker,linewidth=linewidth,color=color[0])
         ax.plot(data[:,0],data[:,num_elec+1:],linestyle=style,marker=marker,linewidth=linewidth,color=color[1])
-    else:
+    elif plot==True:
         ax.plot(data[:,0],data[:,1],linestyle=style,marker=marker,linewidth=linewidth,color=color,label=legend)
         ax.plot(data[:,0],data[:,2:],linestyle=style,marker=marker,linewidth=linewidth,color=color)
 
-
-    delta_y=data[:,1:].max()-data[:,1:].min()
-    #returns max and min values for y and x of the data sample (usefull for plotting)
-    #x_min,x_max,y_min,y_max
-    #plt.show()
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def bands(file,KPATH=None,aux_file=None,title=None,proj_file=None,vectors=np.array(None),ticks=np.array(None),labels=None,
@@ -677,6 +674,164 @@ def bands_compare(files,KPATH=None,fermi=None,legends=None,title=None,aux_file=N
     if axis == None:
         plt.show()
 
+
+def bands_fat(file,proj_file,KPATH=None,aux_file=None,species=None,atoms=None,l=None,j=None,mj=None,
+          title=None,color='Reds',colormap=True,vmin=0,vmax=1,shift=0,size=50,legend=None,only_fat=False,
+          vectors=np.array(None),ticks=np.array(None),labels=None,fermi=None,window=None,
+          back_color='gray',style=None,linewidth=0.5,filetype=None,proj_filetype=None,
+          figsize=(8,4),plot_ticks=True,
+          IgnoreWeight=True,save_as=None,axis=None):
+    """Plots fat bands over:
+        bands.pwo file of a band calculation in Quantum Espresso
+        EIGENVALUES file of a VASP calculation
+        bands.dat.gnu file of bands postprocessing (Quantum Espresso)
+        band.dat file in Wannier90
+        bulkek.dat in Wanniertools
+
+    Minimal plots can be done with just:
+        file = Path to the file with bandstructure
+        proj_file = File with the projected bands
+                   qe_proj_out (quantum espresso out for projwfc.x)
+                   PROCAR (VASP projections file)
+
+    Two aditional files can be provide to autocomplete almost everything:
+        KPATH = File with PATH and legends for the HSP in the VASP format as provided by topologicalquantumchemistry.fr
+        aux_file = A file from which read the Fermi level, number of electrons and structure.
+                   In the case of QE this would be an scf.pwo of nscf.pwo
+                   In the case of VASP this is the OUTCAR
+    
+    species = list of atomic species ['Bi','Se'...] to project over.
+    atoms = list with atoms index [1,2...] to project over.
+    l = list of orbital atomic numbers to project over:
+        qe: [0, 1, 2]
+        vasp: ['s','px','py','dxz']  (as written in POSCAR)
+    j = total angular mometum of projected states. (qe only)
+    mj = m_j state of projected states. (qe only)
+
+    However everything may be introduced manually:
+    
+    title = 'Your nice and original title for the plot'
+    color = Color for your fat bands
+    colormap = Boolean whether you are inputing a color or a colormap.
+    vmin = Minimum value of a projection for the colormap
+    vmax = Maximum value of a projection for the colormap
+    shift = For plotting multiple projections it is handy to sligtly shift them.
+    size = factor for which the size of projections is mutiplied.
+    legend = Legend for flat bands.
+    only_fat = Boolean controlling whether you want just the fat bands (to overlap over other plot).
+    vectors = np.array([[a1,a2,a3],...,[c1,c2,c3]])
+              Real space lattice vectors in order to convert VASP K points (in crystal coord) to cartesian coord
+    ticks = np.array([[tick1x,tick1y,tick1z],...,[ticknx,tickny,ticknz]])
+            Ticks in your bandstructure (the usual HSP)
+    labels = ["$\Gamma$","$X$","$M$","$\Gamma$"]
+    fermi = Fermi energy in order to shift the band structure accordingly
+    window = Window of energies to plot around Fermi, it can be a single number or 2
+            either window=0.5 or window=[-0.5,0.5] => Same result
+    back_color = Color for your "non-projected" bands
+    style = desired line style (solid, dashed, dotted...)
+    linewidth = desired line width
+    proj_filetype = qe_proj_out (quantum espresso proj.pwo)
+                    procar (VASP PROCAR file)
+    filetype = Filetype of yoru bandstructure
+                   qe (quantum espresso bands.pwo)
+                   EIGENVAL (VASP EIGENVAL file)
+                   data (wannier90 band.dat, wantools bulkek.dat, QE bands.dat.gnu)   
+    figsize = (int,int) => Size and shape of the figure
+    plot_ticks = Boolean describing wether you want your ticks and labels
+    IgnoreWeight = Boolean controlling whether points with non-zero weight would be ignored
+    save_as = 'wathever.format'
+    axis = ax in which to plot, if no axis is present new figure is created
+    """
+    #READ input
+    if filetype == None:
+        file = ut.file(file)
+    else:
+        file = ut.file(file,filetype)
+    if KPATH != None:
+        KPATH=ut.file(KPATH)
+    if aux_file != None:
+        aux_file=ut.file(aux_file)
+    if type(proj_file)!=str:
+        STATES, KPOINTS, ENERGIES, PROJECTIONS = proj_file
+        
+    #Select parameters
+    if KPATH!=None:
+        ticks,labels=KPATH.path,KPATH.labels
+    if file.filetype[:2]=='qe' and aux_file==None:
+        vectors=file.lattice
+
+    if aux_file!=None:
+        v=aux_file.lattice
+        f=aux_file.fermi
+        n=aux_file.electrons
+        if fermi==None:
+            fermi=f
+        if vectors.any()==None:
+            vectors=v
+
+    if fermi!=None:
+        if window==None:
+            window=1
+    else:
+        fermi=0
+
+    if axis == None:
+        fig=plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+    else:
+        ax=axis
+
+    data=__process_electron_bands(file.file,file.filetype,vectors,IgnoreWeight)
+    limits=__plot_electrons(file.file,file.filetype,vectors,ticks,fermi,color=back_color,linewidth=linewidth,
+                                 style=style,ax=ax,IgnoreWeight=IgnoreWeight,plot=(not only_fat))
+
+    K_len=data[:,0]*limits[1]/data[:,0].max()
+    ENERGIES=ENERGIES-fermi
+
+    proj,n = ut.sum_projections(STATES,PROJECTIONS,proj_filetype,species,atoms,l,j,mj)
+    print('(',species, atoms,l,j,mj,') ',n, 'states summed')
+
+    proj=proj.transpose()
+    for i,E in enumerate(ENERGIES.transpose()):
+        if colormap==True:
+            scatter=ax.scatter(K_len,E+shift,s=proj[i]*size,c=proj[i],cmap=color,alpha=proj[i],vmin=vmin,vmax=vmax)
+        else:
+            ax.scatter(K_len,E+shift,s=proj[i]*size,c=color,alpha=proj[i])
+    if legend!=None:
+        if colormap==True:
+            ax.scatter(-1,0,c=0.7,cmap=color,s=20,label=legend,vmin=0,vmax=1)                #Dummy point (outside the plot) for the legend
+        else:
+            ax.scatter(-1,0,c=color,s=20,label=legend)
+            
+    if fermi!=None and only_fat==False:                       #Fermi energy
+        ax.axhline(y=0,color='black',linewidth=0.4)
+        if window!=None:                   #Limits y axis
+            if type(window) is int or type(window) is float:
+                window=[-window,window]
+            ax.set_ylim(window[0],window[1])
+        else:
+            delta_y=limits[3]-limits[2]
+            ax.set_ylim(limits[2]-delta_y*0.05,limits[3]+delta_y*0.1)
+
+    if vectors.any()!=None and ticks.any()!=None and plot_ticks==True and only_fat==False:    #ticks and labels
+        ticks=__ticks_generator(vectors,ticks)
+        if labels != None :
+            ax.set_xticks(ticks,labels)
+        else:
+            ax.set_xticks(ticks)
+        for i in range(1,ticks.shape[0]-1):
+            ax.axvline(ticks[i],color='gray',linestyle='--',linewidth=0.4)
+    if title!=None:                             #Title option
+        ax.set_title(title)
+
+    ax.set_ylabel('energy (eV)',labelpad=-1)
+    ax.set_xlim(limits[0],limits[1])   #Limits in the x axis
+    plt.tight_layout()
+
+    if save_as!=None:                             #Saving option
+        plt.savefig(save_as, dpi=500)
+    if axis == None:
+        plt.show()
 
 # PLOTTING PHONONS----------------------------------------------------------------
 
