@@ -135,7 +135,9 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     Plots the projected Density Of States
 
     file = File from which to extract the DOS (scf, nscf, bands)
-    proj_file = File with the projected bands
+    proj_file = File with the projected bands or output from grep_DOS_projected:
+                    qe_proj_out (quantum espresso proj.pwo)
+                    procar (VASP PROCAR file)
     fermi = Fermi level to shift accordingly
     smearing = Smearing of your normal distribution around each energy
     window = energy window in which to compute the DOS
@@ -144,8 +146,6 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo)
                vaps (VASP OUTCAR file)
                eigenval (VASP EIGENVAL file)
-    proj_filetype = qe_proj_out (quantum espresso proj.pwo)
-                    procar (VASP PROCAR file)
     species = list of atomic species ['Bi','Se'...]
     atoms = list with atoms index [1,2...]
     l = list of orbital atomic numbers:
@@ -173,7 +173,12 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
         fermi=ut.grep_fermi(file.file,silent=True)
         if fermi == None:
             fermi=0
-    E,DOSs,LABELS = file.grep_DOS_projected(proj_file,fermi=fermi,smearing=smearing,window=window,steps=steps,
+    if type(window) is int or type(window) is float:
+        window=[-window,window]
+    if type(proj_file)!=str:
+        E,DOSs,LABELS = proj_file
+    else:
+        E,DOSs,LABELS = file.grep_DOS_projected(proj_file,fermi=fermi,smearing=smearing,window=window,steps=steps,
                                             precision=precision,species=species,atoms=atoms,l=l,j=j,mj=mj,symprec=symprec,silent=silent)
     if type(LABELS)!= list:
         DOSs=[DOSs]
@@ -219,7 +224,10 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
         ax.set_ylabel('energy (eV)')
         ax.set_xlabel('DOS (a.u)')
         ax.set_xticks([])
-        ax.set_xlim(0,np.max(DOSs[0])*1.05)
+        MAX=np.max(DOSs[:,np.where((E>=window[0]) & (E<=window[1]))[0]])
+        ax.set_xlim(0,MAX*1.05)
+        ax.set_ylim(window[0],window[1])
+        
         if fermi!=None:                       #Fermi energy
             ax.axhline(y=0,color='black',linewidth=0.4)
     ax.legend(loc='upper right',fontsize='small')
@@ -690,7 +698,7 @@ def bands_fat(file,proj_file,KPATH=None,aux_file=None,species=None,atoms=None,l=
 
     Minimal plots can be done with just:
         file = Path to the file with bandstructure
-        proj_file = File with the projected bands
+        proj_file = File with the projected bands, or the output from grep_kpoints_energies_projections
                    qe_proj_out (quantum espresso out for projwfc.x)
                    PROCAR (VASP projections file)
 

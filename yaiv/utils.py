@@ -880,7 +880,7 @@ def grep_DOS_projected(file,proj_file,fermi=0,smearing=0.02,window=None,steps=50
     if len(DOSs)==1:
         DOSs=DOSs[0]
         LABELS=LABELS[0]
-    return energies, DOSs, LABELS
+    return energies, np.array(DOSs), LABELS
 
 
 def grep_frequencies(file,return_star=True,filetype=None):
