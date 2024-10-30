@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import re
 import glob
 import spglib as spg
@@ -130,7 +131,7 @@ def DOS(file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,file
 
 def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=500,precision=3,filetype=None,proj_filetype=None,
                   species=None,atoms=None,l=None,j=None,mj=None,title=None,figsize=None,reverse=False,legend=None,color='black',
-                  save_as=None,axis=None,silent=False,fill=True,linewidth=1.0,symprec=1e-5):
+                  save_as=None,axis=None,silent=False,fill=True,alpha=0.5,linewidth=1.0,symprec=1e-5):
     """
     Plots the projected Density Of States
 
@@ -157,11 +158,12 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     figsize = (int,int) => Size and shape of the figure
     reverse = Bolean switching the DOS and energies axis
     legend = label for the plot
-    color = matplotlib color for the line
+    color = matplotlib color for the line, or list of colors for different lines
     save_as = 'wathever.format'
     axis = ax in which to plot, if no axis is present new figure is created
     silent = Boolean controling whether you want text output
     fill = Boolean controling whether you want to fill the DOS
+    alpha = Opaciety of the fill
     linewidht = linewidth of the lines
     symprec = symprec for spglib detection of wyckoff positions
     """
@@ -183,6 +185,8 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
     if type(LABELS)!= list:
         DOSs=[DOSs]
         LABELS=[legend]
+    if type(color)!= list:
+        color = [color]+10*list(mcolors.TABLEAU_COLORS.values())
     
     if axis == None:
         fig=plt.figure(figsize=figsize)
@@ -191,16 +195,16 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
         ax=axis
     if reverse==False:
         if len(LABELS)==1 and fill==True:
-            ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color,linewidth=linewidth)
-            ax.fill_between(E,DOSs[0],color=color,alpha=0.5)
+            ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color[0],linewidth=linewidth)
+            ax.fill_between(E,DOSs[0],color=color[0],alpha=alpha)
         else:
-            ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color,linewidth=linewidth)
+            ax.plot(E,DOSs[0],'-',label=LABELS[0],color=color[0],linewidth=linewidth)
         for i,L in enumerate(LABELS[1:]):
             if fill==True:
-                ax.plot(E,DOSs[i+1],'-',linewidth=linewidth)
-                ax.fill_between(E,DOSs[i+1],'-',label=L,alpha=0.5)
+                ax.plot(E,DOSs[i+1],'-',color=color[i+1],linewidth=linewidth)
+                ax.fill_between(E,DOSs[i+1],'-',color=color[i+1],label=L,alpha=alpha)
             else:
-                ax.plot(E,DOSs[i+1],'-',label=L)
+                ax.plot(E,DOSs[i+1],'-',color=color[i+1],label=L)
         ax.set_xlim(E[0],E[-1])
         ax.set_yticks([])
         ax.set_xlabel('energy (eV)')
@@ -210,16 +214,16 @@ def DOS_projected(file,proj_file,fermi='auto',smearing=0.02,window=[-5,5],steps=
             ax.axvline(x=0,color='black',linewidth=0.4)
     else:
         if len(LABELS)==1 and fill==True:
-            ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color,linewidth=linewidth)
-            ax.fill_betweenx(DOSs[0],E,color=color,alpha=0.5)
+            ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color[0],linewidth=linewidth)
+            ax.fill_betweenx(DOSs[0],E,color=color[0],alpha=alpha)
         else:
-            ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color,linewidth=linewidth)
+            ax.plot(DOSs[0],E,'-',label=LABELS[0],color=color[0],linewidth=linewidth)
         for i,L in enumerate(LABELS[1:]):
             if fill==True:
-                ax.plot(DOSs[i+1],E,'-',linewidth=linewidth)
-                ax.fill_betweenx(E,DOSs[i+1],label=L,alpha=0.5)
+                ax.plot(DOSs[i+1],E,'-',color=color[i+1],linewidth=linewidth)
+                ax.fill_betweenx(E,DOSs[i+1],color=color[i+1],label=L,alpha=alpha)
             else:
-                ax.plot(DOSs[i+1],E,'-',label=L,linewidth=linewidth)
+                ax.plot(DOSs[i+1],E,'-',label=L,color=color[i+1],linewidth=linewidth)
         ax.set_ylim(E[0],E[-1])
         ax.set_ylabel('energy (eV)')
         ax.set_xlabel('DOS (a.u)')
