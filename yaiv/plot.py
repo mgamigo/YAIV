@@ -920,7 +920,7 @@ def __plot_phonons(file,linewidth,vectors=np.array(None),ticks=np.array(None),
     return [data[:,0].min(),data[:,0].max(),data[:,1:].min(),data[:,1:].max()]
 
 def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vectors=np.array(None),
-                ticks=np.array(None),labels=None,units='cm-1',save_as=None,figsize=None,color=None,linewidth=1,axis=None):
+                ticks=np.array(None),labels=None,units='cm-1',save_as=None,figsize=None,color=None,style=None,linewidth=1,legend=None,axis=None):
     """Plots phonon spectra provided by Quantum Espresso output 
     (it supports discontinous paths and highlights the computed points)
     Minimal plots can be done with just:
@@ -942,7 +942,9 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
     save_as='wathever.format'
     figsize = (int,int) => Size and shape of the figure
     color = linecolor for your plot (it also can be an array with color for each band)
+    style = string with the linestyle (solid, dashed, dotted)
     linewidth = linewidth of your plot
+    legend = legend to add for the data set
     axis = ax in which to plot, if no axis is present new figure is created
     """
 
@@ -958,7 +960,7 @@ def phonons(file,KPATH=None,ph_out=None,title=None,matdyn_in=None,grid=True,vect
     else:
         ax=axis
 
-    limits=__plot_phonons(file,linewidth,vectors,ticks,units=units,color=color,QE_path=ticks,ax=ax)
+    limits=__plot_phonons(file,linewidth,vectors,ticks,units=units,color=color,style=style,QE_path=ticks,legend=legend,ax=ax)
     if units=='cm-1':
         ax.set_ylabel('frequency $(\mathrm{cm^{-1}})$')
     if units=='meV':
