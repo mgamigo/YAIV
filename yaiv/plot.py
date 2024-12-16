@@ -1216,6 +1216,6 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,
         plt.tight_layout()
         plt.show()
         if save_as!=None:
-            plt.save_as(save_as,dpi=300)
+            plt.savefig(save_as,dpi=300)
     if output==True:
         return interactions,lattices
