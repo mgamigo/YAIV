@@ -27,7 +27,7 @@ bohr2ang=au2ang
 bohr2metre=bohr2ang*ang2metre
 au2metre=bohr2metre
 pas2bar=1e-5
-Kbar2Gpa=10
+Kbar2Gpa=1/10
 meV2hartree=1/hartree2meV
 def smear2temp(smear):
     """Smearing is expected in Ry"""
