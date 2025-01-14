@@ -107,6 +107,8 @@ def __find_dyn_file(q_cryst,results_ph_path):
     returns: qe_dyn_file path
     """
     dyn1_file=glob.glob(results_ph_path+'/*dyn1')
+    if len(dyn1_file)==0:
+        dyn1_file=glob.glob(results_ph_path+'/*dyn')
     basis=read_dyn_file(dyn1_file[0])[1]
     K_vec=ut.K_basis(basis)
 
