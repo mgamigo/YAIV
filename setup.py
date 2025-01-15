@@ -15,7 +15,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires=[
         "ipympl",
-        "ase",
+        "ase==3.22.1",
         "spglib",
         "crystal-toolkit",
         #OLD (with ase-noteook)
