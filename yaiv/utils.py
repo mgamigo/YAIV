@@ -4,6 +4,7 @@ import numpy as np
 import re
 from ase import io
 
+import yaiv.utils as ut
 import yaiv.constants as const
 import yaiv.plot as plot
 import yaiv.experimental.cell_analyzer as cell
@@ -70,6 +71,14 @@ class file:
         out=grep_kpoints_energies(self.file,filetype=self.filetype,vectors=self.grep_lattice())
         self.kpoints_energies=out[0]
         self.kpoints_weights=out[1]
+        return out
+    def grep_gap(self):
+        """Get the direct and indirect gaps
+        For more info check grep_gap
+        return direct_gap, indirect_gap"""
+        out=grep_gap(self.file,filetype=self.filetype)
+        self.direct_gap=out[0]
+        self.indirect_gap=out[1]
         return out
     def grep_kpoints_energies_projections(filename,filetype,IgnoreWeight=True):
         """
@@ -735,6 +744,29 @@ def grep_kpoints_energies(file,filetype=None,vectors=np.array(None)):
         data,weights = None, None
     return data, weights
 
+def grep_gap(file,filetype=None):
+    """Get the direct and indirect gaps
+    file = File with the bands
+    filetype = qe (quantum espresso bands.pwo, scf.pwo, nscf.pwo, relax.pwo)
+               vaps (VASP OUTCAR file)
+               eigenval (VASP EIGENVAL file)
+
+    return direct_gap, indirect_gap
+    """
+    if filetype == None:
+        filetype = grep_filetype(file)
+    F=ut.file(file,filetype)
+    KE,W=F.grep_kpoints_energies()
+    K,E=KE[:,:3],KE[:,3:]-F.fermi
+    valence=E[:,F.electrons-1]
+    conduction=E[:,F.electrons]
+    IND_GAP=np.min(conduction)-np.max(valence)
+    DIR_GAP=np.min(conduction-valence)
+    if IND_GAP<0:
+        IND_GAP=0
+    if DIR_GAP<0:
+        DIR_GAP=0
+    return DIR_GAP,IND_GAP
 
 def grep_DOS(file,fermi=0,smearing=0.02,window=None,steps=500,precision=3,filetype=None):
     """
