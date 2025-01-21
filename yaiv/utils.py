@@ -59,9 +59,9 @@ class file:
         out= grep_total_energy(self.file,meV=meV,filetype=self.filetype)
         self.total_energy = out
         return out
-    def grep_stress_tensor(self,kbar=False):
-        """Returns the total stress tensor in (Ry/bohr**3) or (kbar) of scf.pwo file"""
-        out=grep_stress_tensor(self.file,kbar=kbar)
+    def grep_stress_tensor(self,kbar=True):
+        """Returns the total stress tensor in (kbar) or default unit (Ry/bohr**3 for QE and X for VASP)"""
+        out=grep_stress_tensor(self.file,kbar=kbar,filetype=self.filetype)
         self.stress=out
         return out
     def grep_kpoints_energies(self):
@@ -503,28 +503,39 @@ def grep_total_energy(file,meV=False,filetype=None):
         energy=energy*const.Ry2eV*1000
     return energy
 
-def grep_stress_tensor(file,kbar=False):
-    """Greps the total stress tensor in (Ry/bohr**3) or (kbar) of scf.pwo file
-    returns either the stress tensor or a False boolean if the pressure was not found"""
+def grep_stress_tensor(file,filetype=None,kbar=True):
+    """Greps the total stress tensor in (kbar) or default unit (Ry/bohr**3 for QE and X for VASP)
+    returns either the stress tensor or a None value if the pressure was not found"""
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
     lines=open(file,'r')
-    pressure=False
+    READ=False
     stress=None
-    for line in lines:
-        if pressure==True:
-            l=line.split()
-            l=[float(item) for item in l]
-            vec=np.array(l[:3])
-            try:
-                stress=np.vstack([stress,vec])
-                if len(stress)==3:
-                    pressure=False
-            except NameError:
-                stress=vec
-        if re.search('total.*stress',line):
-            pressure=True
-            del stress
-    if kbar==True:
-        stress=stress*(const.Ry2jul/(const.bohr2metre**3))*const.pas2bar/1000
+    if filetype[:2]=='qe':
+        for line in lines:
+            if READ==True:
+                l=line.split()
+                l=[float(item) for item in l]
+                vec=np.array(l[:3])
+                try:
+                    stress=np.vstack([stress,vec])
+                    if len(stress)==3:
+                        READ=False
+                except NameError:
+                    stress=vec
+            if re.search('total.*stress',line):
+                READ=True
+                del stress
+        if kbar==True:
+            stress=stress*(const.Ry2jul/(const.bohr2metre**3))*const.pas2bar/1000
+    elif filetype=='outcar':
+        for line in lines:
+            if re.search('in kB',line):
+                l=[float(x) for x in line.split()[2:]]
+                voigt=np.array([l[0],l[1],l[2],l[4],l[5],l[3]])
+                stress=voigt2cartesian(voigt)
     return stress
 
 def grep_number_of_bands(file,window=None,fermi=None,filetype=None,silent=True):
@@ -1178,6 +1189,18 @@ def cartesian2spherical(xyz,degrees=False):
     if degrees==True:
         ptsnew[1:]=ptsnew[1:]*180/np.pi
     return ptsnew
+
+def cartesian2voigt(xyz):
+    """From Cartesian to Voigt notation"""
+    voigt=np.array([xyz[0,0],xyz[1,1],xyz[2,2],xyz[1,2],xyz[0,2],xyz[0,1]])
+    return voigt
+
+def voigt2cartesian(voigt):
+    """From Voigt to Cartesian notation"""
+    xyz=np.array([[voigt[0],voigt[5],voigt[4]],
+                [voigt[5],voigt[1],voigt[3]],
+                [voigt[4],voigt[3],voigt[2]]])
+    return xyz
 
 def spherical2cartesian(coord,degrees=False):
     """From spherical to cartesian coord
