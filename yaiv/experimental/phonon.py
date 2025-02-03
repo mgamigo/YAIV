@@ -613,8 +613,7 @@ def __grid_generator(grid,from_zero=False):
 
     grid = [N1,N2,N3...] describing your grid (between [-1,1])
             If Ni=1 then Xi=1 for all points
-    from_zero = (Boolean) Zero won't appear in even grids, if you force it the grid for that dimension
-                will be between [0,1].
+    from_zero = (Boolean) It will create a mesh grid centered in Γ, and avoiding duplicated zone borders.
 
     returns list_of_points
     """
@@ -624,11 +623,13 @@ def __grid_generator(grid,from_zero=False):
     for g in grid:
         if from_zero==True:
             s=0
+            temp=temp+[np.linspace(s,1,g,endpoint=False)]
         elif g==1:
             s=1
+            temp=temp+[np.linspace(s,1,g)]
         else:
             s=-1
-        temp=temp+[np.linspace(s,1,g)]
+            temp=temp+[np.linspace(s,1,g)]
     res_to_unpack = np.meshgrid(*temp)
     assert(len(res_to_unpack)==DIM)
     
@@ -639,6 +640,9 @@ def __grid_generator(grid,from_zero=False):
             coords=np.hstack((coords,c))
         except NameError:
             coords=c
+    if from_zero==True:
+        for c in coords:
+            c[c > 0.5] -= 1 #remove 1 to all values above 0.5
     return coords
 
 def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,from_zero=False,dist=0.01,symprec=1e-5,silent=True,size=False,OUT=False):
