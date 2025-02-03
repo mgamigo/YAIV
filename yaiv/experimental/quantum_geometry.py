@@ -20,8 +20,8 @@ def __generate_satellites(KPOINTS,displacement=0.001):
 
     for K in KPOINTS:
         satellite_points =  [K] + \
-                           [list(K - shift) for shift in shifts] + \
-                           [list(K + shift) for shift in shifts]
+                           [list(K + shift) for shift in shifts] + \
+                           [list(K - shift) for shift in shifts]
         try:
             SATELLITES=np.vstack([SATELLITES,satellite_points])
         except NameError:
