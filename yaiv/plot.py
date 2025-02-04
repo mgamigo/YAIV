@@ -1114,7 +1114,7 @@ def phonons_compare(files,KPATH=None,ph_outs=None,legends=None,title=None,matdyn
 
 # PLOTTING MISCELLANY----------------------------------------------------------------
  
-def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,save_as=None,output=False):
+def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,markersize=8,save_as=None,output=False):
     """
     Plots the lattice comparison between different relax procedures, it is usefull to find the best pseudo/interaction matching your system.
     CAUTION: Be aware that it works in the STANDARDICE CELL convention!!! It will convert the files to compare in such setting.
@@ -1124,6 +1124,7 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,
     control = File containing your control structure (for example the experimental one)
     percentile = If control structure is provided, then a percentile error plot is done.
     axis = ax in which to plot, if no axis is present new figure is created
+    markersize = Size of the points
     save_as = Path and file type for your plot to be saved
     output = if true then the procedure returns two lists containing the interactions and the lattice parameters for each kind.
     
@@ -1171,19 +1172,19 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,
     if control==None or percentile==False:
         if control!=None:
             c_lattice=spg.standardize_cell(cell.read_spg(control))[0]
-            ax.plot(0,np.linalg.norm(c_lattice[2]),'o',color='tab:blue',label='c')
-            ax.plot(0,np.linalg.norm(c_lattice[1]),'o',color='tab:green',label='b')
-            ax.plot(0,np.linalg.norm(c_lattice[0]),'o',color='tab:red',label='a')
+            ax.plot(0,np.linalg.norm(c_lattice[2]),'o',color='tab:blue',label='c',markersize=markersize)
+            ax.plot(0,np.linalg.norm(c_lattice[1]),'o',color='tab:green',label='b',markersize=markersize)
+            ax.plot(0,np.linalg.norm(c_lattice[0]),'o',color='tab:red',label='a',markersize=markersize)
             n=0
         else:
-            ax.plot(0,np.linalg.norm(lattices[0][2]),'o',color='tab:blue',label='c')
-            ax.plot(0,np.linalg.norm(lattices[0][1]),'o',color='tab:green',label='b')
-            ax.plot(0,np.linalg.norm(lattices[0][0]),'o',color='tab:red',label='a')
+            ax.plot(0,np.linalg.norm(lattices[0][2]),'o',color='tab:blue',label='c',markersize=markersize)
+            ax.plot(0,np.linalg.norm(lattices[0][1]),'o',color='tab:green',label='b',markersize=markersize)
+            ax.plot(0,np.linalg.norm(lattices[0][0]),'o',color='tab:red',label='a',markersize=markersize)
             n=1
         for i,d in enumerate(lattices[n:]):
-            ax.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue')
-            ax.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green')
-            ax.plot(i+1,np.linalg.norm(d[0]),'o',color='tab:red')
+            ax.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue',markersize=markersize)
+            ax.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green',markersize=markersize)
+            ax.plot(i+1,np.linalg.norm(d[0]),'o',color='tab:red',markersize=markersize)
         
         ax.set_ylabel('Angstrom')
         if control==None:
@@ -1198,14 +1199,14 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,
         c1=np.linalg.norm(c_lattice[1])
         c2=np.linalg.norm(c_lattice[2])
         ax.axhline(y=0,color='tab:red',linestyle='-',linewidth=0.5)
-        ax.plot(0,(np.linalg.norm(lattices[0][2])-c2)*100/c2,'o',color='tab:blue',label='c')
-        ax.plot(0,(np.linalg.norm(lattices[0][1])-c1)*100/c1,'o',color='tab:green',label='b')
-        ax.plot(0,(np.linalg.norm(lattices[0][0])-c0)*100/c0,'o',color='tab:red',label='a')
+        ax.plot(0,(np.linalg.norm(lattices[0][2])-c2)*100/c2,'o',color='tab:blue',label='c',markersize=markersize)
+        ax.plot(0,(np.linalg.norm(lattices[0][1])-c1)*100/c1,'o',color='tab:green',label='b',markersize=markersize)
+        ax.plot(0,(np.linalg.norm(lattices[0][0])-c0)*100/c0,'o',color='tab:red',label='a',markersize=markersize)
         for i,d in enumerate(lattices[1:]):
-            ax.plot(i+1,(np.linalg.norm(d[2])-c2)*100/c2,'o',color='tab:blue')
-            ax.plot(i+1,(np.linalg.norm(d[1])-c1)*100/c1,'o',color='tab:green')
-            ax.plot(i+1,(np.linalg.norm(d[0])-c0)*100/c0,'o',color='tab:red')
-        ax.set_ylabel('Percentile error (%)')
+            ax.plot(i+1,(np.linalg.norm(d[2])-c2)*100/c2,'o',color='tab:blue',markersize=markersize)
+            ax.plot(i+1,(np.linalg.norm(d[1])-c1)*100/c1,'o',color='tab:green',markersize=markersize)
+            ax.plot(i+1,(np.linalg.norm(d[0])-c0)*100/c0,'o',color='tab:red',markersize=markersize)
+        ax.set_ylabel('percentile error (%)')
         ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
         
     if title!=None:
