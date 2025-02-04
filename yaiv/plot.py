@@ -1186,7 +1186,7 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,
             ax.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green',markersize=markersize)
             ax.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue',markersize=markersize)
         
-        ax.set_ylabel('angstrom ($\AA$)')
+        ax.set_ylabel('angstrom ($\mathrm{\AA}$)')
         if control==None:
             ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
         else:
