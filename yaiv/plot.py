@@ -1172,21 +1172,21 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,
     if control==None or percentile==False:
         if control!=None:
             c_lattice=spg.standardize_cell(cell.read_spg(control))[0]
-            ax.plot(0,np.linalg.norm(c_lattice[2]),'o',color='tab:blue',label='c',markersize=markersize)
-            ax.plot(0,np.linalg.norm(c_lattice[1]),'o',color='tab:green',label='b',markersize=markersize)
             ax.plot(0,np.linalg.norm(c_lattice[0]),'o',color='tab:red',label='a',markersize=markersize)
+            ax.plot(0,np.linalg.norm(c_lattice[1]),'o',color='tab:green',label='b',markersize=markersize)
+            ax.plot(0,np.linalg.norm(c_lattice[2]),'o',color='tab:blue',label='c',markersize=markersize)
             n=0
         else:
-            ax.plot(0,np.linalg.norm(lattices[0][2]),'o',color='tab:blue',label='c',markersize=markersize)
-            ax.plot(0,np.linalg.norm(lattices[0][1]),'o',color='tab:green',label='b',markersize=markersize)
             ax.plot(0,np.linalg.norm(lattices[0][0]),'o',color='tab:red',label='a',markersize=markersize)
+            ax.plot(0,np.linalg.norm(lattices[0][1]),'o',color='tab:green',label='b',markersize=markersize)
+            ax.plot(0,np.linalg.norm(lattices[0][2]),'o',color='tab:blue',label='c',markersize=markersize)
             n=1
         for i,d in enumerate(lattices[n:]):
-            ax.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue',markersize=markersize)
-            ax.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green',markersize=markersize)
             ax.plot(i+1,np.linalg.norm(d[0]),'o',color='tab:red',markersize=markersize)
+            ax.plot(i+1,np.linalg.norm(d[1]),'o',color='tab:green',markersize=markersize)
+            ax.plot(i+1,np.linalg.norm(d[2]),'o',color='tab:blue',markersize=markersize)
         
-        ax.set_ylabel('Angstrom')
+        ax.set_ylabel('angstrom ($\AA$)')
         if control==None:
             ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
         else:
@@ -1199,13 +1199,13 @@ def lattice_comparison(folder,title=None,control=None,percentile=True,axis=None,
         c1=np.linalg.norm(c_lattice[1])
         c2=np.linalg.norm(c_lattice[2])
         ax.axhline(y=0,color='tab:red',linestyle='-',linewidth=0.5)
-        ax.plot(0,(np.linalg.norm(lattices[0][2])-c2)*100/c2,'o',color='tab:blue',label='c',markersize=markersize)
-        ax.plot(0,(np.linalg.norm(lattices[0][1])-c1)*100/c1,'o',color='tab:green',label='b',markersize=markersize)
         ax.plot(0,(np.linalg.norm(lattices[0][0])-c0)*100/c0,'o',color='tab:red',label='a',markersize=markersize)
+        ax.plot(0,(np.linalg.norm(lattices[0][1])-c1)*100/c1,'o',color='tab:green',label='b',markersize=markersize)
+        ax.plot(0,(np.linalg.norm(lattices[0][2])-c2)*100/c2,'o',color='tab:blue',label='c',markersize=markersize)
         for i,d in enumerate(lattices[1:]):
-            ax.plot(i+1,(np.linalg.norm(d[2])-c2)*100/c2,'o',color='tab:blue',markersize=markersize)
-            ax.plot(i+1,(np.linalg.norm(d[1])-c1)*100/c1,'o',color='tab:green',markersize=markersize)
             ax.plot(i+1,(np.linalg.norm(d[0])-c0)*100/c0,'o',color='tab:red',markersize=markersize)
+            ax.plot(i+1,(np.linalg.norm(d[1])-c1)*100/c1,'o',color='tab:green',markersize=markersize)
+            ax.plot(i+1,(np.linalg.norm(d[2])-c2)*100/c2,'o',color='tab:blue',markersize=markersize)
         ax.set_ylabel('percentile error (%)')
         ax.set_xticks(range(len(interactions)),labels=interactions,rotation=50)
         
