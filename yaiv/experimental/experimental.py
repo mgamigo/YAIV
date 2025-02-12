@@ -757,3 +757,54 @@ def symmetrize_weyl_nodes(k,gap,energy,chirality,lattice,symmetry,precision=3,tr
         print('Symemtrizing from',initial,'to',final,'Weyl points')
     
     return K,GAP,E,C
+
+
+def grep_fermisurfer(file,center_GM=True):
+    """
+    Unwraps the info in a .bxsf to a list of K-points and a list of energies (for each band) for each K-point
+    file = .bxsf file containing the bands
+    center_GM = Boolean controlling whether you want the cell to be centered in Γ.
+
+    return KPOINTS, BANDS, KLAT
+    """
+    lines=open(file,'r')
+    READ_grid,READ_band=False,False
+    BANDS,KLAT=[],np.identity(3)
+    #READ DATA
+    for line in lines:
+        if READ_grid==True:
+            if i==1:
+                GRID=[int(x) for x in line.split()]
+                size=GRID[0]*GRID[1]*GRID[2]
+            if i>2 or i<6:
+                KLAT[i-3]=[float(x) for x in line.split()]
+            if i==5:
+                READ_grid=False
+            i=i+1
+        if READ_band==True:
+            if i<size:
+                new_band[i]=float(line)
+                i=i+1
+            else:
+                BANDS=BANDS+[new_band]
+                READ_band=False
+        if re.search('BEGIN_BANDGRID_3D',line):
+            READ_grid=True
+            i=0
+        if re.search('BAND:',line):
+            READ_band=True
+            new_band=np.empty(size)
+            i=0
+    #CREATE THE KPOINTS
+    stepA,stepB,stepC=1/GRID[0],1/GRID[1],1/GRID[2]
+    KPOINTS=np.empty([3]+GRID)
+    for i in range(GRID[0]):
+        for j in range(GRID[1]):
+            for k in range(GRID[2]):
+                crystal_coord=[i*stepA,j*stepB,k*stepC]
+                if center_GM==True:
+                    crystal_coord=[x-1 if x>0.5 else x for x in crystal_coord]
+                KPOINTS[:,i,j,k] = crystal_coord
+    KPOINTS=KPOINTS.reshape([3,size]).transpose()
+    KPOINTS=ut.cryst2cartesian(KPOINTS,KLAT,list_of_vec=True)
+    return KPOINTS,BANDS,KLAT
