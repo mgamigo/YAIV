@@ -60,6 +60,17 @@ class file:
         out= grep_total_energy(self.file,meV=meV,filetype=self.filetype)
         self.total_energy = out
         return out
+    def grep_energy_decomposition(self,meV=False):
+        """Greps the total energy decomposition with it's contributions. Check grep_energy_decomposition"""
+        F, TS, U, U_one_electron, U_h, U_xc, U_ewald = grep_energy_decomposition(self.file,meV=meV,filetype=self.filetype)
+        self.total_energy = F
+        self.F = F
+        self.TS = TS
+        self.U = U
+        self.U_one_electron = U_one_electron
+        self.U_h = U_h
+        self.U_xc = U_xc
+        self.U_ewald = U_ewald
     def grep_stress_tensor(self,kbar=True):
         """Returns the total stress tensor in (kbar) or default unit (Ry/bohr**3 for QE and X for VASP)"""
         out=grep_stress_tensor(self.file,kbar=kbar,filetype=self.filetype)
@@ -487,7 +498,7 @@ def __expand_star(q_point):
     return output
 
 def grep_total_energy(file,meV=False,filetype=None):
-    """Greps the total energy (in Ry or meV) from a Quantum Espresso (.pwo) or VASP (OUTCAR)file.
+    """Greps the total energy (in Ry or meV) from a Quantum Espresso (.pwo).
     returns either the energy or a False boolean if the energy was not found"""
     if filetype == None:
         filetype = grep_filetype(file)
@@ -511,6 +522,56 @@ def grep_total_energy(file,meV=False,filetype=None):
     if meV==True:
         energy=energy*const.Ry2eV*1000
     return energy
+
+def grep_energy_decomposition(file,meV=False,filetype=None):
+    """Greps the total energy (in Ry or meV) from a Quantum Espresso (.pwo) or VASP (OUTCAR)file.
+    returns either a list of energies, which would be False if not found.
+
+    It decomposes the energies as:
+    Total Free energy:  F
+    Smearing contribution: -TS
+    Internal energy: U=F+TS
+    And the decomposition of the internal energy as:
+        U_one_electron
+        U_hartree
+        U_exchange-correlational
+        U_ewald
+    
+    return F, TS, U, U_one_electron, U_h, U_xc, U_ewald
+    """
+    if filetype == None:
+        filetype = grep_filetype(file)
+    else:
+        filetype=filetype.lower()
+    lines=open(file,'r')
+    F, TS, U, U_one_electron, U_h, U_xc, U_ewald=7*[False]
+    if filetype[:2] == 'qe':
+        for line in reversed(list(lines)):
+            if re.search('!',line):
+                l=line.split()
+                F=float(l[4])
+                break
+            elif re.search('smearing contrib',line):
+                l=line.split()
+                TS=float(l[4])
+            elif re.search('internal energy',line):
+                l=line.split()
+                U=float(l[4])
+            elif re.search('one-electron',line):
+                l=line.split()
+                U_one_electron=float(l[3])
+            elif re.search('hartree',line):
+                l=line.split()
+                U_h=float(l[3])
+            elif re.search('xc contribution',line):
+                l=line.split()
+                U_xc=float(l[3])
+            elif re.search('ewald',line):
+                l=line.split()
+                U_ewald=float(l[3])
+    if meV==True:
+        F, TS, U, U_one_electron, U_h, U_xc, U_ewald = [X*const.Ry2eV*1000 for X in [F, TS, U, U_one_electron, U_h, U_xc, U_ewald]]
+    return F, TS, U, U_one_electron, U_h, U_xc, U_ewald
 
 def grep_stress_tensor(file,filetype=None,kbar=True):
     """Greps the total stress tensor in (kbar) or default unit (Ry/bohr**3 for QE and X for VASP)
