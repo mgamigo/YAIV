@@ -560,7 +560,7 @@ def grep_energy_decomposition(file,meV=False,filetype=None):
             elif re.search('one-electron',line):
                 l=line.split()
                 U_one_electron=float(l[3])
-            elif re.search('hartree',line):
+            elif re.search('hartree contribution',line):
                 l=line.split()
                 U_h=float(l[3])
             elif re.search('xc contribution',line):

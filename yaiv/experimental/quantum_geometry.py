@@ -93,3 +93,28 @@ def Kgrid_generator(grid,lattice=None,crystal=True,satellites=True,displacement=
     if crystal==False:
         GRID=ut.cryst2cartesian(GRID,Kbasis,list_of_vec=True)
     return GRID
+
+
+def nnkp_generator(grid):
+    """
+    Generates a list of nnkp neighbours for computing the desired overlaps.
+    It assumes that the list of kpoints is given in groups of 7, with the first being the center and the rest satellites.
+
+    grid = [N1,N2,N3] describing your grid in 3D
+
+    returns a list of nnkp-neighbours
+    """
+
+    N=np.prod(grid)
+    for n in range(N):
+        START=7*n+1
+        END=7*n+8
+        for i in range(START,END):
+            for j in range(START,END):
+                if i!=j:
+                    line=np.array([i,j,0,0,0],dtype=int)
+                    try:
+                        OUT=np.vstack((OUT,line))
+                    except NameError:
+                        OUT=line
+    return OUT
