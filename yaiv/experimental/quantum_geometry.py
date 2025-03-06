@@ -104,8 +104,40 @@ def nnkp_generator(grid):
 
     returns a list of nnkp-neighbours
     """
-
     N=np.prod(grid)
+    for n in range(N):
+        START=7*n+1
+        END=7*n+8
+        for i in range(START,END):
+            for j in range(START,END):
+                if i!=j:
+                    line=np.array([i,j,0,0,0],dtype=int)
+                    try:
+                        OUT=np.vstack((OUT,line))
+                    except NameError:
+                        OUT=line
+    return OUT
+
+
+def nnkp_generator(grid,N=100):
+    """
+    Generates a list of nnkp neighbours for computing the desired overlaps.
+    It assumes that the list of kpoints is given in groups of 7, with the first being the center and the rest satellites.
+
+    grid = [N1,N2,N3] describing your grid in 3D, or the KPATH file in case of a KPATH
+    N = Number of points between HSP in KPATH
+
+    returns a list of nnkp-neighbours
+    """
+    if type(grid)==str:
+        KPATH=ut.file(grid).path
+        for i,K in enumerate(KPATH):
+            if K[-1]!=1:
+                KPATH[i][-1]=N
+        KPOINTS=Kpath_generator(KPATH,satellites=False)
+        N=len(KPOINTS)
+    else:
+        N=np.prod(grid)
     for n in range(N):
         START=7*n+1
         END=7*n+8
