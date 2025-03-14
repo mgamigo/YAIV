@@ -12,7 +12,7 @@ from math import gcd
 #import yaiv.transformations as trs
 import yaiv.utils as ut
 import yaiv.experimental.utils as utx
-import yaiv.experimental.cell_analyzer as cell
+import yaiv.cell_analyzer as cell
 import yaiv.constants as cons
 
 

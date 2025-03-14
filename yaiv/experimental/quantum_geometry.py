@@ -3,7 +3,6 @@
 import numpy as np
 
 import yaiv.utils as ut
-import yaiv.experimental.cell_analyzer as cell
 import yaiv.experimental.phonon as ph
 
 

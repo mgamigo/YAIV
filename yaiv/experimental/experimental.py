@@ -5,9 +5,24 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.interpolate import griddata
 import os
 import re
+import spglib as spg
+from copy import deepcopy
+from ase.io import read, write
+from ase.visualize import view
+from ase import Atoms
 
 import yaiv.constants as const
 import yaiv.utils as ut
+
+from crystal_toolkit.renderables import StructureGraph
+from pymatgen.analysis.local_env import MinimumDistanceNN
+from pymatgen.core import Structure
+from pymatgen.io.ase import AseAtomsAdaptor
+from crystal_toolkit.core.legend import Legend
+from crystal_toolkit.renderables.structuregraph import get_structure_graph_scene
+
+from yaiv.experimental.matview.visualizers.crystal import CrystalVisualizer
+
 
 def __get_brillouin_zone_3d(cell):
     """
@@ -808,3 +823,105 @@ def grep_fermisurfer(file,center_GM=True):
     KPOINTS=KPOINTS.reshape([3,size]).transpose()
     KPOINTS=ut.cryst2cartesian(KPOINTS,KLAT,list_of_vec=True)
     return KPOINTS,BANDS,KLAT
+
+
+#OLD DEPRECATED.... NEW VERSION OVERWRITING
+def visualize(crystal,gui=False,svg=False,repeat_uc=(1,1,1),miller_planes=None,center_in_uc=False,conventional=False,rotations='-130x,-130y,40z'):
+    """
+    crystal = Either a file, an ase atoms objetct or an spglib object
+    svg = bolean (displays an static picture)
+    gui = bolean (opens a window with the usual ASE visualizer)
+    miller_planes = list of miller planes as: [(1,1,0),(0,0,1)]
+    center_in_uc = False (shift atoms to the unit cell)
+    conventional = False (whether to draw the conventional cell)
+    """
+    config = ViewConfig(
+    rotations=rotations, #initial rotation
+    atom_font_size=12,
+    canvas_size=(700, 400),
+    zoom=1.3,
+    show_bonds=True,
+    atom_show_label=True,
+    show_uc_repeats=True,
+    show_axes=True,
+    axes_uc=True,
+    axes_length=50,
+    uc_dash_pattern=(.6,.4)
+    )
+    ase_view = AseView(config)
+
+    if type(crystal)==str:   #We are loading a file
+        SPG=read_spg(crystal)
+        ASE=spglib2ase(SPG)
+    elif type(crystal)==Atoms:  #We have an ase structure
+        ASE=crystal
+        SPG=ase2spglib(ASE)
+    elif type(crystal)==tuple:   #spglib structure
+        SPG=crystal
+        ASE=spglib2ase(SPG)
+    else:
+        print('Cannot print! Don\'t understand format')
+
+    if conventional==True:
+        SPG=spg.standardize_cell(SPG)
+        ASE=spglib2ase(SPG)
+
+    atoms_number=len(SPG[1])
+    get_spacegroup(crystal)
+    print(atoms_number,"atoms")
+    if miller_planes!=None:
+        for p in miller_planes:
+            ase_view.add_miller_plane(p[0],p[1],p[2],color='pink')
+
+    if gui==True:
+        gui=ase_view.make_gui(ASE,repeat_uc=repeat_uc,center_in_uc=center_in_uc)
+    elif svg==True:
+        gui=ase_view.make_svg(ASE,repeat_uc=repeat_uc,center_in_uc=center_in_uc)
+    else:
+        gui=ase_view.make_render(ASE,repeat_uc=repeat_uc,center_in_uc=center_in_uc)
+    return gui
+
+def visualize(crystal,matview=False,local_env=True,neighbours=True,conventional=False):
+    """
+    crystal = Either a file, an ase atoms objetct or an spglib object
+    matview = Boolean if you want the interface from matview
+    local_env = Boolean controling if want to show local enviroment
+    neighbours = Boolean controling wheter to show bonded sites outside the unit cell
+    conventional = False (whether to draw the conventional cell)
+    """
+    if type(crystal)==str:   #We are loading a file
+        SPG=read_spg(crystal)
+        ASE=spglib2ase(SPG)
+    elif type(crystal)==Atoms:  #We have an ase structure
+        ASE=crystal
+        SPG=ase2spglib(ASE)
+    elif type(crystal)==tuple:   #spglib structure
+        SPG=crystal
+        ASE=spglib2ase(SPG)
+    else:
+        print('Cannot print! Don\'t understand format')
+
+    if conventional==True:
+        SPG=spg.standardize_cell(SPG)
+        ASE=spglib2ase(SPG)
+
+    atoms_number=len(SPG[1])
+    get_spacegroup(crystal)
+    print(atoms_number,"atoms")
+    structure=AseAtomsAdaptor.get_structure(ASE)
+    
+    if matview==True:
+        view = CrystalVisualizer(structure)
+        return view.show()
+    else:
+        StructureGraph.get_scene = lambda x: get_structure_graph_scene(
+        x,
+        bond_radius=0.1, 
+        legend=Legend(structure, color_scheme="VESTA"),
+        bonded_sites_outside_unit_cell=neighbours
+        )
+        if local_env==True:
+            graph = StructureGraph.with_local_env_strategy(structure, MinimumDistanceNN())
+        else:
+            graph = StructureGraph.with_empty_graph(structure)
+        return graph.get_scene()

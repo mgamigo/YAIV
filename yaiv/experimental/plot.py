@@ -12,7 +12,7 @@ from scipy.interpolate import griddata
 import spglib as spg
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-import yaiv.experimental.cell_analyzer as cell
+import yaiv.cell_analyzer as cell
 import yaiv.constants as cons
 import yaiv.utils as ut
 #import yaiv.transformations as trs

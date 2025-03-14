@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="yaiv", # Replace with your username
-    version="0.2.1",
+    version="0.3.0",
     author="Martin Gutierrez-Amigo",
     author_email="<martin00gutierrez@outlook.com>",
     description="Yet another Ab Initio Visualizer with a variety of tools",

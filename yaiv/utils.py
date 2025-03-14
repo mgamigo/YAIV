@@ -7,7 +7,7 @@ from ase import io
 import yaiv.utils as ut
 import yaiv.constants as const
 import yaiv.plot as plot
-import yaiv.experimental.cell_analyzer as cell
+import yaiv.cell_analyzer as cell
 
 #& GREPPING utilities----------------------------------------------------------------
 

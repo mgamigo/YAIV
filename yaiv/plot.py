@@ -9,7 +9,7 @@ import spglib as spg
 
 import yaiv.utils as ut
 import yaiv.constants as cons
-import yaiv.experimental.cell_analyzer as cell
+import yaiv.cell_analyzer as cell
 
 # PLOTTING BANDS----------------------------------------------------------------
 
