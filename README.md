@@ -34,6 +34,7 @@
         <li><a href="#why">Why?</a></li>
       </ul>
     </li>
+    <li><a href="#installation">Installation</a></li>
     <li>
 	<a href="#current-tools">Current tools</a>
 	<ul>
@@ -43,7 +44,6 @@
         </ul>
     </li>
     <li><a href="#examples">Examples</a></li>
-    <li><a href="#installation">Installation</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
   </ol>
 </details>

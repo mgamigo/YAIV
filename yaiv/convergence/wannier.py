@@ -310,7 +310,8 @@ def w90(data,title=None,grid=True,save_as=None):
     ax4=fig.add_subplot(2,2,4)
 
     w90_wannierization(data,grid=grid,axis=ax1)
-    w90_disentanglement(data,grid=grid,axis=ax2)
+    if type(disentang)!=int:
+        w90_disentanglement(data,grid=grid,axis=ax2)
     w90_spreads(data,grid=grid,axis=ax3)
     w90_centers(data,grid=grid,axis=ax4)
 
