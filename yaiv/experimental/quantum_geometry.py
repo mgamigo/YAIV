@@ -16,6 +16,7 @@ def __generate_satellites(KPOINTS,displacement=0.001):
 
     returns a new list of points with the original points and the satelites.
     """
+    #FIX the displacments it should be + - in that order 
     shifts = np.identity(KPOINTS.shape[1])*displacement  # Identity matrix gives unit vectors for each axis
 
     for K in KPOINTS:
@@ -38,7 +39,7 @@ def Kpath_generator(KPATH,lattice=None,crystal=True,satellites=True,displacement
     lattice = Lattice vectors
     crystal = (Boolean) If True the output will be in crystal coordinates (*2pi)
     satellites = Whether to create salite points around each point.
-        displacement = Displacement to be applied in all cartesian coordinates to the points.
+        displacement = Displacement to be applied in all cartesian coordinates to the points (in Ansgtrom).
 
     returns a list of K-points
     """
