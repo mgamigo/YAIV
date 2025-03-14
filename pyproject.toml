@@ -5,15 +5,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yaiv"
-version = "0.2.1"
+version = "0.3.0"
 authors = [
-  { name="Martin Gutierrez-Amigo", email="martin00gutierrez@outlook.com" },
+  { name="Martin Gutierrez-Amigo", email="martin.gutierrez.amigo@gmail.com" },
 ]
 description="Yet another Ab Initio Visualizer with a variety of tools"
 readme = "README.md"
 dependencies = [
-        "ipympl==0.9.1",
-        "ase"
+        "ipympl",
+        "ase==3.22.1",
+        "spglib"
 ]
 requires-python = ">=3.6"
 classifiers = [

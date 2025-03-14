@@ -13,4 +13,4 @@ python -m ipykernel install --user --name=test_env
 #jupyter kernelspec list
 cd $DIR
 #Autoinstall YAIV
-pip install -e ./
+pip install -e ./ | tee install.log

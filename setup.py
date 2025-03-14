@@ -17,7 +17,6 @@ setuptools.setup(
         "ipympl",
         "ase==3.22.1",
         "spglib",
-        "crystal-toolkit",
         ],
     classifiers=[
         "Programming Language :: Python :: 3",
