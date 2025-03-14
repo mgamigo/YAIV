@@ -1378,6 +1378,44 @@ def lorentzian_dist(x , center , hwhm, A=1):
     OUT=A*(1/np.pi)*hwhm/((x-center)**2+hwhm**2)
     return OUT
 
+def grid_generator(grid,from_zero=False):
+    """
+    Generates an uniform grid from [-1,1] in any dimension and returns a list of the points conforming the grid.
+
+    grid = [N1,N2,N3...] describing your grid (between [-1,1])
+    from_zero = (Boolean) It will create a mesh grid centered in Γ, and avoiding duplicated zone borders.
+
+    returns list_of_points
+    """
+    #Generate the GRID
+    DIM=len(grid)
+    temp=[]
+    for g in grid:
+        if from_zero==True:
+            s=0
+            temp=temp+[np.linspace(s,1,g,endpoint=False)]
+        elif g==1:
+            s=1
+            temp=temp+[np.linspace(s,1,g)]
+        else:
+            s=-1
+            temp=temp+[np.linspace(s,1,g)]
+    res_to_unpack = np.meshgrid(*temp)
+    assert(len(res_to_unpack)==DIM)
+    
+    #Unpack the grid as points
+    for x in res_to_unpack:
+        c=x.reshape(np.prod(np.shape(x)),1)
+        try:
+            coords=np.hstack((coords,c))
+        except NameError:
+            coords=c
+    if from_zero==True:
+        for c in coords:
+            c[c > 0.5] -= 1 #remove 1 to all values above 0.5
+    return coords
+
+
 #& Postprocessing functions----------------------------------------------------------------
 
 def integrate_DOS(data,fermi,filetype=None,shift=None,doping=None,force_positive=False):

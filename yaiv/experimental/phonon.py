@@ -607,44 +607,6 @@ def distort_phonon(q_cryst,results_ph_path,OP=None,freq=None,dist=0.01,silent=Fa
         cell.get_spacegroup(distorted)
     return distorted
 
-def __grid_generator(grid,from_zero=False):
-    """
-    Generate an uniform grid from [-1,1] in any dimensions and returns a list of the points conforming the grid.
-
-    grid = [N1,N2,N3...] describing your grid (between [-1,1])
-            If Ni=1 then Xi=1 for all points
-    from_zero = (Boolean) It will create a mesh grid centered in Γ, and avoiding duplicated zone borders.
-
-    returns list_of_points
-    """
-    #Generate the GRID
-    DIM=len(grid)
-    temp=[]
-    for g in grid:
-        if from_zero==True:
-            s=0
-            temp=temp+[np.linspace(s,1,g,endpoint=False)]
-        elif g==1:
-            s=1
-            temp=temp+[np.linspace(s,1,g)]
-        else:
-            s=-1
-            temp=temp+[np.linspace(s,1,g)]
-    res_to_unpack = np.meshgrid(*temp)
-    assert(len(res_to_unpack)==DIM)
-    
-    #Unpack the grid as points
-    for x in res_to_unpack:
-        c=x.reshape(np.prod(np.shape(x)),1)
-        try:
-            coords=np.hstack((coords,c))
-        except NameError:
-            coords=c
-    if from_zero==True:
-        for c in coords:
-            c[c > 0.5] -= 1 #remove 1 to all values above 0.5
-    return coords
-
 def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,from_zero=False,dist=0.01,symprec=1e-5,silent=True,size=False,OUT=False):
     """Performs a CDW symmetry analysis for a given number of unstable modes. Tries all the possible order parameter combinations
     within a privided grid and outputs the resulting Space Group.
@@ -718,7 +680,7 @@ def CDW_sym_analysis(q_cryst,results_ph_path,freq=None,grid=None,from_zero=False
         scell[i]=Pcell[i]*supercell[i]
 
     #Get OrderParameters within the grid
-    OPs=__grid_generator(grid,from_zero=from_zero)
+    OPs=ut.grid_generator(grid,from_zero=from_zero)
 
     i_atoms=len(atoms[1])
     SGs=[]
@@ -901,7 +863,7 @@ def energy_surface_pwi(q_cryst,results_ph_path,dest_folder,template,OP=None,grid
 
     #Get OrderParameters within the grid
     if grid_mode == True:
-        OPs=__grid_generator(grid,from_zero=from_zero)
+        OPs=ut.grid_generator(grid,from_zero=from_zero)
     else:
         factors=np.linspace(boundary[0],boundary[1],grid)
         OPs=np.array([list(OP)]*grid,dtype=float)

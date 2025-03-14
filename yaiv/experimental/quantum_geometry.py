@@ -3,8 +3,6 @@
 import numpy as np
 
 import yaiv.utils as ut
-import yaiv.experimental.phonon as ph
-
 
 def __generate_satellites(KPOINTS,displacement=0.001):
     """
@@ -84,7 +82,7 @@ def Kgrid_generator(grid,lattice=None,crystal=True,satellites=True,displacement=
     Kbasis=ut.K_basis(lattice)*2*np.pi
 
     #Process:
-    GRID=ph.__grid_generator(grid,from_zero=True)
+    GRID=ut.grid_generator(grid,from_zero=True)
     #Generate satellites
     if satellites == True:
         GRID=ut.cryst2cartesian(GRID,Kbasis,list_of_vec=True)
