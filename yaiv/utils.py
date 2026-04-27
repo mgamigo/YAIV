@@ -1602,12 +1602,12 @@ def expand_irreducible_bz(
         raise ValueError("kpoints are required in crystal units (2π/crystal).")
 
     grid_step = (1.0 / np.asarray(grid))[None, :]
-    grid_points = grid_generator(grid, periodic=True)
+    N_grid = np.prod(grid)
 
-    syms = np.zeros((len(grid_points),), dtype=np.int32)
-    origins = np.zeros((len(grid_points),), dtype=np.int64)
+    syms = np.zeros((N_grid,), dtype=np.int32)
+    origins = np.zeros((N_grid,), dtype=np.int64)
     found = np.zeros_like(origins, dtype=bool)
-    kpoints = np.zeros_like(grid_points, dtype=float)
+    kpoints = np.zeros([N_grid, len(grid)], dtype=float)
 
     for i, sym in enumerate(symmetries):
         # Rk are the images of the IBZ points by the symmetry i
@@ -1642,7 +1642,7 @@ def expand_irreducible_bz(
         found[indices] = True
         kpoints[indices] = Rk[mask]
 
-        if found.sum() == np.prod(grid):  # as soon as we hit all points we return
+        if found.sum() == N_grid:  # as soon as we hit all points we return
             return SimpleNamespace(
                 kpoints=kpoints * units,
                 sym=syms,
@@ -1650,7 +1650,7 @@ def expand_irreducible_bz(
             )
 
     raise ValueError(
-        f"Could only recover {found.sum()} out of the {np.prod(grid)} points of the grid from the reduced set of points"
+        f"Could only recover {found.sum()} out of the {N_grid} points of the grid from the reduced set of points"
     )
 
 
