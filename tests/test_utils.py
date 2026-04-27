@@ -646,6 +646,7 @@ def test_expand_irreducible_bz_matches_2x2x2_grid(data_dir, require):
         sym = syms[out.sym[i]]
         origin = k_ibz[out.origin[i]]
         Rk = ut.wrap_fractional(ut.rotate(origin, sym.R, covariant=True))
+        k = ut.wrap_fractional(k)
         assert np.allclose(k, Rk)
 
 

@@ -1586,10 +1586,6 @@ def expand_irreducible_bz(
         If kpoints are not in crystal reciprocal units (2π/crystal).
     ValueError
         Not all grid points are matched by symmetry expansion.
-
-    Notes
-    -----
-    - It works in batches of 3000 target-grid k-points in order to avoid overuse of RAM.
     """
 
     # Units handling
@@ -1614,6 +1610,7 @@ def expand_irreducible_bz(
     syms = np.zeros((len(grid_points),), dtype=np.int32)
     origins = np.zeros((len(grid_points),), dtype=np.int64)
     found = np.zeros_like(origins, dtype=bool)
+    kpoints = np.zeros_like(grid_points, dtype=float)
 
     for i, sym in enumerate(symmetries):
         # Rk are the images of the IBZ points by the symmetry i
@@ -1624,7 +1621,6 @@ def expand_irreducible_bz(
 
         # True if the point is close enough to an infinite grid node
         mask = np.abs(Rk - Rk_snapped).max(axis=1) < tol
-
         Rk_match = Rk_snapped[mask]
 
         # Compute the integer coordinates
@@ -1639,16 +1635,17 @@ def expand_irreducible_bz(
 
         # only keep the new points in the mask, this way we always keep the
         # symmetry of the first match
-        mask[mask] &= ~found[indices]  # mask = mask AND not found
-        indices = indices[~found[indices]]
+        mask[mask] = ~found[indices]  # mask = mask AND not found
+        indices = indices[~found[indices]] # mask only non-found indices
 
         origins[indices] = np.arange(0, len(Rk))[mask]
         syms[indices] = i
         found[indices] = True
+        kpoints[indices] = Rk[mask]
 
         if found.sum() == nkx * nky * nkz:  # as soon as we hit all points we return
             return SimpleNamespace(
-                kpoints=grid_points * units,
+                kpoints=kpoints * units,
                 sym=syms,
                 origin=origins,
             )
