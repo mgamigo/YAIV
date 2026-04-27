@@ -1543,7 +1543,7 @@ def expand_irreducible_bz(
     kpoints: np.ndarray | ureg.Quantity,
     grid: list[int],
     symmetries: list,
-    tol: float = 1e-6,
+    tol: float = 1e-5,
 ) -> SimpleNamespace:
     """
     Expand a set of irreducible k-points to the full Brillouin zone using symmetry operations.
@@ -1585,8 +1585,6 @@ def expand_irreducible_bz(
     ValueError
         If kpoints are not in crystal reciprocal units (2π/crystal).
     ValueError
-        If identity symmetry does not map kpoints onto the grid within tolerance.
-    ValueError
         Not all grid points are matched by symmetry expansion.
 
     Notes
@@ -1602,70 +1600,61 @@ def expand_irreducible_bz(
         units = 1
         kpts = np.asarray(kpoints, dtype=float)
 
-    if not np.all([sym.units == ureg.crystal for sym in symmetries]):
+    if any(sym.units != ureg.crystal for sym in symmetries):
         raise ValueError("Symmetries must be in crystal units.")
-    elif units != 1 and units != ureg("_2pi/crystal"):
-        raise ValueError("kpoints are required in crystal units (2π/crystal).")
-    grid_points = grid_generator(grid, periodic=True)
-    expanded, origin_indices, sym_indices = [], [], []
 
-    batch_size = 3000  # safe default
+    if units != 1 and units != ureg("_2pi/crystal"):
+        raise ValueError("kpoints are required in crystal units (2π/crystal).")
+
+    nkx, nky, nkz = grid
+    grid_step = (1.0 / np.asarray(grid))[None, :]
+
+    grid_points = grid_generator(grid, periodic=True)
+
+    syms = np.zeros((len(grid_points),), dtype=np.int32)
+    origins = np.zeros((len(grid_points),), dtype=np.int64)
+    found = np.zeros_like(origins, dtype=bool)
 
     for i, sym in enumerate(symmetries):
-        Rk = rotate(kpts, sym.R, covariant=True)
-        Rk = wrap_fractional(Rk)
+        # Rk are the images of the IBZ points by the symmetry i
+        Rk = rotate(kpts, sym.R, covariant=True)  # no need to wrap yet
 
-        matched_Rk = []
-        matched_idRk = []
-        matched_idGP = []
+        # Rk_snapped are the closestpoints nodes of the grid
+        Rk_snapped = np.round(Rk / grid_step) * grid_step
 
-        for start in range(0, len(grid_points), batch_size):
-            end = start + batch_size
-            gp_batch = grid_points[start:end]
+        # True if the point is close enough to an infinite grid node
+        mask = np.abs(Rk - Rk_snapped).max(axis=1) < tol
 
-            diff = Rk[:, None, :] - gp_batch[None, :, :]
-            # modulo-1 closeness:
-            diff = diff - np.round(diff)
-            mask = np.all(np.abs(diff) < tol, axis=2)
+        Rk_match = Rk_snapped[mask]
+        
+        # Compute the integer coordinates
+        Rk_match = np.mod(Rk_match, 1.0) # wrap to [0, 1)
+        # convert to number of steps from 0
+        ijk = np.round(Rk_match / grid_step).astype(int)
 
-            idRk, idGP_local = np.where(mask)
-            idGP = idGP_local + start  # map back to global indices
+        # The grid is generated in the order of:
+        # [(i, j, k) for j in range(ny) for i in range(nx) for k in range(nz)]
+        # so the summation here reflect that
+        indices = ijk.dot([nkz, nkx * nkz, 1])
 
-            matched_Rk.append(Rk[idRk])
-            matched_idRk.append(idRk)
-            matched_idGP.append(idGP)
+        # only keep the new points in the mask, this way we always keep the
+        # symmetry of the first match
+        mask[mask] &= ~found[indices]  # mask = mask AND not found
+        indices = indices[~found[indices]]
 
-        idRk = np.concatenate(matched_idRk)
-        idGP = np.concatenate(matched_idGP)
+        origins[indices] = np.arange(0, len(Rk))[mask]
+        syms[indices] = i
+        found[indices] = True
 
-        # Identity sanity check
-        if np.allclose(sym.R, np.eye(len(sym.R))):
-            if len(idRk) != len(kpts):
-                raise ValueError(
-                    "Identity symmetry check failed: input k-points do not match the target grid within the given tolerance."
-                    "Check that kpoints belong to the grid or increase `tol`."
-                )
+        if found.sum() == nkx * nky * nkz:  # as soon as we hit all points we return
+            return SimpleNamespace(
+                kpoints=grid_points * units,
+                sym=syms,
+                origin=origins,
+            )
 
-        # append rotated points
-        expanded.append(Rk[idRk])
-        origin_indices.append(idRk)
-        sym_indices.append([i] * len(idRk))
-
-        # remove used grid points
-        keep = np.ones(len(grid_points), dtype=bool)
-        keep[idGP] = False
-        grid_points = grid_points[keep]
-
-        if len(grid_points) == 0:
-            break
-
-    if len(grid_points) != 0:
-        raise ValueError("Not all grid points were matched by symmetry expansion.")
-
-    return SimpleNamespace(
-        kpoints=np.concatenate(expanded) * units,
-        sym=np.concatenate(sym_indices),
-        origin=np.concatenate(origin_indices),
+    raise ValueError(
+        f"Could only recover {found.sum()} out of the {nkx * nky * nkz} points of the grid from the reduced set of points"
     )
 
 
