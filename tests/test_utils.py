@@ -208,6 +208,25 @@ def test_grid_generator(grid, periodic, expected_shape):
                 assert np.isclose(vals.min(), -1.0)
                 assert np.isclose(vals.max(), 1.0)
 
+    # --- C-ordering (last index varies fastest) ---
+    D = coords.shape[1]
+    for d in reversed(range(D)):
+        vals = coords[:, d]
+        diffs = np.diff(vals)
+
+        # Find where this dimension actually changes
+        changing = np.abs(diffs) > 1e-12
+
+        if np.any(changing):
+            first_change = np.argmax(changing)
+
+            # All earlier dimensions should be constant up to this point
+            for d_prev in range(d):
+                assert np.allclose(
+                    coords[: first_change + 1, d_prev], coords[0, d_prev]
+                )
+            break
+
 
 def test_grid_generator_periodic():
     # periodic -> values in (-0.5, 0.5], no duplicates at borders

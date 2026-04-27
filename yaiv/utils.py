@@ -406,10 +406,15 @@ def voigt2cartesian(voigt: np.ndarray | ureg.Quantity) -> np.ndarray | ureg.Quan
     return xyz * units
 
 
-def grid_generator(grid: list[int], periodic: bool = False) -> np.ndarray:
+def grid_generator(
+    grid: list[int],
+    periodic: bool = False,
+) -> np.ndarray:
     """
-    Generate a uniform real-space grid of points within [-1, 1]^D or [-0.5, 0.5)^D,
-    where D is the grid dimensionality.
+    Generate a D-dimensional grid with last index varying fastest.
+
+    Generate a uniform D-dimensional grid of points within [-1, 1]^D or [-0.5, 0.5)^D,
+    with C-ordering (last index varying the fastest).
 
     This function constructs a D-dimensional mesh by specifying the number of
     points along each axis. The resulting points are returned as a (N, D) array,
@@ -430,32 +435,26 @@ def grid_generator(grid: list[int], periodic: bool = False) -> np.ndarray:
     np.ndarray
         Array of shape (N, D), where each row is a point in the D-dimensional grid.
     """
-    # Generate the GRID
-    DIM = len(grid)
-    temp = []
+    axes = []
     for g in grid:
         if periodic:
-            s = 0
-            temp = temp + [np.linspace(s, 1, g, endpoint=False)]
+            # Direct construction in [-0.5, 0.5)
+            axis = (np.arange(g) - g // 2) / g
         elif g == 1:
-            s = 1
-            temp = temp + [np.linspace(s, 1, g)]
+            axis = np.array([1.0])
         else:
-            s = -1
-            temp = temp + [np.linspace(s, 1, g)]
-    res_to_unpack = np.meshgrid(*temp)
-    assert len(res_to_unpack) == DIM
+            axis = np.linspace(-1.0, 1.0, g)
+        axes.append(axis)
 
-    # Unpack the grid as points
-    for x in res_to_unpack:
-        c = x.reshape(np.prod(np.shape(x)), 1)
-        try:
-            coords = np.hstack((coords, c))
-        except NameError:
-            coords = c
-    if periodic == True:
-        for c in coords:
-            c[c >= 0.5] -= 1  # remove 1 to all values above or equal 0.5
+    # Create meshgrid with matrix indexing
+    mesh = np.meshgrid(*axes, indexing="ij")
+
+    # Stack and reshape with C-order → last index varies fastest
+    coords = np.stack(mesh, axis=-1).reshape(-1, len(grid), order="C")
+
+    if periodic:
+        coords[coords >= 0.5] -= 1.0
+
     return coords
 
 
@@ -1628,15 +1627,15 @@ def expand_irreducible_bz(
         # convert to number of steps from 0
         ijk = np.round(Rk_match / grid_step).astype(int)
 
-        # The grid is generated in the order of:
-        # [(i, j, k) for j in range(ny) for i in range(nx) for k in range(nz)]
+        # The grid is generated in C-ordering:
+        # [(i, j, k) for j in range(nx) for i in range(ny) for k in range(nz)]
         # so the summation here reflect that
-        indices = ijk.dot([nkz, nkx * nkz, 1])
+        indices = ijk.dot([nkz * nky, nkz, 1])
 
         # only keep the new points in the mask, this way we always keep the
         # symmetry of the first match
         mask[mask] = ~found[indices]  # mask = mask AND not found
-        indices = indices[~found[indices]] # mask only non-found indices
+        indices = indices[~found[indices]]  # mask only non-found indices
 
         origins[indices] = np.arange(0, len(Rk))[mask]
         syms[indices] = i
