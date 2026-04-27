@@ -1601,9 +1601,7 @@ def expand_irreducible_bz(
     if units != 1 and units != ureg("_2pi/crystal"):
         raise ValueError("kpoints are required in crystal units (2π/crystal).")
 
-    nkx, nky, nkz = grid
     grid_step = (1.0 / np.asarray(grid))[None, :]
-
     grid_points = grid_generator(grid, periodic=True)
 
     syms = np.zeros((len(grid_points),), dtype=np.int32)
@@ -1629,8 +1627,10 @@ def expand_irreducible_bz(
 
         # The grid is generated in C-ordering:
         # [(i, j, k) for j in range(nx) for i in range(ny) for k in range(nz)]
+        # c_strides = [ny*nz,nz,1]
+        c_strides = np.concatenate([np.cumprod(grid[::-1])[::-1][1:], [1]])
         # so the summation here reflect that
-        indices = ijk.dot([nkz * nky, nkz, 1])
+        indices = ijk.dot(c_strides)
 
         # only keep the new points in the mask, this way we always keep the
         # symmetry of the first match
@@ -1642,7 +1642,7 @@ def expand_irreducible_bz(
         found[indices] = True
         kpoints[indices] = Rk[mask]
 
-        if found.sum() == nkx * nky * nkz:  # as soon as we hit all points we return
+        if found.sum() == np.prod(grid):  # as soon as we hit all points we return
             return SimpleNamespace(
                 kpoints=kpoints * units,
                 sym=syms,
@@ -1650,7 +1650,7 @@ def expand_irreducible_bz(
             )
 
     raise ValueError(
-        f"Could only recover {found.sum()} out of the {nkx * nky * nkz} points of the grid from the reduced set of points"
+        f"Could only recover {found.sum()} out of the {np.prod(grid)} points of the grid from the reduced set of points"
     )
 
 
