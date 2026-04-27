@@ -1617,7 +1617,7 @@ def expand_irreducible_bz(
 
     for i, sym in enumerate(symmetries):
         # Rk are the images of the IBZ points by the symmetry i
-        Rk = rotate(kpts, sym.R, covariant=True)  # no need to wrap yet
+        Rk = rotate(kpts, sym.R, covariant=True)
 
         # Rk_snapped are the closestpoints nodes of the grid
         Rk_snapped = np.round(Rk / grid_step) * grid_step
@@ -1626,9 +1626,9 @@ def expand_irreducible_bz(
         mask = np.abs(Rk - Rk_snapped).max(axis=1) < tol
 
         Rk_match = Rk_snapped[mask]
-        
+
         # Compute the integer coordinates
-        Rk_match = np.mod(Rk_match, 1.0) # wrap to [0, 1)
+        Rk_match = np.mod(Rk_match, 1.0)  # wrap to [0, 1)
         # convert to number of steps from 0
         ijk = np.round(Rk_match / grid_step).astype(int)
 

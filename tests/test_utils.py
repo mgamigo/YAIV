@@ -630,7 +630,7 @@ def test_expand_irreducible_bz_matches_2x2x2_grid(data_dir, require):
     k_ibz = ut.cartesian2cryst(data.kpoints, data.k_lattice)
 
     # Compute symmetry orbit (modulo G)
-    out = ut.expand_irreducible_bz(k_ibz, [2, 2, 2], syms)
+    out = ut.expand_irreducible_bz(k_ibz, [2, 2, 2], syms, tol=1e-5)
 
     # Build expected 2x2x2 grid in crystal units
     # periodic=True means values in (-0.5, 0.5] for a 2x2x2 mesh
@@ -640,6 +640,13 @@ def test_expand_irreducible_bz_matches_2x2x2_grid(data_dir, require):
     assert grid.shape == out.kpoints.shape
     assert hasattr(out.kpoints, "units")
     assert out.kpoints.check(ureg("_2pi/crystal"))
+
+    # Check origin and syms are correct
+    for i, k in enumerate(out.kpoints):
+        sym = syms[out.sym[i]]
+        origin = k_ibz[out.origin[i]]
+        Rk = ut.wrap_fractional(ut.rotate(origin, sym.R, covariant=True))
+        assert np.allclose(k, Rk)
 
 
 def test_wrap_fractional():
