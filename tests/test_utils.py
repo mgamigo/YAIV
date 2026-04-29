@@ -46,55 +46,6 @@ def test_reciprocal_basis():
     assert K.check(ureg._2pi / ureg.meter)
 
 
-def test_rotate():
-    # --- define a non-orthogonal-like symmetry (general case) ---
-    lattice = [
-        [-1.8993036377496129, 1.8993036377496129, 6.57149432085007],
-        [1.8993036377496129, -1.8993036377496129, 6.57149432085007],
-        [1.8993036377496129, 1.8993036377496129, -6.57149432085007],
-    ] * ureg.ang
-    k_lattice = ut.reciprocal_basis(lattice)
-    R = np.array([[0.0, 1.0, -1.0], [1.0, 0.0, -1.0], [0.0, 0.0, -1.0]])
-    S = grep._Symmetry(R, units=ureg.cryst)
-
-    # --- basic vector ---
-    v = np.array([[1.0, 2.0, 3.0]])
-
-    # identity check
-    assert np.allclose(ut.rotate(v, np.eye(3)), v)
-
-    # inverse consistency
-    v_rot = ut.rotate(v, R)
-    v_back = ut.rotate(v_rot, np.linalg.inv(R))
-    assert np.allclose(v, v_back)
-
-    # --- batch shape preservation ---
-    V = np.random.rand(10, 3)
-    assert ut.rotate(V, R).shape == V.shape
-
-    # --- units ---
-    Vq = V * ureg.meter
-    Vq_rot = ut.rotate(Vq, R)
-    assert np.allclose(Vq_rot.magnitude, ut.rotate(V, R))
-    assert Vq_rot.units == ureg.meter
-
-    # --- physical consistency: crystal vs cartesian ---
-    K = np.array([0.5, 0.5, 0.0]) * ureg._2pi / ureg.crystal
-    K_cart = ut.cryst2cartesian(K, k_lattice)
-
-    # build cartesian version of R
-    R_cart = S.to_cartesian(lattice).R
-
-    K_cart_rot_contra = ut.rotate(K_cart, R_cart)
-    K_cart_rot_dual = ut.rotate(K_cart, R_cart, covariant=True)
-    K_rot = ut.rotate(K, R, covariant=True)
-    Kc_from_cryst = ut.cryst2cartesian(K_rot, k_lattice)
-
-    # In cartesian covariant and contravariant should be the same.
-    assert np.allclose(K_cart_rot_contra.magnitude, Kc_from_cryst.magnitude, atol=1e-8)
-    assert np.allclose(K_cart_rot_dual.magnitude, Kc_from_cryst.magnitude, atol=1e-8)
-
-
 def test_cartesian_crystal_conversion():
     # Cubic 1 Å box
     a0 = 3.0 * ureg.angstrom
@@ -157,6 +108,149 @@ def test_voigt_cartesian_conversion():
     assert isinstance(T2, ureg.Quantity)
     assert T2.check(ureg.gigapascal)
     assert_allclose(T2.magnitude, T.magnitude)
+
+
+def test_change_basis():
+    # --- setup ---
+    dim = 3
+    E1 = np.eye(dim)
+    E2 = np.array([[2.0, 0.1, 0.0], [0.0, 1.5, 0.2], [0.0, 0.0, 0.8]])
+
+    # ensure invertible
+    assert np.linalg.cond(E2) < 1e6
+
+    # --- contravariant vector ---
+    v = np.random.rand(dim)
+    v_new = ut.change_basis(v, E1, E2, contravariant=1)
+
+    A = np.linalg.solve(E1.T, E2.T)
+    A_inv = np.linalg.inv(A)
+    expected = A_inv @ v
+    assert_allclose(v_new, expected)
+
+    # --- covariant vector ---
+    k = np.random.rand(dim)
+    k_new = ut.change_basis(k, E1, E2, covariant=1)
+
+    expected = A.T @ k
+    assert_allclose(k_new, expected)
+
+    # --- rank (1,1) tensor ---
+    T = np.random.rand(dim, dim)
+    T_new = ut.change_basis(T, E1, E2, contravariant=1, covariant=1)
+
+    expected = A_inv @ T @ A
+    assert_allclose(T_new, expected)
+
+    # --- batch vectors ---
+    V = np.random.rand(10, dim)
+    V_new = ut.change_basis(V, E1, E2, contravariant=1)
+
+    expected = np.asarray([A_inv @ v for v in V])
+    assert_allclose(V_new, expected)
+
+    # --- batch tensors ---
+    TT = np.random.rand(5, dim, dim, dim)
+    TT_new = ut.change_basis(TT, E1, E2, contravariant=2, covariant=1)
+    assert np.all(TT_new.shape == TT.shape)
+    expected = np.asarray(
+        [ut.change_basis(t, E1, E2, contravariant=2, covariant=1) for t in TT]
+    )
+    assert_allclose(TT_new, expected)
+
+    # --- roundtrip consistency ---
+    v_back = ut.change_basis(v_new, E2, E1, contravariant=1)
+    assert_allclose(v_back, v)
+    T_back = ut.change_basis(T_new, E2, E1, contravariant=1, covariant=1)
+    assert_allclose(T_back, T)
+
+    # --- consistency with cryst/cartesian wrappers ---
+    r_cart = np.random.rand(10, 3)
+    r_cryst = ut.change_basis(r_cart, E1, E2, contravariant=1)
+    expected = ut.cartesian2cryst(r_cart, E2)
+    assert_allclose(
+        r_cryst,
+        expected,
+    )
+    r_cart = ut.change_basis(r_cryst, E2, E1, contravariant=1)
+    expected = ut.cryst2cartesian(r_cryst, E2)
+    assert_allclose(
+        r_cart,
+        expected,
+    )
+    # --- index consistency ---
+    g1 = E1 @ E1.T
+    g2 = E2 @ E2.T
+
+    out1 = ut.change_basis(T, E1, E2, contravariant=1, covariant=1)
+    out2 = np.linalg.inv(g2) @ ut.change_basis(
+        g1 @ T, E1, E2, contravariant=0, covariant=2
+    )
+    assert_allclose(out1, out2)
+
+    # --- unit handling ---
+    v_u = v * ureg.meter
+    E1_u = E1 * ureg.meter
+    E2_u = E2 * ureg.meter
+
+    v_u_new = ut.change_basis(v_u, E1_u, E2_u, contravariant=1)
+
+    # magnitude should match unitless case
+    assert_allclose(v_u_new.magnitude, v_new)
+    assert v_u_new.check(ureg.meter)
+
+    # --- error case ---
+    with pytest.raises(ValueError):
+        ut.change_basis(v, E1, E2, contravariant=2)
+
+
+def test_rotate():
+    # --- define a non-orthogonal-like symmetry (general case) ---
+    lattice = [
+        [-1.8993036377496129, 1.8993036377496129, 6.57149432085007],
+        [1.8993036377496129, -1.8993036377496129, 6.57149432085007],
+        [1.8993036377496129, 1.8993036377496129, -6.57149432085007],
+    ] * ureg.ang
+    k_lattice = ut.reciprocal_basis(lattice)
+    R = np.array([[0.0, 1.0, -1.0], [1.0, 0.0, -1.0], [0.0, 0.0, -1.0]])
+    S = grep._Symmetry(R, units=ureg.cryst)
+
+    # --- basic vector ---
+    v = np.array([[1.0, 2.0, 3.0]])
+
+    # identity check
+    assert np.allclose(ut.rotate(v, np.eye(3)), v)
+
+    # inverse consistency
+    v_rot = ut.rotate(v, R)
+    v_back = ut.rotate(v_rot, np.linalg.inv(R))
+    assert np.allclose(v, v_back)
+
+    # --- batch shape preservation ---
+    V = np.random.rand(10, 3)
+    assert ut.rotate(V, R).shape == V.shape
+
+    # --- units ---
+    Vq = V * ureg.meter
+    Vq_rot = ut.rotate(Vq, R)
+    assert np.allclose(Vq_rot.magnitude, ut.rotate(V, R))
+    assert Vq_rot.units == ureg.meter
+
+    # --- physical consistency: crystal vs cartesian ---
+    K = np.array([0.5, 0.5, 0.0]) * ureg._2pi / ureg.crystal
+    K_cart = ut.cryst2cartesian(K, k_lattice)
+
+    # build cartesian version of R
+    R_cart = S.to_cartesian(lattice).R
+
+    K_cart_rot_contra = ut.rotate(K_cart, R_cart)
+    K_cart_rot_dual = ut.rotate(K_cart, R_cart, covariant=True)
+    K_rot = ut.rotate(K, R, covariant=True)
+    Kc_from_cryst = ut.cryst2cartesian(K_rot, k_lattice)
+
+    # In cartesian covariant and contravariant should be the same.
+    assert np.allclose(K_cart_rot_contra.magnitude, Kc_from_cryst.magnitude, atol=1e-8)
+    assert np.allclose(K_cart_rot_dual.magnitude, Kc_from_cryst.magnitude, atol=1e-8)
 
 
 @pytest.mark.parametrize(

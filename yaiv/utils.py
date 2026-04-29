@@ -17,9 +17,6 @@ reciprocal_basis(lattice)
 cartesian2cryst(cartesian_coord, cryst_basis)
     Transforms coordinates from Cartesian to crystal basis, with unit handling.
 
-def rotate(coords, R)
-    Rotates vectors using a symmetry rotation matrix (for contravariant and covariant coordintes).
-
 cryst2cartesian(crystal_coord, cryst_basis)
     Transforms coordinates from crystal to Cartesian basis, with unit handling.
 
@@ -28,6 +25,12 @@ cartesian2voigt(xyz)
 
 voigt2cartesian(voigt)
     Converts a 6-element Voigt vector to a 3×3 symmetric tensor.
+
+change_basis(T,basis1,basis2)
+    Change the components of a tensor from one basis to another.
+
+rotate(coords, R)
+    Rotates vectors using a symmetry rotation matrix (for contravariant and covariant coordintes).
 
 grid_generator(grid, periodic=False)
     Generates a uniform D-dimensional grid in either periodic or bounded mode.
@@ -105,10 +108,12 @@ from yaiv.defaults.config import ureg, defaults
 __all__ = [
     "invQ",
     "reciprocal_basis",
-    "rotate" "cartesian2cryst",
+    "cartesian2cryst",
     "cryst2cartesian",
     "cartesian2voigt",
     "voigt2cartesian",
+    "change_basis",
+    "rotate",
     "grid_generator",
     "methpax_kernel",
     "fermidirac_kernel",
@@ -191,49 +196,6 @@ def reciprocal_basis(lattice: np.ndarray | ureg.Quantity) -> ureg.Quantity:
     """
     K_vec = (invQ(lattice) * ureg._2pi).transpose()  # reciprocal vectors in rows
     return K_vec
-
-
-def rotate(
-    coords: np.ndarray | ureg.Quantity,
-    R: np.ndarray,
-    *,
-    covariant: bool = False,
-) -> np.ndarray | ureg.Quantity:
-    """
-    Rotate vectors using a symmetry rotation matrix.
-
-    The function differs between contravariant and covariant/dual vectors:
-    - contravariant → R @ x
-    - covariant → R^{-T} @ x
-
-    Parameters
-    ----------
-    coords : np.ndarray | ureg.Quantity
-        Array of vectors (..., N), in row-vector convention.
-    R : np.ndarray, shape (N, N)
-        Rotation matrix (in the same basis as coords).
-    covariant : bool, optional
-        If True, treat vectors as covariant (dual vectors).
-        Otherwise contravariant (default).
-
-    Returns
-    -------
-    np.ndarray | ureg.Quantity
-        Rotated vectors with same shape and units.
-    """
-
-    R = np.asarray(R, dtype=float)
-
-    # --- apply transformation ---
-    # row convention for coords
-    if covariant:
-        # covariant → R^{-T} @ x
-        coords_rot = coords @ np.linalg.inv(R)
-    else:
-        # contravariant → R @ x
-        coords_rot = coords @ R.T
-
-    return coords_rot
 
 
 def cartesian2cryst(
@@ -404,6 +366,164 @@ def voigt2cartesian(voigt: np.ndarray | ureg.Quantity) -> np.ndarray | ureg.Quan
     # reshape: (a, b, c, d, e) -> result shape: (c, d, e, a, b)
     xyz = np.moveaxis(xyz, (0, 1), (-2, -1))
     return xyz * units
+
+
+def change_basis(
+    T: np.ndarray | ureg.Quantity,
+    basis1: np.ndarray | ureg.Quantity,
+    basis2: np.ndarray | ureg.Quantity,
+    contravariant: int = 0,
+    covariant: int = 0,
+):
+    """
+    Change the components of a tensor from one basis to another.
+
+    Parameters
+    ----------
+    T : ndarray | ureg.Quantity
+        Tensor components in the original basis. The axes are assumed to be ordered as:
+        (contravariant indices..., covariant indices...). If T.ndim exceeds the number
+        of tensor indices, the leading axes are interpreted as batch dimensions and are
+        ignored.
+    basis1 : ndarray | ureg.Quantity, shape (dim, dim)
+        Original basis, with basis vectors stored as rows.
+    basis2 : ndarray | ureg.Quantity, shape (dim, dim)
+        Target basis, with basis vectors stored as rows.
+    contravariant : int, optional
+        Number of contravariant (upper) indices.
+    covariant : int, optional
+        Number of covariant (lower) indices.
+
+    Returns
+    -------
+    ndarray | ureg.Quantity
+        Tensor components expressed in the new basis.
+
+    Notes
+    -----
+    The change of basis is defined by expressing the new basis vectors in terms of the old ones:
+        e'_μ = A^ν{}_μ e_ν
+    In matrix form, if bases are stored as columnts (internally transformed):
+        E' = A E
+    Therefore, the transformation matrix A is obtained as:
+        A = E' E^{-1}
+    In this implementation, A is computed via:
+        A = solve(basis1.T, basis2.T)
+    which corresponds to solving:
+        basis1.T * A = basis2.T
+
+    Transformation rules:
+        - Each contravariant index transforms with A^{-1}
+        - Each covariant index transforms with A
+
+    So a tensor T^{μν}{}_{ρ} transforms as:
+        T' = (A^{-1}) (A^{-1}) T (A)
+    with contractions applied along the corresponding axes.
+
+    If basis1 and basis2 have different units, the transformation matrix A becomes
+    dimensionful and the operation includes both a change of basis and a unit conversion.
+
+    Notes on implementation:
+        - np.tensordot is used to apply the transformation along each axis.
+        - Axis ordering is assumed to be:
+              (contravariant axes first, covariant axes last)
+        - No checks are performed on basis orthogonality.
+
+    Examples
+    --------
+    Vector (contravariant):
+        v' = change_basis(v, E, E_new, contravariant=1)
+
+    Covector:
+        k' = change_basis(k, E, E_new, covariant=1)
+
+    Rank (1,1) tensor:
+        T' = change_basis(T, E, E_new, contravariant=1, covariant=1)
+    """
+    # Handle units
+    if isinstance(basis1, ureg.Quantity):
+        basis1_units = basis1.units
+        basis1 = basis1.magnitude
+    else:
+        basis1_units = 1
+    if isinstance(basis2, ureg.Quantity):
+        basis2_units = basis2.units
+        basis2 = basis2.magnitude
+    else:
+        basis2_units = 1
+    if isinstance(T, ureg.Quantity):
+        T_units = T.units
+        T = T.magnitude
+    else:
+        T_units = 1
+
+    A = np.linalg.solve(basis1.T, basis2.T)  # E A = E'
+    A_units = basis2_units / basis1_units
+
+    if T.ndim > contravariant + covariant:
+        shift = T.ndim - (contravariant + covariant)
+    elif T.ndim < contravariant + covariant:
+        raise ValueError(
+            f"Tensor dimension T.ndim={T.ndim} smaller than the total number on indices={contravariant+covariant}"
+        )
+    else:
+        shift = 0
+
+    Ainv = np.linalg.inv(A)
+    result = T
+
+    # Apply contravariant indices
+    for i in range(contravariant):
+        result = np.tensordot(result, Ainv, axes=(shift, 1))
+
+    # Apply covariant indices
+    for i in range(covariant):
+        result = np.tensordot(result, A, axes=(shift, 0))
+
+    return result * T_units * A_units ** (covariant - contravariant)
+
+
+def rotate(
+    coords: np.ndarray | ureg.Quantity,
+    R: np.ndarray,
+    *,
+    covariant: bool = False,
+) -> np.ndarray | ureg.Quantity:
+    """
+    Rotate vectors using a symmetry rotation matrix.
+
+    The function differs between contravariant and covariant/dual vectors:
+    - contravariant → R @ x
+    - covariant → R^{-T} @ x
+
+    Parameters
+    ----------
+    coords : np.ndarray | ureg.Quantity
+        Array of vectors (..., N), in row-vector convention.
+    R : np.ndarray, shape (N, N)
+        Rotation matrix (in the same basis as coords).
+    covariant : bool, optional
+        If True, treat vectors as covariant (dual vectors).
+        Otherwise contravariant (default).
+
+    Returns
+    -------
+    np.ndarray | ureg.Quantity
+        Rotated vectors with same shape and units.
+    """
+
+    R = np.asarray(R, dtype=float)
+
+    # --- apply transformation ---
+    # row convention for coords
+    if covariant:
+        # covariant → R^{-T} @ x
+        coords_rot = coords @ np.linalg.inv(R)
+    else:
+        # contravariant → R @ x
+        coords_rot = coords @ R.T
+
+    return coords_rot
 
 
 def grid_generator(
