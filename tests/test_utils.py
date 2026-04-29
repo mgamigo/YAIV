@@ -165,6 +165,34 @@ def test_change_basis():
     T_back = ut.change_basis(T_new, E2, E1, contravariant=1, covariant=1)
     assert_allclose(T_back, T)
 
+    # --- index lowering/rising consistency ---
+    lat = E2
+    klat = ut.reciprocal_basis(E2).magnitude
+    g = lat @ lat.T
+    # Assume T is contravariant respect to lat
+    assert np.allclose(
+        ut.change_basis(T, lat, np.eye(3), contravariant=2, covariant=0),
+        ut.change_basis(T @ g, lat, np.eye(3), contravariant=1, covariant=1),
+    )
+    assert np.allclose(
+        ut.change_basis(T, lat, np.eye(3), contravariant=2, covariant=0),
+        ut.change_basis(g @ T @ g, lat, np.eye(3), contravariant=0, covariant=2),
+    )
+    # This implies T is covariant respect to klat
+    # g is the inverse metric of g(klat), so it raises indices (covariant -> contravariant)
+    assert np.allclose(
+        ut.change_basis(T, klat, np.eye(3), contravariant=0, covariant=2),
+        ut.change_basis(T, lat, np.eye(3), contravariant=2, covariant=0),
+    )
+    assert np.allclose(
+        ut.change_basis(T, klat, np.eye(3), contravariant=0, covariant=2),
+        ut.change_basis(g @ T, klat, np.eye(3), contravariant=1, covariant=1),
+    )
+    assert np.allclose(
+        ut.change_basis(T, klat, np.eye(3), contravariant=0, covariant=2),
+        ut.change_basis(g @ T @ g, klat, np.eye(3), contravariant=2, covariant=0),
+    )
+
     # --- consistency with cryst/cartesian wrappers ---
     r_cart = np.random.rand(10, 3)
     r_cryst = ut.change_basis(r_cart, E1, E2, contravariant=1)
@@ -272,6 +300,53 @@ def test_rotate():
     RT_20 = ut.rotate(T_20, R, contravariant=2, covariant=0)
     assert_allclose(RT_11, g_inv @ RT_02)
     assert_allclose(RT_11, RT_20 @ g)
+
+    # --- Roundtrip over crystal & real space ---
+    # Crystal coord -> Rotate in crystal -> To cartesian -> Rotate^-1 in cartesian -> To Crystal
+    lat = lattice.magnitude
+    klat = k_lattice.magnitude
+    R_cart = np.array(
+        [[1 / 2, -np.sqrt(3) / 2, 0], [np.sqrt(3) / 2, 1 / 2, 0], [0, 0, 1]]
+    )
+    R_cryst = ut.change_basis(R_cart, np.eye(3), lattice, contravariant=1, covariant=1)
+    R_cryst_dual = ut.change_basis(
+        R_cart, np.eye(3), klat, contravariant=1, covariant=1
+    )
+
+    # Round 1
+    T_cryst = np.random.rand(3, 3)  # Assumed too be contravariant.
+    TR_cryst = ut.rotate(T_cryst, R_cryst, contravariant=2, covariant=0)
+    TR_cart = ut.change_basis(TR_cryst, lat, np.eye(3), contravariant=2, covariant=0)
+    T_cart = ut.rotate(TR_cart, np.linalg.inv(R_cart), contravariant=2, covariant=0)
+    OUT = ut.change_basis(T_cart, np.eye(3), lat, contravariant=2, covariant=0)
+    assert np.allclose(T_cryst, OUT)
+
+    # Round 2
+    TR_cryst = ut.rotate(T_cryst, R_cryst, contravariant=2, covariant=0)
+    # Here treated as covariant as we are rotating the k_lattice.
+    TR_cart = ut.change_basis(TR_cryst, klat, np.eye(3), contravariant=0, covariant=2)
+    T_cart = ut.rotate(TR_cart, np.linalg.inv(R_cart), contravariant=2, covariant=0)
+    OUT = ut.change_basis(T_cart, np.eye(3), lat, contravariant=2, covariant=0)
+    assert np.allclose(T_cryst, OUT)
+
+    # Round 3
+    # Here the Rotation is in dual basis, an thus T is covariant.
+    TR_cryst = ut.rotate(T_cryst, R_cryst_dual, contravariant=0, covariant=2)
+    TR_cart = ut.change_basis(TR_cryst, klat, np.eye(3), contravariant=0, covariant=2)
+    T_cart = ut.rotate(TR_cart, np.linalg.inv(R_cart), contravariant=2, covariant=0)
+    OUT = ut.change_basis(T_cart, np.eye(3), lat, contravariant=2, covariant=0)
+    assert np.allclose(T_cryst, OUT)
+
+    # --- Cartesian index invariance ---
+    # In cartesian covariant/contravariant indcies dont' matter:
+    assert np.allclose(
+        ut.rotate(T_cart, R_cart, contravariant=1, covariant=1),
+        ut.rotate(T_cart, R_cart, contravariant=2, covariant=0),
+    )
+    assert np.allclose(
+        ut.rotate(T_cart, R_cart, contravariant=1, covariant=1),
+        ut.rotate(T_cart, R_cart, contravariant=0, covariant=2),
+    )
 
 
 @pytest.mark.parametrize(
