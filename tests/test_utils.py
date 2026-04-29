@@ -245,10 +245,13 @@ def test_rotate():
     S = grep._Symmetry(R, units=ureg.cryst)
 
     # --- basic vector ---
-    v = np.array([[1.0, 2.0, 3.0]])
+    v = np.array([1.0, 2.0, 3.0])
 
     # identity check
     assert np.allclose(ut.rotate(v, np.eye(3)), v)
+
+    # v' = Rv check
+    assert np.allclose(ut.rotate(v, R), R @ v)
 
     # inverse consistency
     v_rot = ut.rotate(v, R)

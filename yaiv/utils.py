@@ -1540,7 +1540,6 @@ def find_little_group(
         for i, sym in enumerate(symmetries):
             R = np.asarray(sym.R, dtype=float)
             kR = rotate(k, R, contravariant=0, covariant=1)
-            print(kR)
             if mod_G:
                 kR_wr = wrap_fractional(kR)
                 d = kR_wr - k_wr
