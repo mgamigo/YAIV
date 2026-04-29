@@ -403,14 +403,10 @@ def change_basis(
     -----
     The change of basis is defined by expressing the new basis vectors in terms of the old ones:
         e'_μ = A^ν{}_μ e_ν
-    In matrix form, if bases are stored as columnts (internally transformed):
-        E' = A E
+    In matrix form, if bases are stored as columns (internally transformed):
+        E' = E A
     Therefore, the transformation matrix A is obtained as:
-        A = E' E^{-1}
-    In this implementation, A is computed via:
-        A = solve(basis1.T, basis2.T)
-    which corresponds to solving:
-        basis1.T * A = basis2.T
+        A = E^{-1} E'
 
     Transformation rules:
         - Each contravariant index transforms with A^{-1}
@@ -484,46 +480,72 @@ def change_basis(
 
 
 def rotate(
-    coords: np.ndarray | ureg.Quantity,
+    T: np.ndarray | ureg.Quantity,
     R: np.ndarray,
     *,
-    covariant: bool = False,
+    contravariant: int = 1,
+    covariant: int = 0,
 ) -> np.ndarray | ureg.Quantity:
     """
-    Rotate vectors using a symmetry rotation matrix.
+    Apply an active rotation to a tensor using a symmetry rotation matrix.
 
-    The function differs between contravariant and covariant/dual vectors:
-    - contravariant → R @ x
-    - covariant → R^{-T} @ x
+    The rotation is implemented through `change_basis`, representing the active
+    transformation as a passive change of basis with A = R^{-1}. This ensures
+    consistency with standard tensor transformation rules.
 
     Parameters
     ----------
-    coords : np.ndarray | ureg.Quantity
-        Array of vectors (..., N), in row-vector convention.
+    T : np.ndarray | ureg.Quantity
+        Tensor components (..., indices). The axes are assumed to be ordered as:
+        (contravariant indices..., covariant indices...). Any leading axes are
+        treated as batch dimensions and are left unchanged.
     R : np.ndarray, shape (N, N)
-        Rotation matrix (in the same basis as coords).
-    covariant : bool, optional
-        If True, treat vectors as covariant (dual vectors).
-        Otherwise contravariant (default).
+        Rotation matrix expressed in the **same basis as T**. It represents the
+        linear map:
+            x' = R x
+        in column (contravariant) convention. In the row-vector convention used
+        here, contravariant vectors transform as:
+            x' = x R^T
+    contravariant : int, optional
+        Number of contravariant (upper) indices. Default is 1.
+    covariant : int, optional
+        Number of covariant (lower) indices. Default is 0.
 
     Returns
     -------
     np.ndarray | ureg.Quantity
-        Rotated vectors with same shape and units.
+        Rotated tensor with the same shape and units.
+
+    Notes
+    -----
+    The rotation is computed as:
+        rotate(T, R) ≡ change_basis(T, I, R^{-T})
+    Since E'=EA => E'=>R^{-1}, that then is passed as transpose becuase basis2
+    is expected in row notation.
+
+    where I is the identity basis. Under this mapping:
+        - each contravariant index transforms with R
+        - each covariant index transforms with R^{-1}
+
+    The matrix R must be expressed in the same coordinate representation as T.
+    If R is defined in a different basis, it must first be transformed as:
+
+        R_new = change_basis(R, basis_old, basis_new,
+                             contravariant=1, covariant=1)
+
+    This function applies the rotation to the tensor components. To change the
+    representation of R itself (without applying it), use `change_basis` directly.
     """
-
     R = np.asarray(R, dtype=float)
+    dim = R.shape[0]
 
-    # --- apply transformation ---
-    # row convention for coords
-    if covariant:
-        # covariant → R^{-T} @ x
-        coords_rot = coords @ np.linalg.inv(R)
-    else:
-        # contravariant → R @ x
-        coords_rot = coords @ R.T
+    # Active rotation → passive basis change with A = R^{-1}
+    Rinv = np.linalg.inv(R)
 
-    return coords_rot
+    T_new = change_basis(
+        T, np.eye(dim), Rinv.T, contravariant=contravariant, covariant=covariant
+    )
+    return T_new
 
 
 def grid_generator(
@@ -1517,7 +1539,8 @@ def find_little_group(
 
         for i, sym in enumerate(symmetries):
             R = np.asarray(sym.R, dtype=float)
-            kR = rotate(k, R, covariant=True)
+            kR = rotate(k, R, contravariant=0, covariant=1)
+            print(kR)
             if mod_G:
                 kR_wr = wrap_fractional(kR)
                 d = kR_wr - k_wr
@@ -1613,7 +1636,7 @@ def symmetry_orbit_kpoints(
     expanded = []
     idx_pairs = []
     for i, sym in enumerate(symmetries):
-        expanded.append(rotate(kpts, sym.R, covariant=True))
+        expanded.append(rotate(kpts, sym.R, contravariant=0, covariant=1))
         idx_pairs.append(
             np.column_stack(
                 (np.full(Nk, i), np.arange(Nk))  # i repeated Nk times  # j = 0 ... Nk-1
@@ -1731,7 +1754,7 @@ def expand_irreducible_bz(
 
     for i, sym in enumerate(symmetries):
         # Rk are the images of the IBZ points by the symmetry i
-        Rk = rotate(kpts, sym.R, covariant=True)
+        Rk = rotate(kpts, sym.R, contravariant=0, covariant=1)
 
         # Rk_snapped are the closestpoints nodes of the grid
         Rk_snapped = np.round(Rk / grid_step) * grid_step

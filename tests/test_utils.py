@@ -115,6 +115,7 @@ def test_change_basis():
     dim = 3
     E1 = np.eye(dim)
     E2 = np.array([[2.0, 0.1, 0.0], [0.0, 1.5, 0.2], [0.0, 0.0, 0.8]])
+    E3 = np.array([[0.0, 0.1, 0.8], [0.0, 1.5, 0.2], [2.0, 0.0, 0.8]])
 
     # ensure invertible
     assert np.linalg.cond(E2) < 1e6
@@ -172,10 +173,10 @@ def test_change_basis():
         r_cryst,
         expected,
     )
-    r_cart = ut.change_basis(r_cryst, E2, E1, contravariant=1)
-    expected = ut.cryst2cartesian(r_cryst, E2)
+    r_E3 = ut.change_basis(r_cryst, E2, E3, contravariant=1)
+    expected = ut.cartesian2cryst(r_cart, E3)
     assert_allclose(
-        r_cart,
+        r_E3,
         expected,
     )
     # --- index consistency ---
@@ -244,13 +245,33 @@ def test_rotate():
     R_cart = S.to_cartesian(lattice).R
 
     K_cart_rot_contra = ut.rotate(K_cart, R_cart)
-    K_cart_rot_dual = ut.rotate(K_cart, R_cart, covariant=True)
-    K_rot = ut.rotate(K, R, covariant=True)
+    K_cart_rot_dual = ut.rotate(K_cart, R_cart, contravariant=0, covariant=1)
+    K_rot = ut.rotate(K, R, contravariant=0, covariant=1)
     Kc_from_cryst = ut.cryst2cartesian(K_rot, k_lattice)
 
     # In cartesian covariant and contravariant should be the same.
-    assert np.allclose(K_cart_rot_contra.magnitude, Kc_from_cryst.magnitude, atol=1e-8)
-    assert np.allclose(K_cart_rot_dual.magnitude, Kc_from_cryst.magnitude, atol=1e-8)
+    assert np.allclose(K_cart_rot_contra, Kc_from_cryst, atol=1e-8)
+    assert np.allclose(K_cart_rot_dual, Kc_from_cryst, atol=1e-8)
+
+    # --- rotation over contratraviant / dual vectors ---
+    # metric g
+    g = (lattice @ lattice.T).magnitude
+    g_inv = np.linalg.inv(g)
+    # vector
+    r_contra = np.random.rand(3)
+    r_dual = g @ r_contra
+    Rr_contra = ut.rotate(r_contra, R, contravariant=1, covariant=0)
+    Rr_dual = ut.rotate(r_dual, R, contravariant=0, covariant=1)
+    assert_allclose(Rr_contra, g_inv @ Rr_dual)
+    # tensor
+    T_11 = np.random.rand(3, 3)
+    T_02 = g @ T_11
+    T_20 = T_11 @ g_inv
+    RT_11 = ut.rotate(T_11, R, contravariant=1, covariant=1)
+    RT_02 = ut.rotate(T_02, R, contravariant=0, covariant=2)
+    RT_20 = ut.rotate(T_20, R, contravariant=2, covariant=0)
+    assert_allclose(RT_11, g_inv @ RT_02)
+    assert_allclose(RT_11, RT_20 @ g)
 
 
 @pytest.mark.parametrize(
@@ -758,7 +779,7 @@ def test_expand_irreducible_bz_matches_2x2x2_grid(data_dir, require):
     for i, k in enumerate(out.kpoints):
         sym = syms[out.sym[i]]
         origin = k_ibz[out.origin[i]]
-        Rk = ut.wrap_fractional(ut.rotate(origin, sym.R, covariant=True))
+        Rk = ut.wrap_fractional(ut.rotate(origin, sym.R, contravariant=0, covariant=1))
         k = ut.wrap_fractional(k)
         assert np.allclose(k, Rk)
 
