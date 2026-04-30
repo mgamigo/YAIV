@@ -44,20 +44,6 @@ def test_split_units():
     assert mag == [1, 2, 3]
     assert units == [1, ureg.s, 1]
 
-    # --- numpy array (structure preserved) ---
-    arr = np.array([1, 2 * ureg.m, 3], dtype=object)
-    mag, units = ut._split_units(arr)
-    assert isinstance(mag, np.ndarray)
-    assert mag.shape == arr.shape
-    assert np.all(mag == np.array([1, 2, 3], dtype=object))
-    assert units == [1, ureg.m, 1]
-
-    # --- nested iterable (only top-level handled) ---
-    data = [(1 * ureg.kg), (2 * ureg.kg)]
-    mag, units = ut._split_units(data)
-    assert mag == [1, 2]
-    assert units == [ureg.kg, ureg.kg]
-
 
 def test_invQ():
     # Inverse should have 1/unit

@@ -519,8 +519,7 @@ class _Symmetry:
                 f"Only can chage to Cartesian coord from crystal units. Not {self.units} units."
             )
         t = ut.cryst2cartesian(self.t * self.units, lattice)
-        if isinstance(lattice, ureg.Quantity):
-            lattice = lattice.magnitude
+        lattice, _ = ut._split_units(lattice)
         cryst2cartesian = lattice.T
         cartesian2cryst = ut.invQ(cryst2cartesian)
         R = cryst2cartesian @ self.R @ cartesian2cryst
@@ -551,8 +550,7 @@ class _Symmetry:
                 f"Only can chage to crystal coord from length units. Not {self.units} units."
             )
         t = ut.cartesian2cryst(self.t * self.units, lattice)
-        if isinstance(lattice, ureg.Quantity):
-            lattice = lattice.magnitude
+        lattice, _ = ut._split_units(lattice)
         cryst2cartesian = lattice.T
         cartesian2cryst = ut.invQ(cryst2cartesian)
         R = cartesian2cryst @ self.R @ cryst2cartesian

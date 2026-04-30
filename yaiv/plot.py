@@ -151,11 +151,7 @@ def get_HSP_ticks(
     # Handle units
     quantities, names = [path_array, k_lattice], ["kpath", "k_lattice"]
     ut._check_unit_consistency(quantities, names)
-    if isinstance(path_array, ureg.Quantity):
-        units = path_array.units
-        path_array = path_array.magnitude
-    else:
-        units = 1
+    path_array, units = ut._split_units(path_array)
 
     segment_counts = [int(n) for n in path_array[:, -1]]
     hsp_coords = path_array[:, :3] * units

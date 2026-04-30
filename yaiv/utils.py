@@ -165,32 +165,30 @@ def _check_unit_consistency(quantities: Sequence[Any], names: Sequence[str] = No
 
 
 def _split_units(
-    quantities: ureg.Quantity | Iterable[Any] | Any,
+    quantities: Any | list[Any] | Any,
 ) -> tuple[Any, Any | list[Any]]:
     """
     Separate magnitudes and units from input quantities.
 
     Parameters
     ----------
-    quantities : pint.Quantity or iterable
-        Input data. Can be a single Pint quantity, a NumPy array, or any
-        iterable containing a mix of quantities and unitless values.
+    quantities : pint.Quantity | list
+        Input data. Any quantity, or list of quantities.
 
     Returns
     -------
     magnitudes : scalar, list, or np.ndarray
         Numerical values with units removed.
     units : pint.Unit or list
-        Unit for scalar input, or a flat list of units for iterables. Unitless
+        Unit for scalar input, or a flat list of units for list. Unitless
         values receive ``1``.
     """
     # --- scalar case ---
     if isinstance(quantities, ureg.Quantity):
         return quantities.magnitude, quantities.units
 
-    # --- iterable case (but avoid treating strings as iterable) ---
-    if isinstance(quantities, Iterable) and not isinstance(quantities, (str, bytes)):
-        units = []
+    # --- list case ---
+    if isinstance(quantities, list):
 
         def extract(q):
             if isinstance(q, ureg.Quantity):
@@ -200,12 +198,8 @@ def _split_units(
                 units.append(1)
                 return q
 
-        # preserve structure for numpy arrays
-        if isinstance(quantities, np.ndarray):
-            magnitudes = np.vectorize(extract, otypes=[object])(quantities)
-        else:
-            magnitudes = [extract(q) for q in quantities]
-
+        units = []
+        magnitudes = [extract(q) for q in quantities]
         return magnitudes, units
 
     # --- fallback (non-iterable, non-quantity) ---
@@ -226,10 +220,8 @@ def invQ(matrix: np.ndarray | ureg.Quantity) -> np.ndarray | ureg.Quantity:
     inverse : np.ndarray | ureg.Quantity
         Square matrix, with (1/[input]) or without units (depending on the input).
     """
-    if isinstance(matrix, ureg.Quantity):
-        return np.linalg.inv(matrix.magnitude) * (1 / matrix.units)
-    else:
-        return np.linalg.inv(matrix)
+    matrix, units = _split_units(matrix)
+    return np.linalg.inv(matrix) / units
 
 
 def reciprocal_basis(lattice: np.ndarray | ureg.Quantity) -> ureg.Quantity:
@@ -362,11 +354,7 @@ def cartesian2voigt(xyz: np.ndarray | ureg.Quantity) -> np.ndarray | ureg.Quanti
     np.ndarray | ureg.Quantity
         A (a,b,...,6) array in Voigt notation. If the input had units, they are preserved.
     """
-    if isinstance(xyz, ureg.Quantity):
-        units = xyz.units
-        xyz = xyz.magnitude
-    else:
-        units = 1
+    xyz, units = _split_units(xyz)
     voigt = np.array(
         [
             xyz[..., 0, 0],
@@ -402,12 +390,7 @@ def voigt2cartesian(voigt: np.ndarray | ureg.Quantity) -> np.ndarray | ureg.Quan
         A (a,b,...,3,3) symmetric tensor in Cartesian matrix notation.
         If the input had units, they are preserved.
     """
-    units = 1
-    if isinstance(voigt, ureg.Quantity):
-        units = voigt.units
-        voigt = voigt.magnitude
-    else:
-        units = 1
+    voigt, units = _split_units(voigt)
     xyz = np.array(
         [
             [voigt[..., 0], voigt[..., 5], voigt[..., 4]],
@@ -489,21 +472,9 @@ def change_basis(
         T' = change_basis(T, E, E_new, contravariant=1, covariant=1)
     """
     # Handle units
-    if isinstance(basis1, ureg.Quantity):
-        basis1_units = basis1.units
-        basis1 = basis1.magnitude
-    else:
-        basis1_units = 1
-    if isinstance(basis2, ureg.Quantity):
-        basis2_units = basis2.units
-        basis2 = basis2.magnitude
-    else:
-        basis2_units = 1
-    if isinstance(T, ureg.Quantity):
-        T_units = T.units
-        T = T.magnitude
-    else:
-        T_units = 1
+    [basis1, basis2, T], [basis1_units, basis2_units, T_units] = _split_units(
+        [basis1, basis2, T]
+    )
 
     A = np.linalg.solve(basis1.T, basis2.T)  # E A = E'
     A_units = basis2_units / basis1_units
@@ -903,12 +874,8 @@ def kernel_density(
         x = np.asarray(x)
         default_sigma = float(default_sigma) if default_sigma is not None else None
 
-    if isinstance(values, ureg.Quantity):
-        val_units = values.units
-        val = np.asarray(values.magnitude)
-    else:
-        val_units = 1
-        val = np.asarray(values)
+    val, val_units = _split_units(values)
+    val = np.asarray(val)
 
     # Shapes/checks
     nk = x.shape[0]
@@ -1095,10 +1062,7 @@ def kernel_regression(
         no_gaps = dist[np.where(dist < thrushold)[0]]
         default_sigma = 10 * (np.sum(no_gaps) / len(no_gaps))
 
-    if isinstance(x, ureg.Quantity):
-        x_units = x.units
-    else:
-        x_units = 1
+    _, x_units = _split_units(x)
 
     density = kernel_density(
         x=x,
