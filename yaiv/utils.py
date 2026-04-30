@@ -82,6 +82,9 @@ Private Utilities
 _check_unit_consistency(quantities, names=None)
     Verifies that a list of variables are either all unitful or all unitless. Raises `TypeError` if mixed.
 
+_split_units(quantities)
+    Separate magnitudes and units from input quantities.
+
 _normal_dist(x, mean=0, sd=0.1, A=1)
     Computes the value of a normalized Gaussian distribution.
 
@@ -100,6 +103,7 @@ yaiv.spectrum         : Core spectral class storing eigenvalues and k-points.
 import warnings
 from types import SimpleNamespace
 from typing import Sequence, Any
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -158,6 +162,54 @@ def _check_unit_consistency(quantities: Sequence[Any], names: Sequence[str] = No
             print("Units check failed for:", names)
         print("Units status:", has_units)
         raise TypeError("Either all or none of the variables must have units.")
+
+
+def _split_units(
+    quantities: ureg.Quantity | Iterable[Any] | Any,
+) -> tuple[Any, Any | list[Any]]:
+    """
+    Separate magnitudes and units from input quantities.
+
+    Parameters
+    ----------
+    quantities : pint.Quantity or iterable
+        Input data. Can be a single Pint quantity, a NumPy array, or any
+        iterable containing a mix of quantities and unitless values.
+
+    Returns
+    -------
+    magnitudes : scalar, list, or np.ndarray
+        Numerical values with units removed.
+    units : pint.Unit or list
+        Unit for scalar input, or a flat list of units for iterables. Unitless
+        values receive ``1``.
+    """
+    # --- scalar case ---
+    if isinstance(quantities, ureg.Quantity):
+        return quantities.magnitude, quantities.units
+
+    # --- iterable case (but avoid treating strings as iterable) ---
+    if isinstance(quantities, Iterable) and not isinstance(quantities, (str, bytes)):
+        units = []
+
+        def extract(q):
+            if isinstance(q, ureg.Quantity):
+                units.append(q.units)
+                return q.magnitude
+            else:
+                units.append(1)
+                return q
+
+        # preserve structure for numpy arrays
+        if isinstance(quantities, np.ndarray):
+            magnitudes = np.vectorize(extract, otypes=[object])(quantities)
+        else:
+            magnitudes = [extract(q) for q in quantities]
+
+        return magnitudes, units
+
+    # --- fallback (non-iterable, non-quantity) ---
+    return quantities, 1
 
 
 def invQ(matrix: np.ndarray | ureg.Quantity) -> np.ndarray | ureg.Quantity:

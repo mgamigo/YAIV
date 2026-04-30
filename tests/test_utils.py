@@ -26,6 +26,39 @@ def test_check_unit_consistency_failure(capsys):
     assert "Units status:" in out
 
 
+def test_split_units():
+    # --- scalar quantity ---
+    q = 3 * ureg.m
+    mag, unit = ut._split_units(q)
+    assert mag == 3
+    assert unit == ureg.m
+
+    # --- scalar non-quantity ---
+    mag, unit = ut._split_units(5)
+    assert mag == 5
+    assert unit == 1
+
+    # --- list mixed ---
+    data = [1, 2 * ureg.s, 3]
+    mag, units = ut._split_units(data)
+    assert mag == [1, 2, 3]
+    assert units == [1, ureg.s, 1]
+
+    # --- numpy array (structure preserved) ---
+    arr = np.array([1, 2 * ureg.m, 3], dtype=object)
+    mag, units = ut._split_units(arr)
+    assert isinstance(mag, np.ndarray)
+    assert mag.shape == arr.shape
+    assert np.all(mag == np.array([1, 2, 3], dtype=object))
+    assert units == [1, ureg.m, 1]
+
+    # --- nested iterable (only top-level handled) ---
+    data = [(1 * ureg.kg), (2 * ureg.kg)]
+    mag, units = ut._split_units(data)
+    assert mag == [1, 2]
+    assert units == [ureg.kg, ureg.kg]
+
+
 def test_invQ():
     # Inverse should have 1/unit
     A = np.eye(2) * (2.0 * ureg.meter)
