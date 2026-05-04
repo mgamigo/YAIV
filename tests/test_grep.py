@@ -3,6 +3,7 @@ import numpy as np
 import pytest
 
 from yaiv import grep
+from yaiv import utils as ut
 from yaiv.defaults.config import ureg
 from yaiv import cell
 
@@ -96,7 +97,7 @@ def test_alat(data_dir, require, fname, kind):
     if kind in SUPPORTED_ALAT:
         alat = grep.alat(str(f))
         assert isinstance(alat, ureg.Quantity)
-        assert alat.dimensionality == ureg('bohr/alat').dimensionality
+        assert alat.dimensionality == ureg("bohr/alat").dimensionality
     else:
         with pytest.raises(NotImplementedError):
             grep.alat(str(f))
@@ -285,6 +286,12 @@ def test_symmetries_and_symmetry_class(data_dir, require, fname, kind):
         assert np.allclose(s1.R, new.R, rtol=1e-15)
         assert np.allclose(s1.t, new.t, rtol=1e-15)
         assert s1.units == new.units
+
+        cryst2cartesian = lattice.magnitude.T
+        cartesian2cryst = ut.invQ(cryst2cartesian)
+        assert np.allclose(
+            s1.to_cartesian(lattice).R, cryst2cartesian @ s1.R @ cartesian2cryst
+        )
 
 
 @pytest.mark.parametrize("fname, kind", FILES, ids=IDS)

@@ -519,10 +519,13 @@ class _Symmetry:
                 f"Only can chage to Cartesian coord from crystal units. Not {self.units} units."
             )
         t = ut.cryst2cartesian(self.t * self.units, lattice)
-        lattice, _ = ut._split_units(lattice)
-        cryst2cartesian = lattice.T
-        cartesian2cryst = ut.invQ(cryst2cartesian)
-        R = cryst2cartesian @ self.R @ cartesian2cryst
+        R = ut.change_basis(
+            self.R,
+            lattice.magnitude,
+            np.eye(len(lattice)),
+            contravariant=1,
+            covariant=1,
+        )
         return _Symmetry(R, t.magnitude, t.units)
 
     def to_crystal(self, lattice: np.ndarray | ureg.Quantity) -> "_Symmetry":
@@ -550,10 +553,13 @@ class _Symmetry:
                 f"Only can chage to crystal coord from length units. Not {self.units} units."
             )
         t = ut.cartesian2cryst(self.t * self.units, lattice)
-        lattice, _ = ut._split_units(lattice)
-        cryst2cartesian = lattice.T
-        cartesian2cryst = ut.invQ(cryst2cartesian)
-        R = cartesian2cryst @ self.R @ cryst2cartesian
+        R = ut.change_basis(
+            self.R,
+            np.eye(len(lattice)),
+            lattice.magnitude,
+            contravariant=1,
+            covariant=1,
+        )
         return _Symmetry(R, t.magnitude, t.units)
 
 
