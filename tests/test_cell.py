@@ -3,7 +3,6 @@ import numpy as np
 import pytest
 
 import spglib as spg
-import nglview as nv
 
 from yaiv import cell
 
@@ -92,6 +91,7 @@ def test_Cell_repr(data_dir, require, fname):
 
 @pytest.mark.parametrize("fname", FILES, ids=IDS)
 def test_Cell_view(data_dir, require, fname):
+    nv = pytest.importorskip("nglview")
     f = data_dir / fname
     require(f, f"Missing test data: {fname}")
     c = cell.Cell.from_file(str(f))

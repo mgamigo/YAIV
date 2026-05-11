@@ -62,13 +62,13 @@ yaiv.defaults : Configuration and default precision values
 yaiv.utils    : Utility functions for basis and vector transformations
 """
 
+from __future__ import annotations
 from types import SimpleNamespace
 
 import numpy as np
 
 # from ase.io import read, write
 from ase import Atoms
-import nglview as nv
 
 from yaiv import utils as ut
 from yaiv.defaults.config import defaults
@@ -564,6 +564,8 @@ class Cell:
         nv.widget.NGLWidget
             An interactive widget showing the atomic structure, complete with customizable features for user analysis and exploration.
         """
+        import nglview as nv
+
         # Create the widget with optional repeated structure
         widget = nv.show_ase(self.atoms.repeat(repeat), default=False)
 
