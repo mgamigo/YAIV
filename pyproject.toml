@@ -11,12 +11,11 @@ authors = [
 description = "Yet another Ab Initio Visualizer with a variety of tools"
 readme = "README.md"
 dependencies = [
-    "ipympl",
+    "matplotlib",
     "pint",
     "ase",
     "spglib",
     "scipy",
-    "nglview",
 ]
 requires-python = ">=3.6"
 classifiers = [
@@ -37,3 +36,10 @@ exclude = ["tests*", "docs*"]
 
 [tool.setuptools.package-data]
 yaiv = ["defaults/extra_units.txt"]
+
+[project.optional-dependencies]
+
+notebook = [
+    "ipympl",
+    "nglview==3.1.4",
+]
