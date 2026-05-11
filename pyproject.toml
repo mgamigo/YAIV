@@ -38,7 +38,6 @@ exclude = ["tests*", "docs*"]
 yaiv = ["defaults/extra_units.txt"]
 
 [project.optional-dependencies]
-
 notebook = [
     "ipympl",
     "nglview==3.1.4",
