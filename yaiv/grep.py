@@ -1224,13 +1224,13 @@ def kpath(file: str, labels: bool = True) -> SimpleNamespace | np.ndarray:
             else:
                 if labels:
                     try:
-                        kpoint, label = line.split("!")
+                        kpoint, label = re.split(r"[!#]", line, maxsplit=1)
                     except ValueError:
                         raise NameError("Label not found, try using labels=False.")
                 else:
                     kpoint = line
                 # Grep K point
-                kpoint = [float(x) for x in kpoint.split()]
+                kpoint = [float(x) for x in kpoint.split()[:4]]
                 kpath.append(kpoint)
                 # Grep K point label
                 if labels:
