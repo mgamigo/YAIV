@@ -1609,16 +1609,17 @@ def kpointsFrequencies(file: str) -> SimpleNamespace:
                 if "nbnd" in line:
                     num_bands = int(l[2][:-1])
                     num_points = int(line.split("nks=")[-1][:-2])
-                elif len(l) == 3:
+                elif len(l) == 3 and READ_freqs is False:
                     k = [float(x) for x in l]
                     KPOINTS.append(k)
                     READ_freqs = True
                 elif READ_freqs:
                     for f in l:
                         F.append(float(f))
-                    if len(F) == num_bands:
+                    if len(F) >= num_bands:
                         FREQS.append(F)
                         F = []
+                        READ_freqs = False
         else:
             raise NotImplementedError("Unsupported filetype")
     # Give proper units
