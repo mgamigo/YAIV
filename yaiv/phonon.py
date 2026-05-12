@@ -315,19 +315,8 @@ class Dyn:
             dyn, units = dyn_mat, 1
 
         # Diagonalize
-        eigvals, pol = np.linalg.eig(dyn)
-
-        # Convert eigenvalues (ω²) to frequencies in cm⁻¹
-        freqs = np.zeros_like(eigvals, dtype=float)
-        for i, val in enumerate(np.sqrt(eigvals)):
-            if np.isclose(np.imag(val), 0, atol=1e-10):
-                freqs[i] = np.real(val)
-            elif np.isclose(np.real(val), 0, atol=1e-10):
-                freqs[i] = -np.abs(np.imag(val))
-            else:
-                raise ValueError(
-                    f"Complex eigenvalue with both real and imaginary part at index {i}: {val}"
-                )
+        eigvals, pol = np.linalg.eigh(dyn)
+        freqs = np.sign(eigvals) * np.sqrt(np.abs(eigvals))
 
         # Normalize polarization vectors to obtain displacements
         dim = len(masses)
