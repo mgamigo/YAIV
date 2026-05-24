@@ -711,6 +711,56 @@ def test_kernel_regression_sigma_override_and_scalar_eval():
     assert_allclose(y1, 2.0, rtol=5e-2, atol=5e-2)
 
 
+def test_kernel_density_component_axes():
+    nk, nb1, nb2, ncomp = 2, 2, 2, 3
+    x = np.linspace(-0.2, 0.3, nk * nb1 * nb2).reshape(nk, nb1, nb2)
+    base = np.ones_like(x)
+    values = np.stack([base, 2.0 * base, 4.0 * base], axis=-1)
+    weights = np.ones(nk) / nk
+
+    density = ut.kernel_density(
+        x=x,
+        values=values,
+        weights=weights,
+        default_sigma=0.08,
+        default_cutoff_sigmas=5.0,
+    )
+
+    X = np.linspace(-0.1, 0.2, 5)
+    y = density(X)
+    y_scalar = density(0.0)
+
+    assert y.shape == X.shape + (ncomp,)
+    assert y_scalar.shape == (ncomp,)
+    assert_allclose(y[..., 1], 2.0 * y[..., 0])
+    assert_allclose(y[..., 2], 4.0 * y[..., 0])
+
+
+def test_kernel_regression_component_axes_constant_recovery():
+    nk, nb1, nb2, ncomp = 2, 2, 2, 3
+    x = np.linspace(-0.2, 0.3, nk * nb1 * nb2).reshape(nk, nb1, nb2)
+    constants = np.array([2.0, 4.0, 8.0])
+    values = np.ones(x.shape + (ncomp,)) * constants
+    weights = np.ones(nk) / nk
+
+    f = ut.kernel_regression(
+        x=x,
+        values=values,
+        weights=weights,
+        default_sigma=0.08,
+        default_cutoff_sigmas=5.0,
+    )
+
+    X = np.array([[-0.05, 0.05], [0.15, 0.25]])
+    y = f(X)
+    y_scalar = f(0.0)
+
+    assert y.shape == X.shape + (ncomp,)
+    assert y_scalar.shape == (ncomp,)
+    assert_allclose(y, np.broadcast_to(constants, y.shape), rtol=5e-2, atol=5e-2)
+    assert_allclose(y_scalar, constants, rtol=5e-2, atol=5e-2)
+
+
 def test_expand_zone_border_shapes_and_units():
     q = np.array([[0.5, 0.0, 0.0], [0, 0, 0]]) * ureg.meter
     with pytest.raises(TypeError):

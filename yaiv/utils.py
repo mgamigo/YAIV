@@ -821,10 +821,11 @@ def kernel_density(
 
     Parameters
     ----------
-    x : np.ndarray | pint.Quantity, shape (nk, nb)
+    x : np.ndarray | pint.Quantity, shape (nk, ...)
         Sample locations (e.g., energies). If unitful, `default_sigma` must be compatible.
-    values : np.ndarray | pint.Quantity, optional, shape (nk, nb)
-        Amplitudes per sample. Defaults to ones giving a DOS like quantity.
+    values : np.ndarray | pint.Quantity, optional, shape x.shape + component_shape
+        Amplitudes per sample. Defaults to ones giving a DOS like quantity. Any axes
+        after ``x.shape`` are treated as independent components.
     weights : np.ndarray, optional, shape (nk,)
         k-point weights (sum to 1). Defaults to uniform weights 1/nk.
     default_sigma : float | pint.Quantity, optional
@@ -844,8 +845,8 @@ def kernel_density(
     Raises
     ------
     ValueError
-        If shapes are inconsistent (e.g., weights length not equal to nk, or values shape
-        does not match `x`).
+        If shapes are inconsistent (e.g., weights length not equal to nk, or values
+        leading axes do not match `x`).
 
     Notes
     -----
@@ -864,6 +865,7 @@ def kernel_density(
 
     # Units normalization
     x, x_units = _split_units(x)
+    x = np.asarray(x)
     if isinstance(x_units, int):
         default_sigma = float(default_sigma) if default_sigma is not None else None
     else:
@@ -875,8 +877,12 @@ def kernel_density(
 
     # Shapes/checks
     nk = x.shape[0]
-    if values.shape != x.shape:
-        raise ValueError("`values` and `x` must have the same shape (nk, nb).")
+    if val.ndim < x.ndim or val.shape[: x.ndim] != x.shape:
+        raise ValueError(
+            "`values` leading dimensions must match `x.shape`; trailing dimensions "
+            "are interpreted as component axes."
+        )
+    component_shape = val.shape[x.ndim :]
     if weights is None:
         w = np.ones(nk, dtype=float) / nk
     else:
@@ -887,14 +893,14 @@ def kernel_density(
         )
 
     # Flatten, align, sort by x for efficient search
-    x_flat = x.flatten()
-    v_flat = val.flatten()
-    w_flat = np.repeat(w, int(len(x_flat) / nk))
+    x_flat = x.reshape(-1)
+    v_flat = val.reshape((x_flat.size,) + component_shape)
+    w_flat = np.repeat(w, x_flat.size // nk)
 
     # Sort by x for efficient windowing with searchsorted
     sort_idx = np.argsort(x_flat)
     x_flat = x_flat[sort_idx]
-    v_flat = v_flat[sort_idx]
+    v_flat = v_flat[sort_idx, ...]
     w_flat = w_flat[sort_idx]
 
     # Default sigma
@@ -963,22 +969,26 @@ def kernel_density(
         else:
             return_float = False
             X = np.asarray(X)
-        out = np.zeros(X.shape, dtype=float)
-        lefts = X - cutoff * sigma
-        rights = X + cutoff * sigma
+        x_eval_shape = X.shape
+        X_eval = X.reshape(-1)
+        out = np.zeros((X_eval.size,) + component_shape, dtype=float)
+        lefts = X_eval - cutoff * sigma
+        rights = X_eval + cutoff * sigma
 
         # vectorized window search
         starts = np.searchsorted(x_flat, lefts, side="left")
         stops = np.searchsorted(x_flat, rights, side="right")
 
-        for i, (start, stop, X0) in enumerate(zip(starts, stops, X)):
+        for i, (start, stop, X0) in enumerate(zip(starts, stops, X_eval)):
             x_loc = x_flat[start:stop]
             v_loc = v_flat[start:stop]
             w_loc = w_flat[start:stop]
             if x_loc.size == 0:
                 continue
             K = kernel(x_loc, X0, sigma)
-            out[i] = np.sum(K * v_loc * w_loc)
+            factor = (K * w_loc).reshape((x_loc.size,) + (1,) * len(component_shape))
+            out[i] = np.sum(factor * v_loc, axis=0)
+        out = out.reshape(x_eval_shape + component_shape)
 
         # Units: (values units)/(x units)
         OUT = out * (val_units / x_units)
@@ -1115,7 +1125,10 @@ def kernel_regression(
 
         A = density(X=X, cutoff_sigmas=cutoff_sigmas, sigma=sigma)
         B = DOS(X=X, cutoff_sigmas=cutoff_sigmas, sigma=sigma)
-        OUT = A / (B + reg)
+        denominator = B + reg
+        while len(np.shape(denominator)) < len(np.shape(A)):
+            denominator = np.expand_dims(denominator, axis=-1)
+        OUT = A / denominator
         return OUT
 
     return kernel_regression_func
