@@ -863,17 +863,13 @@ def kernel_density(
     _check_unit_consistency(quantities, names)
 
     # Units normalization
-    if isinstance(x, ureg.Quantity):
-        x_units = x.units
-        x = np.asarray(x.magnitude)
+    x, x_units = _split_units(x)
+    if isinstance(x_units, int):
+        default_sigma = float(default_sigma) if default_sigma is not None else None
+    else:
         default_sigma = (
             default_sigma.to(x_units).magnitude if default_sigma is not None else None
         )
-    else:
-        x_units = 1
-        x = np.asarray(x)
-        default_sigma = float(default_sigma) if default_sigma is not None else None
-
     val, val_units = _split_units(values)
     val = np.asarray(val)
 
