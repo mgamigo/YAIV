@@ -153,15 +153,26 @@ def _check_unit_consistency(quantities: Sequence[Any], names: Sequence[str] = No
         If the list contains a mix of unitful and unitless variables.
     """
     has_units = [
-        isinstance(x, ureg.Quantity) if x is not None else x for x in quantities
+        isinstance(x, ureg.Quantity) if x is not None else None for x in quantities
     ]
+
     S = set(has_units)
     S.discard(None)
+
     if len(S) > 1:
-        if names is not None:
-            print("Units check failed for:", names)
-        print("Units status:", has_units)
-        raise TypeError("Either all or none of the variables must have units.")
+        if names is None:
+            names = [f"arg{i}" for i in range(len(quantities))]
+
+        details = "\n".join(
+            f"  {name}: {getattr(q, 'units', 'unitless')}"
+            for name, q in zip(names, quantities)
+        )
+
+        raise TypeError(
+            "Mixed unitful and unitless inputs detected.\n"
+            "All non-None arguments must either have units or be unitless.\n\n"
+            f"{details}"
+        )
 
 
 def _split_units(

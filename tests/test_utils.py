@@ -21,9 +21,6 @@ def test_check_unit_consistency_failure(capsys):
             [1.0 * ureg.meter, 2.0, None],
             names=["length", "value", "optional"],
         )
-    out = capsys.readouterr().out
-    assert "Units check failed for:" in out
-    assert "Units status:" in out
 
 
 def test_split_units():
