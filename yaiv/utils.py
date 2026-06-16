@@ -157,7 +157,7 @@ def _check_unit_consistency(quantities: Sequence[Any], names: Sequence[str] = No
     ]
     S = set(has_units)
     S.discard(None)
-    if len(S) != 1:
+    if len(S) > 1:
         if names is not None:
             print("Units check failed for:", names)
         print("Units status:", has_units)
