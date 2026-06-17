@@ -570,7 +570,7 @@ def rotate(
     This function applies the rotation to the tensor components. To change the
     representation of R itself (without applying it), use `change_basis` directly.
     """
-    R = np.asarray(R, dtype=float)
+    R = np.asarray(_split_units(R)[0])
     dim = R.shape[0]
 
     # Active rotation → passive basis change with A = R^{-1}
