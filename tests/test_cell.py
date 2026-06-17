@@ -131,8 +131,10 @@ def test_get_supercell(data_dir, require, fname, rep):
     pos1 = sc.spglib[1]
     assert np.all((pos1 >= -1e-9) & (pos1 <= 1 + 1e-9))
 
-    # Same symmetries:
-    assert spg.get_spacegroup(c) == spg.get_spacegroup(sc)
+    # Same space group:
+    ds0 = spg.get_symmetry_dataset(c.spglib, _throw=True)
+    ds1 = spg.get_symmetry_dataset(sc.spglib, _throw=True)
+    assert (ds0.international, ds0.number) == (ds1.international, ds1.number)
 
 
 @pytest.mark.parametrize("fname", FILES, ids=IDS)

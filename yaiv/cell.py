@@ -228,7 +228,7 @@ class Cell:
 
         atoms = spglib2ase(self.spglib)
         print(atoms.get_chemical_formula())
-        dataset = get_symmetry_dataset(self.spglib, symprec=symprec)
+        dataset = get_symmetry_dataset(self.spglib, symprec=symprec, _throw=True)
         print("SpaceGroup =", dataset.international, "(" + str(dataset.number) + ")")
         print()
         print("ATOMS:")
@@ -287,7 +287,7 @@ class Cell:
 
         spglib_data = self.spglib
         atoms = spglib2ase(spglib_data)
-        dataset = get_symmetry_dataset(spglib_data, symprec=symprec)
+        dataset = get_symmetry_dataset(spglib_data, symprec=symprec, _throw=True)
 
         wyckoff_letters = dataset.wyckoffs
         equivalent_atoms = dataset.equivalent_atoms
@@ -324,7 +324,7 @@ class Cell:
             indices=grouped_indices,
         )
 
-    def get_supercell(self, supercell: list[int] = [1, 1, 1]) -> "Cell":
+    def get_supercell(self, supercell: list[int] = None) -> "Cell":
         """
         Construct a supercell by repeating the current unit cell along each lattice direction.
 
@@ -342,6 +342,9 @@ class Cell:
         Cell
             A new `Cell` object representing the expanded supercell.
         """
+
+        if supercell is None:
+            supercell = [1, 1, 1]
 
         lattice = np.copy(self[0])  # Original lattice vectors (3x3)
         positions_list = []
@@ -390,20 +393,22 @@ class Cell:
         kgrid : list, optional
             Desiered number of kgrid [N1,N2,N3]. Defaults to the template or `qe_defaults`.
         """
-        import re, os
+        import re
+        from pathlib import Path
+        from tempfile import NamedTemporaryFile
+
         from ase.io import write
         from yaiv.defaults.config import qe_defaults
 
         # Build dummy dictionary for pseudopotentials (needed from ASE 3.24)
         species = set(self.atoms.get_chemical_symbols())
-        pseudopotentials = {}
-        for s in species:
-            pseudopotentials[s] = f"{s}.upf"
-        print(pseudopotentials)
+        pseudopotentials = {s: f"{s}.upf" for s in species}
 
         # Pass a valid kgrid tuple.
         if isinstance(kgrid, list):
-            kpts = kgrid = tuple(kgrid)
+            kgrid = tuple(kgrid)
+        if kgrid is not None:
+            kpts = kgrid
         elif kgrid is None:
             kpts = qe_defaults.kpts
 
@@ -419,34 +424,41 @@ class Cell:
             )
             return
 
-        # Write a temporary QE input from the structure to extract updated geometry
-        print(pseudopotentials)
-        write(
-            ".tmp.pwi",
-            self.atoms,
-            format="espresso-in",
-            pseudopotentials=pseudopotentials,
-        )
+        filename = Path(filename)
 
-        # Extract updated geometry info: CELL_PARAMETERS, ATOMIC_POSITIONS, nat
-        basis = []
-        pos = []
-        cell_line = -4
-        pos_line = -999999
-        nat = 0
-        with open(".tmp.pwi", "r") as lines:
-            for n, line in enumerate(lines):
-                if re.search(r"\bnat\b", line):
-                    nat = int(line.split()[2])
-                if re.search("CELL_PARAMETERS", line):
-                    cell_line = n
-                if re.search("ATOMIC_POSITIONS", line):
-                    pos_line = n
-                if n - cell_line in [1, 2, 3]:
-                    basis.append(line)
-                if n - pos_line in range(1, nat + 1):
-                    pos.append(line)
-        os.remove(".tmp.pwi")
+        # Write a temporary QE input from the structure to extract updated geometry.
+        with NamedTemporaryFile(
+            mode="w", suffix=".pwi", dir=filename.parent, delete=False
+        ) as tmp:
+            tmp_name = Path(tmp.name)
+        try:
+            write(
+                tmp_name,
+                self.atoms,
+                format="espresso-in",
+                pseudopotentials=pseudopotentials,
+            )
+
+            # Extract updated geometry info: CELL_PARAMETERS, ATOMIC_POSITIONS, nat
+            basis = []
+            pos = []
+            cell_line = -4
+            pos_line = -999999
+            nat = 0
+            with tmp_name.open("r") as lines:
+                for n, line in enumerate(lines):
+                    if re.search(r"\bnat\b", line):
+                        nat = int(line.split()[2])
+                    if re.search("CELL_PARAMETERS", line):
+                        cell_line = n
+                    if re.search("ATOMIC_POSITIONS", line):
+                        pos_line = n
+                    if n - cell_line in [1, 2, 3]:
+                        basis.append(line)
+                    if n - pos_line in range(1, nat + 1):
+                        pos.append(line)
+        finally:
+            tmp_name.unlink(missing_ok=True)
 
         # Open template and inject updated structural info
         write_nat = True
@@ -454,42 +466,41 @@ class Cell:
         write_basis = True
         write_kpoints = False
 
-        temp = open(template, "r")
-        output = open(filename, "w")
-        for line in temp:
-            if re.search("ibrav", line):
-                if "0" not in line:
-                    raise ValueError("ERROR: Your template must have ibrav = 0.")
-            elif re.search("pseudo_dir", line):
-                line = "  pseudo_dir = '$PSEUDO_DIR',\n"
-            elif re.search("outdir", line):
-                line = "  outdir = './tmp',\n"
-            elif re.search("nat*=", line) and write_nat == True:
-                line = "  nat=" + str(nat) + ",\n"
-                write_nat = False
-            elif re.search("POSITIONS", line, re.IGNORECASE) and write_pos == True:
-                line = "ATOMIC_POSITIONS {angstrom}\n"
-                output.write(line)
-                for line in pos:
+        with open(template, "r") as temp, filename.open("w") as output:
+            for line in temp:
+                if re.search("ibrav", line):
+                    if "0" not in line:
+                        raise ValueError("ERROR: Your template must have ibrav = 0.")
+                elif re.search("pseudo_dir", line):
+                    line = "  pseudo_dir = '$PSEUDO_DIR',\n"
+                elif re.search("outdir", line):
+                    line = "  outdir = './tmp',\n"
+                elif re.search(r"\bnat\s*=", line) and write_nat == True:
+                    line = "  nat=" + str(nat) + ",\n"
+                    write_nat = False
+                elif re.search("POSITIONS", line, re.IGNORECASE) and write_pos == True:
+                    line = "ATOMIC_POSITIONS {angstrom}\n"
                     output.write(line)
-                write_pos = False
-            elif re.search("POINTS", line, re.IGNORECASE):
-                write_kpoints = True
-            elif re.search("CELL", line, re.IGNORECASE):
-                line = "CELL_PARAMETERS {angstrom}\n"
-                output.write(line)
-                for line in basis:
+                    for line in pos:
+                        output.write(line)
+                    write_pos = False
+                elif re.search("POINTS", line, re.IGNORECASE):
+                    write_kpoints = True
+                elif re.search("CELL", line, re.IGNORECASE):
+                    line = "CELL_PARAMETERS {angstrom}\n"
                     output.write(line)
-                write_kpoints = False
-            if write_pos == True:
-                output.write(line)
-            elif write_kpoints == True:
-                output.write(line)
-                if kgrid is not None:
-                    output.write("  " + " ".join(map(str, (*kgrid, 0, 0, 0))) + "\n")
+                    for line in basis:
+                        output.write(line)
                     write_kpoints = False
-        temp.close()
-        output.close()
+                if write_pos == True:
+                    output.write(line)
+                elif write_kpoints == True:
+                    output.write(line)
+                    if kgrid is not None:
+                        output.write(
+                            "  " + " ".join(map(str, (*kgrid, 0, 0, 0))) + "\n"
+                        )
+                        write_kpoints = False
 
     def print(self, filename: str = None):
         """
@@ -567,7 +578,8 @@ class Cell:
         import nglview as nv
 
         # Create the widget with optional repeated structure
-        widget = nv.show_ase(self.atoms.repeat(repeat), default=False)
+        widget = nv.show_ase(self.atoms.repeat(repeat))
+        widget.clear_representations()
 
         # Adjust widget dimensions using the `size` parameter
         widget.layout.width = f"{int(size * 800)}px"
