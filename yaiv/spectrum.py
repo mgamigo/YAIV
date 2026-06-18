@@ -111,11 +111,9 @@ class _Has_lattice:
         """
         self._lattice = self._k_lattice = None
         if lattice is not None:
-            self._lattice = lattice
-            self._k_lattice = ut.reciprocal_basis(self._lattice)
+            self.lattice = lattice
         elif k_lattice is not None:
-            self._k_lattice = k_lattice
-            self._lattice = ut.reciprocal_basis(self._k_lattice)
+            self.k_lattice = k_lattice
         self.alat = alat
 
     @property

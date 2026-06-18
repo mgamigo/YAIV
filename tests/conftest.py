@@ -3,23 +3,26 @@ import warnings
 import matplotlib
 import matplotlib.pyplot as plt
 import pytest
+import numpy as np
 
 # Use a headless backend for all plot tests
 matplotlib.use("Agg")
 # Make plots reproducible across machines
-plt.rcParams.update({
-    "figure.dpi": 100,
-    "figure.figsize": (4, 3),
-    "savefig.dpi": 100,
-    "font.size": 10,
-    "font.family": "DejaVu Sans",   # default available font
-    "axes.titlesize": 10,
-    "axes.labelsize": 10,
-    "legend.fontsize": 9,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "lines.linewidth": 1.2,
-})
+plt.rcParams.update(
+    {
+        "figure.dpi": 100,
+        "figure.figsize": (4, 3),
+        "savefig.dpi": 100,
+        "font.size": 10,
+        "font.family": "DejaVu Sans",  # default available font
+        "axes.titlesize": 10,
+        "axes.labelsize": 10,
+        "legend.fontsize": 9,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "lines.linewidth": 1.2,
+    }
+)
 
 
 @pytest.fixture(scope="session")
@@ -51,3 +54,10 @@ def _close_figs():
 
     yield
     plt.close("all")
+
+
+def quantity_allclose(actual, expected, **kwargs):
+    expected = expected.to(actual.units)
+    np.testing.assert_allclose(actual.magnitude, expected.magnitude, **kwargs)
+    assert actual.units == expected.units
+

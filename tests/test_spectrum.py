@@ -4,10 +4,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.collections import PathCollection, LineCollection
 
-from yaiv.spectrum import Spectrum, ElectronBands, PhononBands, Density
+from yaiv.spectrum import Spectrum, ElectronBands, PhononBands, Density, _Has_lattice
 from yaiv.defaults.config import ureg
 from yaiv import utils as ut
 from yaiv import grep
+from conftest import quantity_allclose
 
 # Force non-interactive backend for headless testing
 matplotlib.use("Agg")
@@ -47,6 +48,35 @@ def _first_existing_by_kind(data_dir, require, kinds):
             if f.exists():
                 return f, kind
     pytest.skip(f"No test data found for kinds: {kinds}")
+
+
+def test_Has_lattice():
+    # Start with real space
+    lattice = np.diag([2.0, 3.0, 4.0]) * ureg.angstrom
+    expected_k_lattice = ut.reciprocal_basis(lattice)
+    has_lattice = _Has_lattice(lattice=lattice)
+
+    quantity_allclose(has_lattice.lattice, lattice)
+    quantity_allclose(has_lattice.k_lattice, expected_k_lattice)
+    quantity_allclose(has_lattice.volume, 24.0 * ureg.ang**3)
+    assert has_lattice.lattice.check(ureg.angstrom)
+    assert has_lattice.k_lattice.check(ureg._2pi / ureg.angstrom)
+
+    # Start with k-space
+    k_lattice = np.diag([2.0, 3.0, 4.0]) * (1 / ureg.angstrom)
+    expected_lattice = ut.reciprocal_basis(k_lattice)
+    has_lattice = _Has_lattice(k_lattice=k_lattice)
+    quantity_allclose(has_lattice.volume, (1 / 24) * ureg("_2pi * ang") ** 3)
+
+    quantity_allclose(has_lattice.lattice, expected_lattice)
+    quantity_allclose(has_lattice.k_lattice, k_lattice)
+
+    # Test sync between lattice and k_lattice uppon change
+    new_lattice = np.eye(3) * 5.0 * ureg.angstrom
+    expected_new_k_lattice = ut.reciprocal_basis(new_lattice)
+    has_lattice.lattice = new_lattice
+    quantity_allclose(has_lattice.lattice, new_lattice)
+    quantity_allclose(has_lattice.k_lattice, expected_new_k_lattice)
 
 
 @pytest.mark.parametrize("fname, kind", FILES, ids=IDS)
