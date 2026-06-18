@@ -83,12 +83,12 @@ class _Has_lattice:
 
     Attributes
     ----------
-    lattice : np.ndarray
+    lattice : np.ndarray | ureg.Quantity
         3x3 matrix of direct lattice vectors in [length] units.
-    k_lattice : np.ndarray
+    k_lattice : np.ndarray | ureg.Quantity
         3x3 matrix of reciprocal lattice vectors in 2π[length]⁻¹ units.
-    alat : ureg.Quantity
-        `alat` factor for conversions.
+    volume : np.ndarray | ureg.Quantity
+        Volume of the cell defined by `lattice`.
     """
 
     def __init__(
@@ -125,6 +125,11 @@ class _Has_lattice:
     @property
     def k_lattice(self):
         return self._k_lattice
+
+    @property
+    def volume(self):
+        lat, units = ut._split_units(self.lattice)
+        return np.linalg.det(lat) * (units**3)
 
     @lattice.setter
     def lattice(self, value):
