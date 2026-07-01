@@ -1763,6 +1763,13 @@ def expand_irreducible_bz(
         If kpoints are not in crystal reciprocal units (2π/crystal).
     ValueError
         Not all grid points are matched by symmetry expansion.
+
+    Notes
+    -----
+    The output arrays are indexed by the corresponding grid node in C-order
+    (last grid index varying fastest) after matching points are wrapped to
+    ``[0, 1)``. The stored k-point coordinates themselves are the symmetry-
+    generated values, not the wrapped grid-node representatives.
     """
 
     # Units handling
