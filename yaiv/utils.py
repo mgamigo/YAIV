@@ -1791,7 +1791,7 @@ def expand_irreducible_bz(
         # Rk are the images of the IBZ points by the symmetry i
         Rk = rotate(kpts, sym.R, contravariant=0, covariant=1)
 
-        # Rk_snapped are the closestpoints nodes of the grid
+        # Rk_snapped are the closest points nodes of the grid
         Rk_snapped = np.round(Rk / grid_step) * grid_step
 
         # True if the point is close enough to an infinite grid node
@@ -1804,7 +1804,7 @@ def expand_irreducible_bz(
         ijk = np.round(Rk_match / grid_step).astype(int)
 
         # The grid is generated in C-ordering:
-        # [(i, j, k) for j in range(nx) for i in range(ny) for k in range(nz)]
+        # [(i, j, k) for i in range(nx) for j in range(ny) for k in range(nz)]
         # c_strides = [ny*nz,nz,1]
         c_strides = np.concatenate([np.cumprod(grid[::-1])[::-1][1:], [1]])
         # so the summation here reflect that
