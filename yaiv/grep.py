@@ -779,7 +779,7 @@ class _Qe_xml:
         smearing : ureg.Quantity
             Smearing with attached units (ureg.Quantity).
         """
-        smearing = float(self.root.find(".//smearing").attrib["degauss"]) * ureg.Ry
+        smearing = float(self.root.find(".//smearing").attrib["degauss"]) * ureg.hartree
         return smearing
 
     def runtime(self) -> ureg.Quantity:
