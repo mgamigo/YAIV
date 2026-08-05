@@ -1150,18 +1150,22 @@ def stress_tensor(file: str) -> ureg.Quantity:
     """
     filetype = _filetype(file)
     READ = False
-    stress = []
+    stress = None
     with open(file, "r") as lines:
         if filetype == "qe_scf_out":
+            current_stress = []
             for line in lines:
                 if READ == True:
                     vec = np.array([float(x) for x in line.split()[:3]])
-                    stress.append(vec)
-                    if np.shape(stress) == (3, 3):
-                        break
+                    current_stress.append(vec)
+                    if np.shape(current_stress) == (3, 3):
+                        stress = np.array(current_stress) * (
+                            ureg("Ry") / ureg("bohr") ** 3
+                        ).to("kbar")
+                        READ = False
                 elif re.search("total.*stress", line):
+                    current_stress = []
                     READ = True
-            stress = np.array(stress) * (ureg("Ry") / ureg("bohr") ** 3).to("kbar")
         elif filetype == "outcar":
             for line in lines:
                 if "in kB" in line:
@@ -1175,7 +1179,7 @@ def stress_tensor(file: str) -> ureg.Quantity:
         else:
             raise NotImplementedError("Unsupported filetype")
         lines.close()
-    if "stress" not in locals():
+    if stress is None:
         raise NameError("Stress tensor not found.")
     return stress
 

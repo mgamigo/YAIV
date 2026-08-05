@@ -167,6 +167,38 @@ def test_stress_tensor(data_dir, require, fname, kind):
             grep.stress_tensor(str(f))
 
 
+def test_stress_tensor_qe_uses_last_block(tmp_path):
+    f = tmp_path / "relax.pwo"
+    f.write_text(
+        """
+     Program PWSCF
+
+          total   stress  (Ry/bohr**3)                   (kbar)     P=       51.81
+   0.00035487   0.00000000   0.00000000           52.20        0.00        0.00
+   0.00000000   0.00035487  -0.00000000            0.00       52.20       -0.00
+   0.00000000  -0.00000000   0.00034676            0.00       -0.00       51.01
+
+          total   stress  (Ry/bohr**3)                   (kbar)     P=        0.00
+   0.00000001  -0.00000002   0.00000003            0.00       -0.00        0.00
+   0.00000004   0.00000005   0.00000006            0.00        0.00        0.00
+   0.00000007   0.00000008  -0.00000009            0.00        0.00       -0.00
+""",
+        encoding="utf-8",
+    )
+
+    S = grep.stress_tensor(str(f))
+    expected = np.array(
+        [
+            [0.00000001, -0.00000002, 0.00000003],
+            [0.00000004, 0.00000005, 0.00000006],
+            [0.00000007, 0.00000008, -0.00000009],
+        ]
+    ) * (ureg("Ry") / ureg("bohr") ** 3).to("kbar")
+
+    assert S.check(ureg.kbar)
+    np.testing.assert_allclose(S.magnitude, expected.magnitude)
+
+
 @pytest.mark.parametrize("fname, kind", FILES, ids=IDS)
 def test_kpath(data_dir, require, fname, kind):
     f = data_dir / fname
