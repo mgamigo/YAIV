@@ -85,6 +85,9 @@ _check_unit_consistency(quantities, names=None)
 _split_units(quantities)
     Separate magnitudes and units from input quantities.
 
+_as_single_quantity(quantities)
+    Convert a sequence of compatible Pint quantities into one quantity array.
+
 _normal_dist(x, mean=0, sd=0.1, A=1)
     Computes the value of a normalized Gaussian distribution.
 
@@ -215,6 +218,45 @@ def _split_units(
 
     # --- fallback (non-iterable, non-quantity) ---
     return quantities, 1
+
+
+def _as_single_quantity(
+    quantities: Sequence[ureg.Quantity],
+) -> ureg.Quantity:
+    """
+    Convert compatible Pint quantities into a single quantity array.
+
+    Parameters
+    ----------
+    quantities : sequence of pint.Quantity
+        Input quantities. Each entry must be compatible with the first entry's
+        unit.
+
+    Returns
+    -------
+    quantity : pint.Quantity
+        Magnitudes stacked into a NumPy array and carrying the first entry's
+        unit.
+
+    Raises
+    ------
+    ValueError
+        If ``quantities`` is empty.
+    TypeError
+        If any entry is not a Pint quantity.
+    pint.errors.DimensionalityError
+        If an entry cannot be converted to the first entry's unit.
+    """
+    quantities = list(quantities)
+    if len(quantities) == 0:
+        raise ValueError("`quantities` cannot be empty.")
+
+    if not all(isinstance(q, ureg.Quantity) for q in quantities):
+        raise TypeError("All entries in `quantities` must be Pint quantities.")
+
+    unit = quantities[0].units
+    magnitudes = [q.to(unit).magnitude for q in quantities]
+    return np.asarray(magnitudes) * unit
 
 
 def invQ(matrix: np.ndarray | ureg.Quantity) -> np.ndarray | ureg.Quantity:

@@ -2,6 +2,7 @@ import pytest
 import warnings
 import numpy as np
 from numpy.testing import assert_allclose
+from pint.errors import DimensionalityError
 
 from yaiv.defaults.config import ureg
 from yaiv import utils as ut
@@ -40,6 +41,25 @@ def test_split_units():
     mag, units = ut._split_units(data)
     assert mag == [1, 2, 3]
     assert units == [1, ureg.s, 1]
+
+
+def test_as_single_quantity():
+    data = [1.0 * ureg.meter, 25.0 * ureg.centimeter, 2.0 * ureg.meter]
+
+    quantity = ut._as_single_quantity(data)
+
+    assert isinstance(quantity, ureg.Quantity)
+    assert quantity.units == ureg.meter
+    assert_allclose(quantity.magnitude, [1.0, 0.25, 2.0])
+
+    with pytest.raises(ValueError):
+        ut._as_single_quantity([])
+
+    with pytest.raises(TypeError):
+        ut._as_single_quantity([1.0 * ureg.meter, 2.0])
+
+    with pytest.raises(DimensionalityError):
+        ut._as_single_quantity([1.0 * ureg.meter, 1.0 * ureg.second])
 
 
 def test_invQ():
