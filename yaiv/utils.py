@@ -1638,6 +1638,7 @@ def symmetry_orbit_kpoints(
     symmetries: list,
     tol: float = 1e-6,
     mod_G: bool = True,
+    time_reversal: bool = False,
 ) -> SimpleNamespace:
     """
     Apply all symmetry rotations to a set of k-points (row vectors) and return
@@ -1661,6 +1662,9 @@ def symmetry_orbit_kpoints(
         If True (default), identify k ≡ k + G via wrapping to [-0.5, 0.5):
         k -> k - floor(k + 0.5). This maps -0.5 to +0.5 so boundary points are
         handled consistently.
+    time_reversal : bool, optional
+        If True, also generate k' = -(k @ inv(R)) for every crystal operation.
+        Default False.
 
     Returns
     -------
@@ -1669,6 +1673,8 @@ def symmetry_orbit_kpoints(
             Unique symmetry-expanded k-points (within `tol`), same units as input.
         - sym : np.ndarray, shape (M,)
             Symmetry index (into `symmetries`) of the representative kept.
+        - time_reversed : np.ndarray, shape (M,), dtype bool
+            Whether time reversal followed the operation indexed by `sym`.
         - origin : np.ndarray, shape (M,)
             Original input k-point index from which the representative was generated.
         - weights : np.ndarray, shape (N,)
@@ -1682,6 +1688,12 @@ def symmetry_orbit_kpoints(
 
     Notes
     -----
+    All ordinary crystal operations are processed before any time-reversed
+    images, so ordinary operations win when both generate the same point.
+    `sym` always indexes the supplied crystal operations, including for TRS
+    images; TRS alone uses the identity index. These mappings describe k-point
+    coordinates, not transformations of wavefunctions or band labels.
+
     - WARNING: This may generate more points than the ones on the grid, for that use
     `expand_irreducible_bz`.
     - Row-vector convention: k' = k @ inv(R).
@@ -1721,6 +1733,14 @@ def symmetry_orbit_kpoints(
         )
     expanded = np.concatenate(expanded)  # shape (S*N, DIM)
     idx_pairs = np.concatenate(idx_pairs)
+    time_reversed = np.zeros(len(expanded), dtype=bool)
+    # Append the entire TRS pass after ordinary images to preserve their priority.
+    if time_reversal:
+        time_reversed = np.concatenate(
+            (time_reversed, np.ones(len(expanded), dtype=bool))
+        )
+        expanded = np.concatenate((expanded, -expanded))
+        idx_pairs = np.concatenate((idx_pairs, idx_pairs))
     # Wrap to [-0.5,0.5)
     if mod_G:
         expanded = wrap_fractional(expanded)
@@ -1755,6 +1775,7 @@ def symmetry_orbit_kpoints(
         sym=idx_map[:, 0],
         origin=idx_map[:, 1],
         weights=origin_weights,
+        time_reversed=time_reversed[keep_idx],
     )
 
 
@@ -1763,6 +1784,7 @@ def expand_irreducible_bz(
     grid: list[int],
     symmetries: list,
     tol: float = 1e-5,
+    time_reversal: bool = False,
 ) -> SimpleNamespace:
     """
     Expand a set of irreducible k-points to the full Brillouin zone using symmetry operations.
@@ -1785,6 +1807,9 @@ def expand_irreducible_bz(
             - sym.units : must be in crystal units (ureg.crystal)
     tol : float, optional
         Tolerance used to identify matching k-points modulo reciprocal lattice vectors.
+    time_reversal : bool, optional
+        If True, also generate k' = -(k @ inv(R)) for every crystal operation.
+        Default False.
 
     Returns
     -------
@@ -1794,6 +1819,8 @@ def expand_irreducible_bz(
                 Expanded k-points covering the full Brillouin zone.
             sym : np.ndarray
                 Index of the symmetry operation used to generate each k-point.
+            time_reversed : np.ndarray, dtype bool
+                Whether time reversal followed the operation indexed by `sym`.
             origin : np.ndarray
                 Index of the original irreducible k-point from which each expanded point originates.
 
@@ -1808,6 +1835,12 @@ def expand_irreducible_bz(
 
     Notes
     -----
+    All ordinary crystal operations are processed before any time-reversed
+    images, so ordinary operations win when both generate the same point.
+    `sym` always indexes the supplied crystal operations, including for TRS
+    images; TRS alone uses the identity index. These mappings describe k-point
+    coordinates, not transformations of wavefunctions or band labels.
+
     The output arrays are indexed by the corresponding grid node in C-order
     (last grid index varying fastest) after matching points are wrapped to
     ``[0, 1)``. The stored k-point coordinates themselves are the symmetry-
@@ -1833,48 +1866,55 @@ def expand_irreducible_bz(
 
     syms = np.zeros((N_grid,), dtype=np.int32)
     origins = np.zeros((N_grid,), dtype=np.int64)
+    time_reversed = np.zeros(N_grid, dtype=bool)
     found = np.zeros_like(origins, dtype=bool)
     kpoints = np.zeros([N_grid, len(grid)], dtype=float)
 
-    for i, sym in enumerate(symmetries):
-        # Rk are the images of the IBZ points by the symmetry i
-        Rk = rotate(kpts, sym.R, contravariant=0, covariant=1)
+    # Finish all ordinary operations before trying TRS; a complete grid returns early.
+    for reverse in ([False, True] if time_reversal else [False]):
+        for i, sym in enumerate(symmetries):
+            # Rk are the images of the IBZ points by the symmetry i
+            Rk = rotate(kpts, sym.R, contravariant=0, covariant=1)
+            if reverse:
+                Rk = -Rk
 
-        # Rk_snapped are the closest points nodes of the grid
-        Rk_snapped = np.round(Rk / grid_step) * grid_step
+            # Rk_snapped are the closest points nodes of the grid
+            Rk_snapped = np.round(Rk / grid_step) * grid_step
 
-        # True if the point is close enough to an infinite grid node
-        mask = np.abs(Rk - Rk_snapped).max(axis=1) < tol
-        Rk_match = Rk_snapped[mask]
+            # True if the point is close enough to an infinite grid node
+            mask = np.abs(Rk - Rk_snapped).max(axis=1) < tol
+            Rk_match = Rk_snapped[mask]
 
-        # Compute the integer coordinates
-        Rk_match = np.mod(Rk_match, 1.0)  # wrap to [0, 1)
-        # convert to number of steps from 0
-        ijk = np.round(Rk_match / grid_step).astype(int)
+            # Compute the integer coordinates
+            Rk_match = np.mod(Rk_match, 1.0)  # wrap to [0, 1)
+            # convert to number of steps from 0
+            ijk = np.round(Rk_match / grid_step).astype(int)
 
-        # The grid is generated in C-ordering:
-        # [(i, j, k) for i in range(nx) for j in range(ny) for k in range(nz)]
-        # c_strides = [ny*nz,nz,1]
-        c_strides = np.concatenate([np.cumprod(grid[::-1])[::-1][1:], [1]])
-        # so the summation here reflect that
-        indices = ijk.dot(c_strides)
+            # The grid is generated in C-ordering:
+            # [(i, j, k) for i in range(nx) for j in range(ny) for k in range(nz)]
+            # c_strides = [ny*nz,nz,1]
+            c_strides = np.concatenate([np.cumprod(grid[::-1])[::-1][1:], [1]])
+            # so the summation here reflect that
+            indices = ijk.dot(c_strides)
 
-        # only keep the new points in the mask, this way we always keep the
-        # symmetry of the first match
-        mask[mask] = ~found[indices]  # mask = mask AND not found
-        indices = indices[~found[indices]]  # mask only non-found indices
+            # only keep the new points in the mask, this way we always keep the
+            # symmetry of the first match
+            mask[mask] = ~found[indices]  # mask = mask AND not found
+            indices = indices[~found[indices]]  # mask only non-found indices
 
-        origins[indices] = np.arange(0, len(Rk))[mask]
-        syms[indices] = i
-        found[indices] = True
-        kpoints[indices] = Rk[mask]
+            origins[indices] = np.arange(0, len(Rk))[mask]
+            syms[indices] = i
+            time_reversed[indices] = reverse
+            found[indices] = True
+            kpoints[indices] = Rk[mask]
 
-        if found.sum() == N_grid:  # as soon as we hit all points we return
-            return SimpleNamespace(
-                kpoints=kpoints * units,
-                sym=syms,
-                origin=origins,
-            )
+            if found.sum() == N_grid:  # as soon as we hit all points we return
+                return SimpleNamespace(
+                    kpoints=kpoints * units,
+                    sym=syms,
+                    origin=origins,
+                    time_reversed=time_reversed,
+                )
 
     raise ValueError(
         f"Could only recover {found.sum()} out of the {N_grid} points of the grid from the reduced set of points"

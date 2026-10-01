@@ -1097,3 +1097,63 @@ def test_eigen_projection():
         assert len(w) == 1
         assert issubclass(w[-1].category, UserWarning)
         assert "Projections norm is" in str(w[-1].message)
+
+
+@pytest.mark.parametrize("unitful", [False, True])
+@pytest.mark.parametrize("on_grid", [False, True])
+def test_kpoint_time_reversal_mapping(unitful, on_grid):
+    from types import SimpleNamespace
+
+    syms = [
+        SimpleNamespace(R=np.eye(2), units=ureg.crystal),
+        SimpleNamespace(R=np.array([[0, 1], [1, 0]]), units=ureg.crystal),
+    ]
+    points = np.array([[0, 0], [1 / 3, 0], [1 / 3, 1 / 3], [1 / 3, 2 / 3]])
+    kpoints = points * ureg("_2pi/crystal") if unitful else points
+    if on_grid:
+        with pytest.raises(ValueError, match="Could only recover"):
+            ut.expand_irreducible_bz(kpoints, [3, 3], syms)
+        out = ut.expand_irreducible_bz(kpoints, [3, 3], syms, time_reversal=True)
+    else:
+        ordinary = ut.symmetry_orbit_kpoints(kpoints, syms)
+        assert not ordinary.time_reversed.any()
+        assert len(ordinary.kpoints) == 6
+        out = ut.symmetry_orbit_kpoints(kpoints, syms, time_reversal=True)
+        assert_allclose(out.weights.sum(), 1)
+    assert len(out.kpoints) == 9
+    assert out.time_reversed.dtype == np.bool_
+    assert out.time_reversed.sum() == 3
+    assert np.any(out.time_reversed & (out.sym == 1))
+    coords = out.kpoints.magnitude if unitful else out.kpoints
+    if unitful:
+        assert out.kpoints.units == kpoints.units
+    for j, (source, operation, reverse) in enumerate(
+        zip(out.origin, out.sym, out.time_reversed)
+    ):
+        expected = points[source] @ np.linalg.inv(syms[operation].R)
+        if reverse:
+            expected = -expected
+        assert_allclose(ut.wrap_fractional(coords[j] - expected), 0, atol=1e-12)
+    gamma = np.all(np.isclose(coords, 0), axis=1)
+    assert gamma.sum() == 1
+    assert not out.time_reversed[gamma].any()
+
+
+@pytest.mark.parametrize("on_grid", [False, True])
+@pytest.mark.parametrize("time_reversal", [False, True])
+def test_kpoint_inversion_preferred_to_time_reversal(on_grid, time_reversal):
+    from types import SimpleNamespace
+
+    syms = [
+        SimpleNamespace(R=np.eye(1), units=ureg.crystal),
+        SimpleNamespace(R=-np.eye(1), units=ureg.crystal),
+    ]
+    points = np.array([[0], [0.25], [0.5]])
+    if on_grid:
+        out = ut.expand_irreducible_bz(points, [4], syms, time_reversal=time_reversal)
+    else:
+        out = ut.symmetry_orbit_kpoints(points, syms, time_reversal=time_reversal)
+        assert_allclose(out.weights, [0.25, 0.5, 0.25])
+    assert len(out.kpoints) == 4
+    assert not out.time_reversed.any()
+    assert np.count_nonzero(out.sym == 1) == 1
