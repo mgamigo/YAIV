@@ -750,7 +750,6 @@ class _Qe_xml:
         symmetries = self.root.findall(".//symmetry")
         for elem in symmetries:
             info = elem.find("info")
-            print(info.text)
             if info is not None and (info.text or "").strip() == "lattice_symmetry":
                 continue
             rotation = elem.find(".//rotation")
