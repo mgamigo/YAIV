@@ -732,7 +732,8 @@ class _Qe_xml:
     def symmetries(self) -> list[SimpleNamespace]:
         """Grep symmetry operations from the QE XML and return them as rotation/translation pairs.
 
-        This reads all <symmetry> elements, extracts the 3×3 rotation matrix from
+        This reads crystal <symmetry> elements, excluding lattice-only entries,
+        and extracts the 3×3 rotation matrix from
         <rotation> and the fractional translation from <fractional_translation>,
         and returns a list of objects with fields:
           - R: np.ndarray shape (3, 3)
@@ -748,6 +749,10 @@ class _Qe_xml:
         OUT = []
         symmetries = self.root.findall(".//symmetry")
         for elem in symmetries:
+            info = elem.find("info")
+            print(info.text)
+            if info is not None and (info.text or "").strip() == "lattice_symmetry":
+                continue
             rotation = elem.find(".//rotation")
             R = np.fromstring(rotation.text, sep=" ").reshape(3, 3)
             translation = elem.find(".//fractional_translation")
@@ -1919,7 +1924,8 @@ def symmetries(file: str) -> list[SimpleNamespace]:
     """
     Grep symmetry operations and return them as rotation/translation pairs.
 
-    This reads all symmetry elements, extracts the 3×3 rotation matrix and
+    This reads crystal symmetry elements, excluding lattice-only entries,
+    and extracts the 3×3 rotation matrix and
     a fractional translation:
       - R: np.ndarray shape (3, 3) in crystal coord.
       - t: ureg.Quantity length-3 vector in units of 2π/crystal

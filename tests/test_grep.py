@@ -326,6 +326,39 @@ def test_symmetries_and_symmetry_class(data_dir, require, fname, kind):
         )
 
 
+def test_symmetries_excludes_lattice_operations(tmp_path):
+    file = tmp_path / "symmetries.xml"
+    file.write_text(
+        '''<?xml version="1.0"?>
+<!-- espresso XML -->
+<espresso>
+  <symmetries>
+    <symmetry>
+      <info> crystal_symmetry </info>
+      <rotation>1 0 0 0 1 0 0 0 1</rotation>
+      <fractional_translation>0.5 0 0</fractional_translation>
+    </symmetry>
+    <symmetry>
+      <info> lattice_symmetry </info>
+      <rotation>0 -1 0 1 0 0 0 0 1</rotation>
+    </symmetry>
+    <symmetry>
+      <info>crystal_symmetry</info>
+      <rotation>-1 0 0 0 -1 0 0 0 -1</rotation>
+    </symmetry>
+  </symmetries>
+</espresso>
+'''
+    )
+    syms = grep.symmetries(file)
+    assert len(syms) == 2
+    np.testing.assert_allclose(syms[0].R, np.eye(3))
+    np.testing.assert_allclose(syms[0].t, [0.5, 0, 0])
+    np.testing.assert_allclose(syms[1].R, -np.eye(3))
+    np.testing.assert_allclose(syms[1].t, np.zeros(3))
+    assert all(s.units == ureg.crystal for s in syms)
+
+
 @pytest.mark.parametrize("fname, kind", FILES, ids=IDS)
 def test_cutoff(data_dir, require, fname, kind):
     f = data_dir / fname
