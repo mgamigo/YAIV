@@ -10,3 +10,4 @@ tests/data
 devtools/
 OLD_resources/
 yaiv/experimental
+tmp/

@@ -40,6 +40,9 @@ read_spg(file)
 
 Private Utilities
 -----------------
+Cell._from_system_info(path)
+    Read lattice and fractional positions from a workflow SYSTEM.INFO file.
+
 _rot_name(rot, lattice)
     Identify the symbolic name and axis of a rotation matrix (e.g. 'C3', 'm') using its eigenstructure.
 
@@ -63,6 +66,7 @@ yaiv.utils    : Utility functions for basis and vector transformations
 """
 
 from __future__ import annotations
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -95,7 +99,7 @@ class Cell:
     Methods
     -------
     from_file(...)
-        Read a structure file using ASE and return a Cell instance.
+        Read an ASE-supported structure file or SYSTEM.INFO.
     from_spglib_tuple(...)
         Initialize from a (lattice, positions, numbers) spglib tuple.
     get_sym_info(...)
@@ -154,12 +158,13 @@ class Cell:
     @classmethod
     def from_file(cls, file: str):
         """
-        Read a structure file using ASE and return a Cell instance.
+        Read an ASE-supported structure file or SYSTEM.INFO.
 
         Parameters
         ----------
-        file : str
-            Path to structure file (e.g. CIF, POSCAR).
+        file : str or pathlib.Path
+            Path to structure file (e.g. CIF, POSCAR, SYSTEM.INFO). Files named
+            SYSTEM.INFO use the internal workflow parser; others use ASE.
 
         Returns
         -------
@@ -168,7 +173,73 @@ class Cell:
         """
         from ase.io import read
 
+        if Path(file).name.upper() == "SYSTEM.INFO":
+            return cls._from_system_info(file)
         atoms = read(file)
+        return cls(atoms=atoms)
+
+    @classmethod
+    def _from_system_info(cls, file):
+        """
+        Read a structure from a `dftcaddie` SYSTEM.INFO file.
+
+        Parameters
+        ----------
+        file : str or pathlib.Path
+            File containing literal shell heredoc assignments for LATTICE
+            (in angstroms) and ATOMIC_CRYST_POSITIONS (fractional coordinates
+            preceded by element symbols or QE species labels), closed by EOL.
+
+        Returns
+        -------
+        Cell
+            A periodic structure with the supplied lattice and positions.
+
+        Raises
+        ------
+        ValueError
+            If either structure block is missing or contains invalid data.
+        """
+        from ase.io.espresso import label_to_symbol
+
+        lines = Path(file).read_text().splitlines()
+        blocks = {}
+        NAMES = ["LATTICE", "ATOMIC_CRYST_POSITIONS"]
+        remaining = iter(lines)
+        for line in remaining:
+            line = line.strip()
+            if "=" in line and not line.startswith("#"):
+                assignment = line.split("=")[0]
+            else:
+                continue
+            if assignment in NAMES:
+                blocks[assignment] = []
+                for line in remaining:
+                    if line.strip() == "EOL":
+                        break
+                    fields = line.split("#", 1)[0].split()
+                    if fields:
+                        blocks[assignment].append(fields)
+                else:
+                    raise ValueError(f"Missing closing EOL for {assignment} in {file}.")
+        for name in NAMES:
+            if name not in blocks:
+                raise ValueError(f"Missing {name} block in {file}.")
+
+        try:
+            lattice = np.array(blocks["LATTICE"], dtype=float)
+            rows = blocks["ATOMIC_CRYST_POSITIONS"]
+            symbols = [label_to_symbol(row[0]) for row in rows]
+            positions = np.array([row[1:4] for row in rows], dtype=float)
+            if lattice.shape != (3, 3) or positions.shape != (len(rows), 3) or not rows:
+                raise ValueError(
+                    "Expected three lattice vectors and atomic coordinates."
+                )
+            atoms = Atoms(
+                symbols=symbols, scaled_positions=positions, cell=lattice, pbc=True
+            )
+        except (ValueError, KeyError) as exc:
+            raise ValueError(f"Invalid structure in {file}: {exc}") from exc
         return cls(atoms=atoms)
 
     @classmethod
@@ -676,14 +747,14 @@ def read_spg(file: str) -> tuple:
     """
     Read a crystal structure file and convert it directly to spglib format.
 
-    This function uses ASE's `read()` to load a crystal structure file
+    This function uses Cell.from_file to load a crystal structure file
     and returns the structure as a tuple in the format required by spglib:
     (lattice, positions, atomic_numbers).
 
     Parameters
     ----------
-    file : str
-        Path to the structure file (e.g., CIF, POSCAR, XYZ, etc.) supported by ASE.
+    file : str or pathlib.Path
+        Path to an ASE-supported structure file or SYSTEM.INFO.
 
     Returns
     -------
@@ -693,11 +764,7 @@ def read_spg(file: str) -> tuple:
         - positions : (N, 3) array of scaled atomic positions (fractional)
         - numbers : (N,) array of atomic numbers
     """
-    from ase.io import read
-
-    cryst = read(file)
-    spglib_cryst = ase2spglib(cryst)
-    return spglib_cryst
+    return Cell.from_file(file).spglib
 
 
 def _rot_name(rot: np.ndarray, lattice=np.ndarray):
